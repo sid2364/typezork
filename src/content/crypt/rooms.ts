@@ -1,4 +1,4 @@
-import { door, guarded, has, hidden, isDead, room, win } from '../../dsl';
+import { door, flag, guarded, hidden, isDead, room, win } from '../../dsl';
 
 export const rooms = [
   room('start', {
@@ -52,13 +52,15 @@ export const rooms = [
     exits: {
       west: 'dragonCell',
       north: hidden('garden'),
+      // The stream only parts once its riddle is answered (see the answer command).
       south: guarded(
         'river',
-        has('torch'),
-        "The stream says to you, 'It eats many things; it fears me but not the wind. But give me " +
-          "enough and I will subside momentarily.' You cannot get past the stream.",
-        'The water in the river bends and parts. You see how deep the river bed is without the ' +
-          'water there.',
+        flag('streamParted'),
+        (w) =>
+          "The stream says to you, 'It eats many things; it fears me but not the wind. But give " +
+          "me enough and I will subside momentarily.' You cannot get past the stream. It seems " +
+          'to be waiting for an answer.' +
+          (w.has('torch') ? ' The torch in your hand flickers.' : ''),
       ),
     },
   }),

@@ -303,12 +303,30 @@ input {
   text-transform: none;
 }
 
+/* A round window onto the map: sharp in the middle, blurring and fading out towards the rim. */
+.minimap__lens {
+  position: relative;
+  width: min(100%, 260px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  mask-image: radial-gradient(closest-side, black 55%, transparent 100%);
+}
+
+.minimap__lens::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  backdrop-filter: blur(2.5px);
+  mask-image: radial-gradient(closest-side, transparent 45%, black 85%);
+}
+
 .minimap__svg {
   display: block;
   width: 100%;
-  height: auto;
-  border: 1px solid var(--faint);
-  background: var(--bg);
+  height: 100%;
 }
 
 .minimap__caption {
@@ -330,10 +348,11 @@ input {
 }
 
 .map-grid-cell {
+  vector-effect: non-scaling-stroke;
   fill: none;
   stroke: var(--faint);
   stroke-width: 1;
-  stroke-dasharray: 2 2;
+  stroke-dasharray: 3 3;
 }
 
 .map-corridor {
@@ -342,28 +361,23 @@ input {
 }
 
 .map-cell {
+  vector-effect: non-scaling-stroke;
   fill: var(--faint);
   stroke: var(--dim);
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
 .map-cell--current {
   fill: var(--fg);
   stroke: var(--fg-strong);
-  filter: drop-shadow(0 0 4px var(--fg));
-  animation: map-blink 1.2s steps(2, jump-none) infinite;
-}
-
-@keyframes map-blink {
-  50% {
-    fill: var(--dim);
-  }
+  filter: drop-shadow(0 0 3px var(--fg)) drop-shadow(0 0 8px var(--fg));
 }
 
 .map-stub {
+  vector-effect: non-scaling-stroke;
   fill: none;
   stroke: var(--fg);
-  stroke-width: 1.5;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -384,7 +398,7 @@ input {
 }
 
 .help__list li {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.1rem;
   color: var(--dim);
 }
 
@@ -546,6 +560,27 @@ input {
   letter-spacing: 0.05em;
 }
 
+.title-screen__credit a {
+  margin-left: 0.4em;
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--dim);
+  text-shadow: none;
+}
+
+.title-screen__credit a::before {
+  content: '↗ ';
+  color: var(--dim);
+}
+
+.title-screen__credit a:hover,
+.title-screen__credit a:focus-visible {
+  outline: none;
+  color: var(--fg-strong);
+  border-bottom-color: var(--fg);
+  text-shadow: var(--glow);
+}
+
 .title-screen__sub {
   margin: 1.5rem 0;
 }
@@ -687,9 +722,5 @@ input {
   .panel,
   .map-world {
     transition: none;
-  }
-
-  .map-cell--current {
-    animation: none;
   }
 }

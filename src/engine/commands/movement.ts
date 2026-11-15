@@ -62,14 +62,28 @@ const BACK_VERBS = ['back', 'return', 'retreat', 'go back'];
 
 export const goCommand: CommandDef = {
   id: 'go',
-  verbs: ['go', 'walk', 'move', 'travel', 'run', 'head', 'climb', 'back', 'return', 'retreat'],
+  verbs: [
+    'go',
+    'walk',
+    'move',
+    'travel',
+    'run',
+    'head',
+    'climb',
+    'back',
+    'return',
+    'retreat',
+    'cd',
+  ],
   help: {
     usage: 'go north · go back',
     summary: 'Move in a direction, or back where you came from.',
   },
   run({ w, cmd }) {
     const words = cmd.direct.length ? cmd.direct : cmd.args;
-    if (BACK_VERBS.includes(cmd.verb) || words.join(' ') === 'back') {
+    // For the shell-minded: "cd .." (the dots never reach us) and "cd -" go back.
+    const cdBack = cmd.verb === 'cd' && (words.length === 0 || words.join(' ') === '-');
+    if (cdBack || BACK_VERBS.includes(cmd.verb) || words.join(' ') === 'back') {
       goBack(w);
       return;
     }

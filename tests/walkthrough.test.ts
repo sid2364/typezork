@@ -70,14 +70,41 @@ describe('crypt puzzles', () => {
     expect(game.view().exits.map((e) => e.dir)).not.toContain('north');
   });
 
-  it('the river blocks you without the torch, and parts once with it', () => {
+  it('the river blocks you until its riddle is answered with fire', () => {
     const game = newGame();
     play(game, WALKTHROUGH.slice(0, 13));
     expect(say(game, 'south')).toMatch(/You cannot get past the stream/);
+    expect(say(game, 'answer water')).toMatch(/not the answer/);
+    // The right answer without a flame isn't enough.
+    expect(say(game, 'say fire')).toMatch(/words don't burn/);
+    expect(say(game, 'south')).toMatch(/You cannot get past the stream/);
+
     play(game, ['north', 'north', 'take torch', 'south', 'south']);
-    expect(say(game, 'south')).toMatch(/^The water in the river bends and parts/);
-    expect(say(game, 'north')).not.toMatch(/bends and parts/);
-    expect(say(game, 'south')).not.toMatch(/bends and parts/);
+    // Carrying the torch doesn't solve it on its own.
+    expect(say(game, 'south')).toMatch(/waiting for an answer\. The torch in your hand flickers/);
+    expect(game.state.location).toBe('portcullis');
+    expect(say(game, 'fire')).toMatch(/bends and parts/);
+    expect(say(game, 'answer fire')).toMatch(/already let you pass/);
+    say(game, 'south');
+    expect(game.state.location).toBe('river');
+    say(game, 'north');
+    say(game, 'south');
+    expect(game.state.location).toBe('river');
+  });
+
+  it.each([
+    'answer fire',
+    'say "fire"',
+    'flame',
+    'show torch to stream',
+    'wave torch',
+    'use torch',
+  ])('"%s" solves the riddle with the torch in hand', (input) => {
+    const game = newGame();
+    play(game, [...WALKTHROUGH.slice(0, 13), 'north', 'north', 'take torch', 'south', 'south']);
+    expect(say(game, input)).toMatch(/bends and parts/);
+    say(game, 'south');
+    expect(game.state.location).toBe('river');
   });
 
   it('asks which weapon when none is given', () => {

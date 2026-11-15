@@ -32,6 +32,20 @@ describe('go back', () => {
     expect(game.state.previous).toBe('dungeon');
   });
 
+  it.each(['cd ..', 'cd', 'cd -', 'cd ../..'])('"%s" goes back', (input) => {
+    const game = newGame();
+    play(game, ['open door', 'east', 'north']);
+    expect(say(game, input)).toContain("Dragon's Cell");
+    expect(game.state.location).toBe('dragonCell');
+  });
+
+  it('cd also takes a direction', () => {
+    const game = newGame();
+    play(game, ['open door', 'east']);
+    say(game, 'cd north');
+    expect(game.state.location).toBe('dungeon');
+  });
+
   it('needs somewhere to go back to', () => {
     expect(say(newGame(), 'go back')).toBe("Back where? You haven't been anywhere yet.");
   });

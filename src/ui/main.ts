@@ -206,7 +206,16 @@ $('#new-button').addEventListener('click', () => begin(false));
 
 document.addEventListener('keydown', (e) => {
   if (settingsDialog.open) return;
-  if (!titleScreen.hidden) return; // the focused title button handles Enter
+  if (!titleScreen.hidden) {
+    // A focused button or link handles Enter itself; otherwise focus was lost
+    // (a click on the background, a tab that loaded unfocused), so start here.
+    const target = e.target as HTMLElement;
+    if (e.key === 'Enter' && !e.repeat && !target.closest('button, a')) {
+      e.preventDefault();
+      begin(!continueButton.hidden);
+    }
+    return;
+  }
   if (held && e.key === 'Enter') {
     // First Enter finishes the typing, the next one continues.
     e.preventDefault();

@@ -49,6 +49,7 @@ export const WALKTHROUGH = [
   'take torch',
   'south',
   'south',
+  'answer fire',
   'south',
   'east',
 ] as const;

@@ -9,7 +9,78 @@ const quip = (id: string, verbs: string[], text: string | ((w: World) => string)
   run: ({ w }) => w.say(text),
 });
 
+/** Words that answer the stream's riddle. */
+const FIRE = new Set(['fire', 'fires', 'flame', 'flames', 'torch', 'blaze']);
+const SPEAK = ['answer', 'say', 'reply', 'respond', 'tell'];
+/** Saying the answer on its own ("fire") is answering too. */
+const BARE = ['fire', 'flame', 'flames'];
+const GESTURES = ['use', 'show', 'wave', 'hold up', 'hold', 'raise', 'give', 'offer'];
+
+/**
+ * The stream at the portcullis asks a riddle (answer: fire). Speak the answer
+ * or hold out the torch; either way it only parts if you really have a flame.
+ */
+const answerRiddle: CommandDef = {
+  id: 'answer',
+  verbs: [...SPEAK, ...BARE, ...GESTURES],
+  run({ w, cmd }) {
+    const words = BARE.includes(cmd.verb) ? [cmd.verb, ...cmd.args] : [...cmd.args];
+    const spoken = SPEAK.includes(cmd.verb) || BARE.includes(cmd.verb);
+    const atStream = w.here === 'portcullis';
+
+    if (words.length === 0) {
+      w.say(
+        spoken ? `${cmd.verb[0]!.toUpperCase()}${cmd.verb.slice(1)} what?` : 'Do what with what?',
+        'error',
+      );
+      return;
+    }
+    const fire = words.some((t) => FIRE.has(t));
+
+    if (!atStream) {
+      if (spoken) w.say(`You say "${words.join(' ')}" to nobody in particular. Nobody answers.`);
+      else
+        w.say(
+          fire && w.has('torch')
+            ? 'You wave the torch about. It crackles cheerfully.'
+            : 'Nothing happens.',
+        );
+      return;
+    }
+    if (w.flag('streamParted')) {
+      w.say('The stream has already let you pass. Its waters stay parted to the south.');
+      return;
+    }
+    if (!fire) {
+      w.say(
+        spoken
+          ? `"${words.join(' ')}?" The stream gurgles. That is not the answer it was looking for.`
+          : 'The stream rushes past, unimpressed.',
+        'error',
+      );
+      return;
+    }
+    if (!w.has('torch')) {
+      w.say(
+        "'Fire, yes,' the stream burbles, 'but words don't burn.' The water " +
+          'rushes on.',
+        'error',
+      );
+      return;
+    }
+    w.say(
+      (spoken
+        ? '"Fire," you say, and hold out the torch. '
+        : 'You hold the torch out over the stream. ') +
+        'The water in the river bends and parts. You see how deep the river bed is without the ' +
+        'water there. The way south is clear.',
+    );
+    w.setFlag('streamParted', true);
+  },
+};
+
 export const commands: CommandDef[] = [
+  answerRiddle,
   quip(
     'xyzzy',
     ['xyzzy', 'plugh', 'abracadabra'],
