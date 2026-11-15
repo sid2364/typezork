@@ -1,0 +1,117 @@
+import { door, guarded, has, hidden, isDead, room, win } from '../../dsl';
+
+export const rooms = [
+  room('start', {
+    name: 'Crypt',
+    description:
+      'You find yourself in a dark empty crypt. There is an eerie feel to this place, and you do ' +
+      'not feel comfortable at all. You need to get home. There is a door to the east.',
+    exits: { east: door('door', 'dragonCell') },
+    pos: [0, 0],
+  }),
+
+  room('dragonCell', {
+    name: "Dragon's Cell",
+    description:
+      'You see a staircase leading into the darkness in the north and a steel gate to the south.',
+    exits: {
+      west: 'start',
+      north: 'dungeon',
+      south: door('gate', 'weaponsRoom'),
+      east: guarded(
+        'portcullis',
+        isDead('dragon'),
+        "The dragon's bulk fills the passage to the east. You won't get past it while it lives.",
+      ),
+    },
+  }),
+
+  room('dungeon', {
+    name: 'Dungeon',
+    description:
+      'You enter a small dungeon where you see ancient runes scrawled across the walls. A barred ' +
+      'cell lies to the south, its door barely holding something big back.',
+    exits: { south: 'dragonCell' },
+  }),
+
+  room('weaponsRoom', {
+    name: 'Armoury',
+    description:
+      'You enter a room full of weapons. You see swords, knives, spears, staves, and hammers ' +
+      'displayed all around you. Large windows illuminate the room with the daylight outside. A ' +
+      "narrow door to the north seems to lead back toward the dragon's lair.",
+    exits: { north: 'dragonCell' },
+  }),
+
+  room('portcullis', {
+    name: 'Portcullis',
+    description:
+      'A portcullis is drawn up. You are standing just outside a sprawling castle with dark ' +
+      'walls. To your south there is a fast flowing stream. An archway to the west heads back ' +
+      "toward the dragon's cell.",
+    exits: {
+      west: 'dragonCell',
+      north: hidden('garden'),
+      south: guarded(
+        'river',
+        has('torch'),
+        "The stream says to you, 'It eats many things; it fears me but not the wind. But give me " +
+          "enough and I will subside momentarily.' You cannot get past the stream.",
+        'The water in the river bends and parts. You see how deep the river bed is without the ' +
+          'water there.',
+      ),
+    },
+  }),
+
+  room('river', {
+    name: 'River',
+    description:
+      "You are at the river. It's flowing north, back past the castle. On the other side of the " +
+      'river in the east you see a deep, dark forest.',
+    // The old map had no way back from here; north returns to the castle.
+    exits: { east: 'end', north: 'portcullis' },
+  }),
+
+  room('garden', {
+    name: 'Garden',
+    description:
+      'Wild flowers with exotic fragrances bloom about you and the light of day makes for a ' +
+      'beautiful scene in the garden. Behind you, you see the castle. There is a gazebo up north.',
+    exits: { south: 'portcullis', north: 'gazebo' },
+  }),
+
+  room('gazebo', {
+    name: 'Gazebo',
+    description:
+      'You are at a gazebo. You see snow-festooned mountain peaks that extend and meet the ' +
+      'horizon in the north. Below you there is nothing but the deepest valley you have ever ' +
+      'seen. You hear a strange sound emanating from the east.',
+    exits: { south: 'garden', east: 'library' },
+  }),
+
+  room('library', {
+    name: 'Library',
+    description:
+      'Shelves of dusty books line this cosy hidden library. You hear a strange sound emanating ' +
+      'from the north and can see the gazebo entrance to the west.',
+    exits: { west: 'gazebo', north: 'devRoom' },
+  }),
+
+  room('devRoom', {
+    name: 'Dev Room',
+    description:
+      "This small chamber houses humming computers. A poster reads 'There is no place like " +
+      "127.0.0.1.' A narrow doorway to the south leads back to the library.",
+    exits: { south: 'library' },
+  }),
+
+  room('end', {
+    name: 'Forest',
+    description:
+      'You cross the river and find yourself in a huge forest. It looks vaguely familiar. ' +
+      'Suddenly a group of tribesmen come out and greet you. Oddly enough, you understand their ' +
+      'tongue, and they treat you as one of their own, not feeling threatened by you at all. It ' +
+      'hits you then; you have reached home.',
+    onEnter: [win('Bravo! You beat the game!')],
+  }),
+];

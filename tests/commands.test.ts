@@ -1,0 +1,174 @@
+import { describe, expect, it } from 'vitest';
+import { defineGame, item, room } from '../src/dsl';
+import { newGame, play, say } from './helpers';
+
+describe('movement', () => {
+  it('accepts bare directions and abbreviations', () => {
+    const game = newGame();
+    say(game, 'open door');
+    expect(say(game, 'east')).toContain("Dragon's Cell");
+    expect(say(game, 'w')).toContain('Crypt');
+    expect(say(game, 'walk e')).toContain("Dragon's Cell");
+  });
+
+  it('a locked door opens on the way through if you carry the key', () => {
+    const game = newGame();
+    play(game, ['open door', 'e', 'n', 'open chest', 'take key', 's']);
+    expect(say(game, 's')).toMatch(
+      /^You turn the key in the lock\. The gate is unlocked\.\nThe gate opens.*\n\n?Armoury/,
+    );
+  });
+
+  it('a closed, unlocked door opens on the way through', () => {
+    const game = newGame();
+    expect(say(game, 'e')).toMatch(
+      /^The door opens revealing a path towards the east\.\n\n?Dragon's Cell/,
+    );
+  });
+
+  it('says where you cannot go', () => {
+    const game = newGame();
+    expect(say(game, 'n')).toBe("You can't go north.");
+    expect(say(game, 'go')).toBe('Go where?');
+    expect(say(game, 'go sideways')).toBe('I don\'t know how to go "sideways".');
+  });
+});
+
+describe('things', () => {
+  it('look, examine and shortcuts', () => {
+    const game = newGame();
+    expect(say(game, 'l')).toMatch(/^Crypt\nYou find yourself/);
+    expect(say(game, 'x candle')).toBe(
+      'The only light source is a small candle burning in the corner.',
+    );
+    expect(say(game, 'look at the bones')).toBe('You see a pile of bones in front of you.');
+    expect(say(game, 'examine door')).toBe('The door is closed.');
+    expect(say(game, 'x unicorn')).toBe('You see no unicorn here.');
+  });
+
+  it('take, drop and inventory', () => {
+    const game = newGame();
+    expect(say(game, 'i')).toBe('You do not hold anything at the moment.');
+    expect(say(game, 'take candle')).toBe("It's almost out, and is stuck fast to the ground.");
+    expect(say(game, 'pick up bone')).toBe('You now have a bone.');
+    expect(say(game, 'take bone')).toBe('You already have that!');
+    expect(say(game, 'inventory')).toBe('You have with you: bone.');
+    expect(say(game, 'drop it')).toBe('Dropped.');
+    expect(say(game, 'drop bone')).toBe("Cannot drop something you don't have!");
+    // A dropped item keeps its identity and is listed generically.
+    expect(say(game, 'look')).toContain('There is a bone here.');
+    expect(say(game, 'take bone')).toBe('Taken.');
+  });
+
+  it('dropped items can be carried elsewhere', () => {
+    const game = newGame();
+    play(game, ['take bone', 'open door', 'e', 'drop bone']);
+    expect(say(game, 'look')).toContain('There is a bone here.');
+    expect(game.state.things.bone).toBe('dragonCell');
+  });
+
+  it('take all', () => {
+    const game = newGame();
+    expect(say(game, 'take all')).toBe('bone:\nYou now have a bone.');
+  });
+
+  it('open and close', () => {
+    const game = newGame();
+    expect(say(game, 'open door')).toBe('The door opens revealing a path towards the east.');
+    expect(say(game, 'open door')).toBe('The door is already open.');
+    expect(say(game, 'close door')).toBe('You close the door.');
+    expect(say(game, 'open candle')).toBe("It's not possible to open the candle.");
+  });
+
+  it('chained commands share a verb', () => {
+    const game = newGame();
+    play(game, ['open door', 'e', 'n', 'open chest', 'take key', 's', 'unlock gate', 's']);
+    expect(say(game, 'take sword and spear')).toBe(
+      'Good choice. You now have a sword.\nGreat choice! You now have a spear.',
+    );
+  });
+
+  it('attacking things that are not creatures', () => {
+    const game = newGame();
+    expect(say(game, 'kill candle')).toBe("Violence won't help with the candle.");
+    expect(say(game, 'kill wizard')).toBe('There is no wizard you can tussle with here.');
+  });
+
+  it('unknown verbs', () => {
+    const game = newGame();
+    expect(say(game, 'dance wildly')).toMatch(/I don't know how to "dance wildly"/);
+  });
+
+  it('wait and help', () => {
+    const game = newGame();
+    expect(say(game, 'wait')).toBe('Okay then...');
+    expect(say(game, 'help')).toMatch(/kill dragon with spear/);
+  });
+});
+
+describe('disambiguation', () => {
+  const def = defineGame({
+    id: 'keys',
+    title: 'Keys',
+    start: 'hall',
+    rooms: [room('hall', { name: 'Hall', description: 'A hall.' })],
+    things: [
+      item('brass', { name: 'brass key', location: 'hall', portable: true, takeMessage: 'Brass!' }),
+      item('iron', { name: 'iron key', location: 'hall', portable: true, takeMessage: 'Iron!' }),
+    ],
+  });
+
+  it('asks which one, then carries on', () => {
+    const game = newGame(def);
+    expect(say(game, 'take key')).toBe('Which do you mean, the brass key or the iron key?');
+    expect(say(game, 'iron')).toBe('Iron!');
+    expect(game.state.things.iron).toBe('inventory');
+    expect(say(game, 'take key')).toBe('Brass!');
+  });
+
+  it('gives up on an unhelpful answer', () => {
+    const game = newGame(def);
+    say(game, 'take key');
+    expect(say(game, 'blue')).toBe("That didn't narrow it down. Never mind.");
+  });
+});
+
+describe('game-specific commands', () => {
+  it('can add verbs and synonyms', () => {
+    const def = defineGame({
+      id: 'custom',
+      title: 'Custom',
+      start: 'hall',
+      rooms: [room('hall', { name: 'Hall', description: 'A hall.' })],
+      things: [item('rose', { name: 'rose', location: 'hall', portable: true })],
+      commands: [
+        {
+          id: 'smell',
+          verbs: ['smell', 'sniff'],
+          run: (ctx) => {
+            const id = ctx.resolve(ctx.cmd.direct);
+            if (id) ctx.w.say(`The ${ctx.w.thing(id).name} smells lovely.`);
+          },
+        },
+      ],
+      synonyms: { take: ['pocket'] },
+    });
+    const game = newGame(def);
+    expect(say(game, 'sniff rose')).toBe('The rose smells lovely.');
+    expect(say(game, 'pocket rose')).toBe('Taken.');
+  });
+});
+
+describe('events', () => {
+  it('beforeMove can veto and turn counts', () => {
+    const game = newGame();
+    const turns: number[] = [];
+    game.bus.on('beforeMove', ({ to }) =>
+      to === 'dragonCell' ? 'A ghost bars the way.' : undefined,
+    );
+    game.bus.on('turn', ({ turns: t }) => void turns.push(t));
+    say(game, 'open door');
+    expect(say(game, 'e')).toBe('A ghost bars the way.');
+    expect(turns).toEqual([1, 2]);
+  });
+});
