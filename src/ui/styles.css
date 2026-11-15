@@ -229,6 +229,69 @@ input {
   overflow-wrap: anywhere;
 }
 
+/* ---- compass rose ---- */
+
+.compass__svg {
+  display: block;
+  width: min(100%, 190px);
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.compass__plain {
+  fill: var(--bg);
+  stroke: var(--dim);
+  stroke-width: 1.4;
+  stroke-linejoin: miter;
+}
+
+.compass__shade {
+  stroke: var(--dim);
+  stroke-width: 1.4;
+}
+
+.compass__hatch {
+  stroke: var(--dim);
+  stroke-width: 1.3;
+}
+
+.compass__label {
+  fill: var(--dim);
+  font: 700 15px var(--font);
+}
+
+.compass__hub {
+  fill: var(--bg);
+  stroke: var(--dim);
+}
+
+.compass__point {
+  transition: filter 0.3s ease;
+}
+
+.compass__point--open {
+  cursor: pointer;
+}
+
+.compass__point--open .compass__plain,
+.compass__point--open .compass__shade {
+  stroke: var(--fg);
+}
+
+.compass__point--open .compass__label {
+  fill: var(--fg-strong);
+}
+
+.compass__point--open .compass__hatch {
+  stroke: var(--fg);
+}
+
+.compass__point--open:hover,
+.compass__point--open:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 4px var(--fg));
+}
+
 .minimap__svg {
   display: block;
   width: 100%;
@@ -251,10 +314,11 @@ input {
   stroke-dasharray: 3 3;
 }
 
-.map-room rect {
+.map-burst {
   fill: var(--bg);
   stroke: var(--dim);
-  stroke-width: 1.2;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
 }
 
 .map-room text {
@@ -262,10 +326,19 @@ input {
   font-family: var(--font);
 }
 
-.map-room--current rect {
+.map-room--current .map-burst {
   fill: var(--fg);
   stroke: var(--fg-strong);
-  filter: drop-shadow(0 0 4px var(--fg));
+  filter: drop-shadow(0 0 5px var(--fg));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: burst-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes burst-pulse {
+  50% {
+    transform: scale(1.07);
+  }
 }
 
 .map-room--current text {
@@ -592,5 +665,9 @@ input {
   .panel,
   .map-world {
     transition: none;
+  }
+
+  .map-room--current .map-burst {
+    animation: none;
   }
 }

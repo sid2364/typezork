@@ -3,6 +3,7 @@ import { crypt } from '../content/crypt';
 import { Game, type GameDef, type OutputLine } from '../engine';
 import { HelpPanel } from './helpPanel';
 import { PromptInput } from './input';
+import { renderCompass } from './compass';
 import { renderMinimap } from './minimap';
 import { Screen } from './screen';
 import {
@@ -26,6 +27,7 @@ const app = $<HTMLDivElement>('#app');
 const titleScreen = $<HTMLDivElement>('#title-screen');
 const settingsDialog = $<HTMLDialogElement>('#settings');
 const minimap = $<SVGSVGElement>('#minimap');
+const compass = $<SVGSVGElement>('#compass');
 
 // ---- settings ----------------------------------------------------------------
 
@@ -142,6 +144,15 @@ function afterTurn(): void {
   document.title = `${view.room.name} — Zork`;
   help.render(view);
   renderMinimap(minimap, def, view);
+  renderCompass(
+    compass,
+    view.exits.map((e) => e.dir),
+    (dir) => {
+      closePanels();
+      run(`go ${dir}`);
+      prompt.focus();
+    },
+  );
 
   if (view.over && !endShown) {
     endShown = true;
