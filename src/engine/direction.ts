@@ -41,24 +41,9 @@ const VECTORS: Record<Direction, readonly [number, number]> = {
   down: [-1, 1],
 };
 
-const SHORT: Record<Direction, string> = {
-  north: 'n',
-  northeast: 'ne',
-  east: 'e',
-  southeast: 'se',
-  south: 's',
-  southwest: 'sw',
-  west: 'w',
-  northwest: 'nw',
-  up: 'u',
-  down: 'd',
-};
-
 const WORDS = new Map<string, Direction>();
-for (const dir of DIRECTIONS) {
-  WORDS.set(dir, dir);
-  WORDS.set(SHORT[dir], dir);
-}
+// Only full words: abbreviations like "n" are deliberately not accepted.
+for (const dir of DIRECTIONS) WORDS.set(dir, dir);
 for (const [alias, dir] of [
   ['north-east', 'northeast'],
   ['north-west', 'northwest'],
@@ -72,12 +57,11 @@ for (const [alias, dir] of [
 
 export const opposite = (dir: Direction): Direction => OPPOSITES[dir];
 export const vector = (dir: Direction): readonly [number, number] => VECTORS[dir];
-export const shortName = (dir: Direction): string => SHORT[dir];
 export const isDirection = (word: string): word is Direction =>
   (DIRECTIONS as readonly string[]).includes(word);
 
 /**
- * Parse one or two tokens into a direction: "n", "north", "north-east", or
+ * Parse one or two tokens into a direction: "north", "north-east" and
  * "north east" all work.
  */
 export function parseDirection(tokens: readonly string[]): Direction | undefined {

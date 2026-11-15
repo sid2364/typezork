@@ -1,4 +1,5 @@
 import { defineGame } from '../../dsl';
+import { commands } from './commands';
 import { creatures } from './creatures';
 import { items } from './items';
 import { rooms } from './rooms';
@@ -15,4 +16,5 @@ export const crypt = defineGame({
   start: 'start',
   rooms,
   things: [...items, ...creatures],
+  commands,
 });

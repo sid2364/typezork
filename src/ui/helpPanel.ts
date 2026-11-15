@@ -1,19 +1,36 @@
 import type { GameView } from '../engine';
 
-/** Templates: clicking one fills the prompt so the player can finish it. */
-const CHEATSHEET: readonly [label: string, template: string, hint: string][] = [
-  ['look / l', 'look', 'describe the room'],
-  ['go north / n', 'go ', 'move (n, s, e, w, ne, …)'],
-  ['examine … / x …', 'examine ', 'look closely'],
-  ['take …', 'take ', 'pick something up'],
-  ['drop …', 'drop ', 'put it down'],
-  ['open …', 'open ', 'doors, chests, gates'],
-  ['unlock …', 'unlock ', 'if you have the key'],
-  ['kill … with …', 'kill ', 'fight a creature'],
-  ['inventory / i', 'inventory', 'what you carry'],
-  ['undo', 'undo', 'take back a move'],
-  ['save / load', 'save', 'keep your progress'],
-  ['help', 'help', 'the full list'],
+/**
+ * Cheatsheet rows. Each entry is [label, template]: templates ending in a space
+ * fill the prompt so the player can finish them; the rest run straight away.
+ */
+const CHEATSHEET: readonly (readonly [label: string, template: string])[][] = [
+  [
+    ['look', 'look'],
+    ['examine …', 'examine '],
+  ],
+  [
+    ['go north', 'go north'],
+    ['go back', 'go back'],
+  ],
+  [
+    ['take …', 'take '],
+    ['drop …', 'drop '],
+  ],
+  [
+    ['open …', 'open '],
+    ['unlock …', 'unlock '],
+  ],
+  [['kill … with …', 'kill ']],
+  [
+    ['inventory', 'inventory'],
+    ['undo', 'undo'],
+  ],
+  [
+    ['save', 'save'],
+    ['load', 'load'],
+    ['help', 'help'],
+  ],
 ];
 
 export class HelpPanel {
@@ -23,19 +40,19 @@ export class HelpPanel {
     private readonly onRun: (command: string) => void,
     onFill: (template: string) => void,
   ) {
-    for (const [label, template, hint] of CHEATSHEET) {
+    for (const row of CHEATSHEET) {
       const li = document.createElement('li');
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'link';
-      button.textContent = label;
-      button.addEventListener('click', () =>
-        template.endsWith(' ') ? onFill(template) : onRun(template),
-      );
-      const span = document.createElement('span');
-      span.className = 'help__hint';
-      span.textContent = hint;
-      li.append(button, span);
+      row.forEach(([label, template], i) => {
+        if (i > 0) li.append(' · ');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'link';
+        button.textContent = label;
+        button.addEventListener('click', () =>
+          template.endsWith(' ') ? onFill(template) : onRun(template),
+        );
+        li.append(button);
+      });
       cheatsheet.appendChild(li);
     }
   }

@@ -1,6 +1,6 @@
 import './styles.css';
 import { crypt } from '../content/crypt';
-import { Game, type GameDef } from '../engine';
+import { Game, type GameDef, type OutputLine } from '../engine';
 import { HelpPanel } from './helpPanel';
 import { PromptInput } from './input';
 import { renderMinimap } from './minimap';
@@ -85,8 +85,50 @@ const help = new HelpPanel(
 );
 
 function run(text: string): void {
-  screen.print(game.submit(text));
+  show(game.submit(text));
   afterTurn();
+}
+
+/** Lines held back after a 'pause' marker until the player presses Enter. */
+let held: OutputLine[] | null = null;
+let continueHint: HTMLButtonElement | null = null;
+
+/** Print engine output, honouring 'clear' (wipe the screen) and 'pause' (wait for Enter). */
+function show(lines: readonly OutputLine[]): void {
+  const clear = lines.findLastIndex((l) => l.style === 'clear');
+  if (clear >= 0) {
+    held = null;
+    continueHint?.remove();
+    screen.clear();
+    lines = lines.slice(clear + 1);
+  }
+  const pause = lines.findIndex((l) => l.style === 'pause');
+  if (pause < 0) {
+    screen.print(lines);
+    return;
+  }
+  screen.print(lines.slice(0, pause));
+  held = lines.slice(pause + 1);
+  const hint = document.createElement('button');
+  hint.type = 'button';
+  hint.className = 'line line--continue';
+  hint.textContent = 'Press Enter to continue ↵';
+  hint.addEventListener('click', (e) => {
+    e.stopPropagation();
+    proceed();
+  });
+  continueHint = hint;
+  screen.append(hint);
+}
+
+function proceed(): void {
+  if (!held) return;
+  const rest = held;
+  held = null;
+  continueHint?.remove();
+  continueHint = null;
+  show(rest);
+  prompt.focus();
 }
 
 function afterTurn(): void {
@@ -97,7 +139,7 @@ function afterTurn(): void {
   $('#status-exits').textContent = view.exits.map((e) => e.dir).join(', ') || 'none';
   $('#status-inventory').textContent = view.inventory.map((i) => i.name).join(', ') || 'nothing';
   $('#bar-status').textContent = `${view.room.name} · turn ${view.turns}`;
-  document.title = `${view.room.name} — typezork`;
+  document.title = `${view.room.name} — Zork`;
   help.render(view);
   renderMinimap(minimap, def, view);
 
@@ -136,7 +178,7 @@ function begin(resume: boolean): void {
   } else {
     lines = game.start();
   }
-  screen.print(lines);
+  show(lines);
   afterTurn();
   prompt.focus();
 }
@@ -154,6 +196,13 @@ $('#new-button').addEventListener('click', () => begin(false));
 document.addEventListener('keydown', (e) => {
   if (settingsDialog.open) return;
   if (!titleScreen.hidden) return; // the focused title button handles Enter
+  if (held && e.key === 'Enter') {
+    // First Enter finishes the typing, the next one continues.
+    e.preventDefault();
+    if (screen.busy) screen.skip();
+    else proceed();
+    return;
+  }
   if (screen.busy) screen.skip();
   if (e.key === 'Escape') closePanels();
   // Typing anywhere goes to the prompt.

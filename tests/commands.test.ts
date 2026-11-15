@@ -7,28 +7,28 @@ describe('movement', () => {
     const game = newGame();
     say(game, 'open door');
     expect(say(game, 'east')).toContain("Dragon's Cell");
-    expect(say(game, 'w')).toContain('Crypt');
-    expect(say(game, 'walk e')).toContain("Dragon's Cell");
+    expect(say(game, 'west')).toContain('Crypt');
+    expect(say(game, 'walk east')).toContain("Dragon's Cell");
   });
 
   it('a locked door opens on the way through if you carry the key', () => {
     const game = newGame();
-    play(game, ['open door', 'e', 'n', 'open chest', 'take key', 's']);
-    expect(say(game, 's')).toMatch(
+    play(game, ['open door', 'east', 'north', 'open chest', 'take key', 'south']);
+    expect(say(game, 'south')).toMatch(
       /^You turn the key in the lock\. The gate is unlocked\.\nThe gate opens.*\n\n?Armoury/,
     );
   });
 
   it('a closed, unlocked door opens on the way through', () => {
     const game = newGame();
-    expect(say(game, 'e')).toMatch(
+    expect(say(game, 'east')).toMatch(
       /^The door opens revealing a path towards the east\.\n\n?Dragon's Cell/,
     );
   });
 
   it('says where you cannot go', () => {
     const game = newGame();
-    expect(say(game, 'n')).toBe("You can't go north.");
+    expect(say(game, 'north')).toBe("You can't go north.");
     expect(say(game, 'go')).toBe('Go where?');
     expect(say(game, 'go sideways')).toBe('I don\'t know how to go "sideways".');
   });
@@ -37,18 +37,18 @@ describe('movement', () => {
 describe('things', () => {
   it('look, examine and shortcuts', () => {
     const game = newGame();
-    expect(say(game, 'l')).toMatch(/^Crypt\nYou find yourself/);
-    expect(say(game, 'x candle')).toBe(
-      'The only light source is a small candle burning in the corner.',
+    expect(say(game, 'look')).toMatch(/^Crypt\nYou find yourself/);
+    expect(say(game, 'examine candle')).toMatch(/^A stubby candle/);
+    expect(say(game, 'look at the bones')).toMatch(/^It's a bone/);
+    expect(say(game, 'examine door')).toBe(
+      'A sturdy wooden door with an old iron handle.\nThe door is closed.',
     );
-    expect(say(game, 'look at the bones')).toBe('You see a pile of bones in front of you.');
-    expect(say(game, 'examine door')).toBe('The door is closed.');
-    expect(say(game, 'x unicorn')).toBe('You see no unicorn here.');
+    expect(say(game, 'examine unicorn')).toBe('You see no unicorn here.');
   });
 
   it('take, drop and inventory', () => {
     const game = newGame();
-    expect(say(game, 'i')).toBe('You do not hold anything at the moment.');
+    expect(say(game, 'inventory')).toBe('You do not hold anything at the moment.');
     expect(say(game, 'take candle')).toBe("It's almost out, and is stuck fast to the ground.");
     expect(say(game, 'pick up bone')).toBe('You now have a bone.');
     expect(say(game, 'take bone')).toBe('You already have that!');
@@ -62,7 +62,7 @@ describe('things', () => {
 
   it('dropped items can be carried elsewhere', () => {
     const game = newGame();
-    play(game, ['take bone', 'open door', 'e', 'drop bone']);
+    play(game, ['take bone', 'open door', 'east', 'drop bone']);
     expect(say(game, 'look')).toContain('There is a bone here.');
     expect(game.state.things.bone).toBe('dragonCell');
   });
@@ -82,7 +82,16 @@ describe('things', () => {
 
   it('chained commands share a verb', () => {
     const game = newGame();
-    play(game, ['open door', 'e', 'n', 'open chest', 'take key', 's', 'unlock gate', 's']);
+    play(game, [
+      'open door',
+      'east',
+      'north',
+      'open chest',
+      'take key',
+      'south',
+      'unlock gate',
+      'south',
+    ]);
     expect(say(game, 'take sword and spear')).toBe(
       'Good choice. You now have a sword.\nGreat choice! You now have a spear.',
     );
@@ -96,7 +105,7 @@ describe('things', () => {
 
   it('unknown verbs', () => {
     const game = newGame();
-    expect(say(game, 'dance wildly')).toMatch(/I don't know how to "dance wildly"/);
+    expect(say(game, 'moonwalk wildly')).toMatch(/I don't know how to "moonwalk wildly"/);
   });
 
   it('wait and help', () => {
@@ -168,7 +177,7 @@ describe('events', () => {
     );
     game.bus.on('turn', ({ turns: t }) => void turns.push(t));
     say(game, 'open door');
-    expect(say(game, 'e')).toBe('A ghost bars the way.');
+    expect(say(game, 'east')).toBe('A ghost bars the way.');
     expect(turns).toEqual([1, 2]);
   });
 });

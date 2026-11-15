@@ -16,6 +16,7 @@ export class Screen {
   private frame = 0;
   private last = 0;
   private carry = 0;
+  private idle: (() => void)[] = [];
 
   constructor(
     private readonly scroll: HTMLElement,
@@ -30,6 +31,7 @@ export class Screen {
 
   print(lines: readonly OutputLine[]): void {
     for (const l of lines) {
+      if (l.style === 'pause' || l.style === 'clear') continue; // handled by the caller
       const el = document.createElement('p');
       el.className = `line line--${l.style}`;
       if (l.style === 'title') this.scroll.appendChild(spacer());
@@ -51,11 +53,18 @@ export class Screen {
     }
   }
 
-  /** Append an element (e.g. a button) after everything queued so far. */
+  /** Append an element (e.g. a button) once everything queued so far has been typed. */
   append(el: HTMLElement): void {
-    this.skip();
-    this.scroll.appendChild(el);
-    this.scrollToEnd();
+    this.whenIdle(() => {
+      this.scroll.appendChild(el);
+      this.scrollToEnd();
+    });
+  }
+
+  /** Run a callback once typing has finished (immediately if nothing is queued). */
+  whenIdle(fn: () => void): void {
+    if (this.queue.length) this.idle.push(fn);
+    else fn();
   }
 
   /** Finish typing everything immediately. */
@@ -65,9 +74,11 @@ export class Screen {
     if (this.frame) cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.scrollToEnd();
+    this.flushIdle();
   }
 
   clear(): void {
+    this.idle = [];
     this.skip();
     this.scroll.replaceChildren();
     this.live.replaceChildren();
@@ -92,7 +103,14 @@ export class Screen {
     }
     if (stick) this.scrollToEnd();
     this.frame = this.queue.length ? requestAnimationFrame(this.tick) : 0;
+    if (!this.queue.length) this.flushIdle();
   };
+
+  private flushIdle(): void {
+    const callbacks = this.idle;
+    this.idle = [];
+    for (const fn of callbacks) fn();
+  }
 
   private nearEnd(): boolean {
     const s = this.scroll;

@@ -35,6 +35,7 @@ export function go(w: World, dir: Direction): void {
 /** Put the player in a room, describe it and run its hooks. */
 export function enter(w: World, room: string, from: string | null): void {
   const firstVisit = !w.state.visited.includes(room);
+  if (from !== null) w.state.previous = from;
   w.state.location = room;
   if (firstVisit) w.state.visited.push(room);
   w.describeRoom();
@@ -42,12 +43,36 @@ export function enter(w: World, room: string, from: string | null): void {
   for (const effect of w.room(room).onEnter ?? []) effect(w);
 }
 
+/** Return to the previous room. Going back twice returns you to where you were. */
+export function goBack(w: World): void {
+  const previous = w.state.previous;
+  if (!previous) {
+    w.say("Back where? You haven't been anywhere yet.", 'error');
+    return;
+  }
+  const way = w.exits().find(([, exit]) => exit.to === previous);
+  if (!way) {
+    w.say("You can't find your way back from here.", 'error');
+    return;
+  }
+  go(w, way[0]);
+}
+
+const BACK_VERBS = ['back', 'return', 'retreat', 'go back'];
+
 export const goCommand: CommandDef = {
   id: 'go',
-  verbs: ['go', 'walk', 'move', 'travel', 'run', 'head', 'climb'],
-  help: { usage: 'go north (or just n)', summary: 'Move in a direction.' },
+  verbs: ['go', 'walk', 'move', 'travel', 'run', 'head', 'climb', 'back', 'return', 'retreat'],
+  help: {
+    usage: 'go north · go back',
+    summary: 'Move in a direction, or back where you came from.',
+  },
   run({ w, cmd }) {
     const words = cmd.direct.length ? cmd.direct : cmd.args;
+    if (BACK_VERBS.includes(cmd.verb) || words.join(' ') === 'back') {
+      goBack(w);
+      return;
+    }
     const dir = parseDirection(words);
     if (!dir) {
       w.say(words.length ? `I don't know how to go "${words.join(' ')}".` : 'Go where?', 'error');

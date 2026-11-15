@@ -12,7 +12,7 @@ export function newGame(def: GameDef = crypt, options: GameOptions = {}): Game {
 export function say(game: Game, input: string): string {
   return game
     .submit(input)
-    .filter((l) => l.style !== 'echo')
+    .filter((l) => l.style !== 'echo' && l.style !== 'pause' && l.style !== 'clear')
     .map((l) => l.text)
     .join('\n');
 }
@@ -32,23 +32,23 @@ export function memoryStorage(): SaveStorage & { slots: Map<string, string> } {
 
 export const WALKTHROUGH = [
   'open door',
-  'e',
-  'n',
+  'east',
+  'north',
   'open chest',
   'take key',
-  's',
+  'south',
   'unlock gate',
-  's',
+  'south',
   'take spear',
-  'n',
+  'north',
   'kill dragon with spear',
-  'e',
+  'east',
   'kill troll with spear',
-  'n',
-  'n',
+  'north',
+  'north',
   'take torch',
-  's',
-  's',
-  's',
-  'e',
+  'south',
+  'south',
+  'south',
+  'east',
 ] as const;

@@ -236,6 +236,10 @@ input {
   max-height: 46vh;
 }
 
+.map-world {
+  transition: transform 0.35s ease;
+}
+
 .map-edge {
   stroke: var(--dim);
   stroke-width: 2;
@@ -255,7 +259,7 @@ input {
 
 .map-room text {
   fill: var(--fg);
-  font: 11px var(--font);
+  font: 16px var(--font);
 }
 
 .map-room--current rect {
@@ -285,14 +289,12 @@ input {
 }
 
 .help__list li {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
+  color: var(--dim);
 }
 
-.help__hint {
-  color: var(--dim);
-  font-size: 0.78rem;
+.help__list .link {
+  color: var(--fg);
 }
 
 .help__tip {
@@ -433,8 +435,31 @@ input {
   white-space: nowrap;
 }
 
+.title-screen__by {
+  margin: 0.6rem 0 0;
+  color: var(--dim);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
 .title-screen__sub {
   margin: 1.5rem 0;
+}
+
+.line--continue {
+  display: block;
+  margin: 0.8rem 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dim);
+  cursor: pointer;
+  animation: blink 1.6s steps(1) infinite;
+}
+
+.line--continue:hover {
+  color: var(--fg);
 }
 
 .title-screen__buttons {
@@ -551,11 +576,13 @@ input {
 
 @media (prefers-reduced-motion: reduce) {
   .prompt__caret,
-  .title-screen__hint {
+  .title-screen__hint,
+  .line--continue {
     animation: none;
   }
 
-  .panel {
+  .panel,
+  .map-world {
     transition: none;
   }
 }

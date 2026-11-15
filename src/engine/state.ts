@@ -7,6 +7,8 @@ import type { RoomId, ThingId } from './types';
  */
 export interface GameState {
   location: RoomId;
+  /** The room the player was in before this one, for GO BACK. */
+  previous: RoomId | null;
   things: Record<ThingId, Location>;
   flags: Record<string, boolean | number | string>;
   visited: RoomId[];
@@ -42,6 +44,7 @@ export function initialState(def: GameDef): GameState {
   }
   return {
     location: def.start,
+    previous: null,
     things,
     flags: {},
     visited: [def.start],

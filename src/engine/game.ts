@@ -101,7 +101,7 @@ export class Game {
   /** Title, intro and the first room. */
   start(): OutputLine[] {
     this.world.out.length = 0;
-    this.intro();
+    this.intro(false);
     return this.flush();
   }
 
@@ -194,10 +194,12 @@ export class Game {
     return out;
   }
 
-  private intro(): void {
+  private intro(clear: boolean): void {
     const w = this.world;
+    if (clear) w.out.push(line('', 'clear'));
     w.say(this.def.title, 'title');
     for (const p of this.def.intro) w.say(p);
+    w.out.push(line('', 'pause'));
     w.describeRoom();
   }
 
@@ -343,7 +345,7 @@ export class Game {
       this.world.state = initialState(this.def);
       this.history = [];
       this.pending = undefined;
-      this.intro();
+      this.intro(true);
     },
     undo: () => {
       const w = this.world;

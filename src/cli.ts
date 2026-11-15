@@ -32,6 +32,8 @@ const colour: Record<OutputLine['style'], string> = {
   question: '\x1b[36m',
   win: '\x1b[1;35m',
   echo: '\x1b[2m',
+  pause: '',
+  clear: '',
 };
 
 function wrap(text: string): string {
@@ -49,8 +51,21 @@ function wrap(text: string): string {
   return lines.join('\n');
 }
 
+/** Lines held back until the player presses Enter (after a 'pause' marker). */
+let held: OutputLine[] | null = null;
+
 function print(lines: readonly OutputLine[]): void {
-  for (const l of lines) {
+  for (const [i, l] of lines.entries()) {
+    if (l.style === 'clear') {
+      if (tty) process.stdout.write('\x1b[2J\x1b[H');
+      continue;
+    }
+    if (l.style === 'pause') {
+      if (!tty) continue;
+      held = lines.slice(i + 1);
+      process.stdout.write('\n\x1b[2m[Press Enter to continue]\x1b[0m');
+      return;
+    }
     if (l.style === 'echo' && tty) continue; // the player can already see what they typed
     if (l.style === 'title') process.stdout.write('\n');
     const text = wrap(l.text);
@@ -68,8 +83,15 @@ const prompt = () => {
   if (tty) rl.prompt();
 };
 rl.setPrompt('\n> ');
-prompt();
+if (!held) prompt();
 rl.on('line', (input) => {
+  if (held) {
+    const rest = held;
+    held = null;
+    print(rest);
+    if (!held) prompt();
+    return;
+  }
   const text = input.trim().toLowerCase();
   if (text === 'quit' || text === 'exit' || text === 'q') {
     process.stdout.write('Good-bye.\n');
@@ -81,6 +103,6 @@ rl.on('line', (input) => {
     rl.close();
     return;
   }
-  prompt();
+  if (!held) prompt();
 });
 rl.on('close', () => process.exit(0));

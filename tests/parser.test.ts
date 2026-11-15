@@ -23,10 +23,11 @@ describe('lexer', () => {
 
 describe('directions', () => {
   it('parses words, abbreviations and two-word forms', () => {
-    expect(parseDirection(['n'])).toBe('north');
+    expect(parseDirection(['north'])).toBe('north');
+    expect(parseDirection(['n'])).toBeUndefined(); // no abbreviations
     expect(parseDirection(['north-east'])).toBe('northeast');
     expect(parseDirection(['south', 'west'])).toBe('southwest');
-    expect(parseDirection(['u'])).toBe('up');
+    expect(parseDirection(['up'])).toBe('up');
     expect(parseDirection(['banana'])).toBeUndefined();
   });
 

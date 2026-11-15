@@ -78,7 +78,7 @@ describe('defineGame', () => {
     const game = newGame(def);
     say(game, 'kill wolf with axe');
     expect(say(game, 'look')).toBe('A\nRoom.\nThe dead wolf lies here.');
-    expect(say(game, 'x wolf')).toBe('The dead wolf lies here.');
+    expect(say(game, 'examine wolf')).toBe('The dead wolf lies here.');
   });
 
   it('non-killable creatures say so (old killFighter bug)', () => {
@@ -99,7 +99,7 @@ describe('defineGame', () => {
     });
     const game = newGame(def);
     expect(say(game, 'hit ghost with stick')).toBe(
-      'The ghost ogles you keenly.\nYour blow passes right through it.',
+      'The ghost eyes you keenly.\nYour blow passes right through it.',
     );
   });
 });
@@ -121,7 +121,7 @@ describe('minimap layout', () => {
   it('shows visited rooms, edges and stubs', () => {
     const game = newGame();
     say(game, 'open door');
-    say(game, 'e');
+    say(game, 'east');
     const map = game.view().map;
     expect(map.rooms.map((r) => [r.id, r.current])).toEqual([
       ['start', false],

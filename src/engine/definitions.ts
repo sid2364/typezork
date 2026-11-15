@@ -103,8 +103,10 @@ export interface CreatureDef extends ThingCommon {
   readonly alreadyDead?: Text;
   /** Shown when attacking a creature that can't be killed. */
   readonly immune?: Text;
-  /** Shown when the weapon isn't one the creature is weak to. */
-  readonly notWorthy?: Text;
+  /** Shown when the weapon isn't one the creature is weak to. Functions also get the weapon. */
+  readonly notWorthy?: string | ((w: World, weapon: ThingId) => string);
+  /** Shown when the player attacks with bare hands (punch, kick, "with my fists", …). */
+  readonly bareHanded?: Text;
   readonly onKill?: readonly Effect[];
 }
 

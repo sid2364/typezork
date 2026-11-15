@@ -28,10 +28,24 @@ export type RoomSpec = Omit<RoomDef, 'id' | 'exits'> & {
   readonly exits?: Readonly<Record<string, ExitSpec>>;
 };
 
+/** Authors may abbreviate exits (players can't: they type full words). */
+const ABBREVIATIONS: Readonly<Record<string, Direction>> = {
+  n: 'north',
+  ne: 'northeast',
+  e: 'east',
+  se: 'southeast',
+  s: 'south',
+  sw: 'southwest',
+  w: 'west',
+  nw: 'northwest',
+  u: 'up',
+  d: 'down',
+};
+
 export function room(id: RoomId, spec: RoomSpec): RoomDef {
   const exits: Partial<Record<Direction, ExitDef>> = {};
   for (const [word, exit] of Object.entries(spec.exits ?? {})) {
-    const dir = parseDirection(word.split(/\s+/));
+    const dir = ABBREVIATIONS[word] ?? parseDirection(word.split(/\s+/));
     if (!dir) throw new Error(`Room "${id}": "${word}" is not a direction`);
     exits[dir] = typeof exit === 'string' ? { to: exit } : exit;
   }

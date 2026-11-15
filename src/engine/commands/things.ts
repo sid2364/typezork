@@ -61,7 +61,7 @@ function describeThing(w: World, id: ThingId): void {
 
 export const lookCommand: CommandDef = {
   id: 'look',
-  verbs: ['look', 'l', 'where', 'gaze', 'see'],
+  verbs: ['look', 'where', 'gaze', 'see'],
   meta: true,
   allowWhenOver: true,
   help: { usage: 'look', summary: 'Describe your surroundings.' },
@@ -79,9 +79,9 @@ export const lookCommand: CommandDef = {
 
 export const examineCommand: CommandDef = {
   id: 'examine',
-  verbs: ['examine', 'x', 'inspect', 'look at', 'l at', 'check', 'read', 'describe'],
+  verbs: ['examine', 'inspect', 'look at', 'check', 'read', 'describe'],
   meta: true,
-  help: { usage: 'examine chest (or x chest)', summary: 'Look closely at something.' },
+  help: { usage: 'examine chest', summary: 'Look closely at something.' },
   run(ctx) {
     if (ctx.cmd.direct.length === 0) {
       ctx.w.say('Examine what?', 'error');
@@ -196,7 +196,7 @@ export const closeCommand: CommandDef = {
 export const unlockCommand: CommandDef = {
   id: 'unlock',
   verbs: ['unlock'],
-  help: { usage: 'unlock gate (with key)', summary: 'Unlock something with a key you carry.' },
+  help: { usage: 'unlock gate', summary: 'Unlock something with a key you carry.' },
   run(ctx) {
     const { w, cmd } = ctx;
     if (cmd.direct.length === 0) {
@@ -235,11 +235,14 @@ export const unlockCommand: CommandDef = {
 function strike(w: World, target: ThingId, weapon: ThingId): void {
   const creature = w.thing(target);
   if (creature.kind !== 'creature') return;
-  w.say(`${capitalise(w.the(target))} ogles you keenly.`);
+  w.say(`${capitalise(w.the(target))} eyes you keenly.`);
   if (creature.weakTo.length > 0 && !creature.weakTo.includes(weapon)) {
+    const { notWorthy } = creature;
     w.say(
-      creature.notWorthy ??
-        'You do not possess a weapon worthy of this battle. You decide to live and let live.',
+      typeof notWorthy === 'function'
+        ? notWorthy(w, weapon)
+        : (notWorthy ??
+            'You do not possess a weapon worthy of this battle. You decide to live and let live.'),
     );
     return;
   }
@@ -249,7 +252,42 @@ function strike(w: World, target: ThingId, weapon: ThingId): void {
   w.bus.emit('kill', { thing: target, weapon }, w);
 }
 
+/** Words that mean "no weapon at all". */
+const BARE_HANDS = new Set([
+  'hand',
+  'hands',
+  'bare hand',
+  'bare hands',
+  'fist',
+  'fists',
+  'bare fists',
+  'fingers',
+  'feet',
+  'foot',
+  'teeth',
+  'nothing',
+  'karate',
+  'kung fu',
+]);
+
+/** Verbs that are an unarmed attack by definition. */
+const UNARMED_VERBS = new Set(['punch', 'kick', 'slap', 'bite', 'headbutt', 'tickle']);
+
+function bareHanded(w: World, target: ThingId): void {
+  const creature = w.thing(target);
+  if (creature.kind !== 'creature') return;
+  w.say(
+    creature.bareHanded ??
+      `You flail at ${w.the(target)} with your bare hands. ` +
+        `${capitalise(w.the(target))} looks more confused than hurt.`,
+  );
+}
+
 function chooseWeapon(ctx: CommandContext, target: ThingId, words: readonly string[]): void {
+  if (BARE_HANDS.has(words.join(' '))) {
+    bareHanded(ctx.w, target);
+    return;
+  }
   const weapon = ctx.resolve(words, {
     scope: ctx.w.inventory(),
     notFound: `You do not possess this ${words.join(' ')} of which you speak.`,
@@ -259,7 +297,18 @@ function chooseWeapon(ctx: CommandContext, target: ThingId, words: readonly stri
 
 export const attackCommand: CommandDef = {
   id: 'attack',
-  verbs: ['attack', 'kill', 'fight', 'strike', 'hit', 'beat', 'slay', 'stab', 'injure'],
+  verbs: [
+    'attack',
+    'kill',
+    'fight',
+    'strike',
+    'hit',
+    'beat',
+    'slay',
+    'stab',
+    'injure',
+    ...UNARMED_VERBS,
+  ],
   help: { usage: 'kill dragon with spear', summary: 'Fight a creature.' },
   run(ctx) {
     const { w, cmd } = ctx;
@@ -281,8 +330,12 @@ export const attackCommand: CommandDef = {
       return;
     }
     if (!creature.killable) {
-      w.say(`${capitalise(w.the(target))} ogles you keenly.`);
+      w.say(`${capitalise(w.the(target))} eyes you keenly.`);
       w.say(creature.immune ?? `You cannot kill ${w.the(target)}.`);
+      return;
+    }
+    if (UNARMED_VERBS.has(cmd.verb)) {
+      bareHanded(w, target);
       return;
     }
     if (cmd.indirect.length) {
@@ -304,9 +357,9 @@ export const attackCommand: CommandDef = {
 
 export const inventoryCommand: CommandDef = {
   id: 'inventory',
-  verbs: ['inventory', 'inv', 'i', 'items'],
+  verbs: ['inventory', 'inv', 'items'],
   meta: true,
-  help: { usage: 'inventory (or i)', summary: 'List what you carry.' },
+  help: { usage: 'inventory', summary: 'List what you carry.' },
   run({ w }) {
     const items = w.inventory();
     w.say(

@@ -32,9 +32,9 @@ describe('save, load, restore', () => {
   it('save and load through storage', () => {
     const storage = memoryStorage();
     const game = newGame(crypt, { storage });
-    play(game, ['open door', 'e']);
+    play(game, ['open door', 'east']);
     expect(say(game, 'save')).toBe('Game saved.');
-    play(game, ['n', 'open chest']);
+    play(game, ['north', 'open chest']);
     expect(say(game, 'load')).toMatch(/^Game loaded\.\nDragon's Cell/);
     expect(game.state.location).toBe('dragonCell');
     expect(game.state.opened).toEqual(['door']);
@@ -47,7 +47,7 @@ describe('save, load, restore', () => {
 
   it('restore() continues a game', () => {
     const game = newGame();
-    play(game, ['open door', 'e', 'n']);
+    play(game, ['open door', 'east', 'north']);
     const copy = new Game(crypt);
     copy.restore(game.serialize());
     expect(copy.resume().map((l) => l.text)[0]).toBe('Dungeon');
@@ -59,7 +59,7 @@ describe('save, load, restore', () => {
 describe('undo and restart', () => {
   it('undo steps back one turn at a time', () => {
     const game = newGame();
-    play(game, ['open door', 'e', 'n']);
+    play(game, ['open door', 'east', 'north']);
     expect(game.state.turns).toBe(3);
     expect(say(game, 'undo')).toMatch(/^Previous turn undone\.\nDragon's Cell/);
     say(game, 'undo');
@@ -72,13 +72,13 @@ describe('undo and restart', () => {
 
   it('look and inventory do not take a turn', () => {
     const game = newGame();
-    play(game, ['look', 'i', 'x candle']);
+    play(game, ['look', 'inventory', 'examine candle']);
     expect(game.state.turns).toBe(0);
   });
 
   it('restart asks first', () => {
     const game = newGame();
-    play(game, ['open door', 'e']);
+    play(game, ['open door', 'east']);
     expect(say(game, 'restart')).toBe('Do you really want to start over? (y/n)');
     expect(say(game, 'n')).toBe('Carry on, then.');
     expect(game.state.location).toBe('dragonCell');

@@ -1,25 +1,41 @@
 import type { CommandDef } from './types';
 
+/** Built-in commands shown together on one line of HELP. */
+const HELP_GROUPS: readonly (readonly string[])[] = [
+  ['look', 'examine'],
+  ['go'],
+  ['take', 'drop'],
+  ['open', 'unlock'],
+  ['attack'],
+  ['inventory', 'undo'],
+  ['save', 'load', 'restart'],
+];
+
 export const helpCommand: CommandDef = {
   id: 'help',
-  verbs: ['help', 'h', '?', 'commands', 'hint'],
+  verbs: ['help', 'commands', 'hint'],
   meta: true,
   allowWhenOver: true,
   help: { usage: 'help', summary: 'Show this list.' },
   run({ w, game }) {
-    w.say(
-      'You control your character by typing commands in plain English. ' +
-        'You can chain them: "open door and go east". Some useful commands:',
-    );
-    for (const c of game.commands) {
-      if (c.help) w.say(`  ${c.help.usage.padEnd(28)} ${c.help.summary}`);
+    w.say('Type what you want to do in plain English, e.g. "open door and go east". Try:');
+    const usage = new Map(game.commands.filter((c) => c.help).map((c) => [c.id, c.help!.usage]));
+    const shown = new Set<string>(['help']);
+    const lines: string[] = [];
+    for (const group of HELP_GROUPS) {
+      const parts = group.filter((id) => usage.has(id));
+      parts.forEach((id) => shown.add(id));
+      if (parts.length) lines.push(parts.map((id) => usage.get(id)).join(' · '));
     }
+    const extra = [...usage].filter(([id]) => !shown.has(id)).map(([, u]) => u);
+    if (extra.length) lines.push(extra.join(' · '));
+    for (const l of lines) w.say(`  ${l}`);
   },
 };
 
 export const waitCommand: CommandDef = {
   id: 'wait',
-  verbs: ['wait', 'z', 'stand', 'nothing', 'rest'],
+  verbs: ['wait', 'stand', 'nothing', 'rest'],
   run({ w }) {
     w.say('Okay then...');
   },
@@ -31,7 +47,7 @@ export const saveCommand: CommandDef = {
   id: 'save',
   verbs: ['save'],
   meta: true,
-  help: { usage: 'save (or save name)', summary: 'Save your progress.' },
+  help: { usage: 'save', summary: 'Save your progress.' },
   run({ game, cmd }) {
     game.save(slotName(cmd.args));
   },
@@ -42,7 +58,7 @@ export const loadCommand: CommandDef = {
   verbs: ['load', 'restore'],
   meta: true,
   allowWhenOver: true,
-  help: { usage: 'load (or load name)', summary: 'Load a saved game.' },
+  help: { usage: 'load', summary: 'Load a saved game.' },
   run({ game, cmd }) {
     game.load(slotName(cmd.args));
   },

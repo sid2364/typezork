@@ -12,7 +12,10 @@ export type OutputStyle =
   | 'error' // "you can't do that" style responses
   | 'question' // the game is waiting for an answer
   | 'win' // victory text
-  | 'echo'; // the player's own command, echoed back
+  | 'echo' // the player's own command, echoed back
+  // Control markers (empty text):
+  | 'pause' // front-ends may wait for the player (e.g. "press Enter") before showing the rest
+  | 'clear'; // front-ends should clear the screen
 
 export interface OutputLine {
   readonly text: string;
