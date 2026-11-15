@@ -1,13 +1,18 @@
-# Builds the site and publishes it to https://sid2364.github.io/zork/ by
-# pushing dist/ into the zork/ folder of the sid2364/sid2364.github.io repo.
+# Builds the game and publishes it to https://sid2364.github.io/zork/.
+#
+# The portfolio (sid2364/sid2364.github.io) is a Next.js site deployed by its own
+# GitHub Actions workflow. Next.js copies public/ into the built site as-is, so
+# this job replaces public/zork/ in the portfolio repo with a fresh dist/ and
+# pushes. That push triggers the portfolio's deploy, which publishes /zork/.
+# Nothing outside public/zork/ is touched.
 #
 # One-time setup:
-#   1. ssh-keygen -t ed25519 -f zork_deploy -N ""
+#   1. ssh-keygen -t ed25519 -f zork_deploy -N "" -C "typezork deploy"
 #   2. In sid2364/sid2364.github.io → Settings → Deploy keys: add zork_deploy.pub
-#      with write access.
-#   3. In this repo → Settings → Secrets → Actions: add the private key as
-#      ZORK_DEPLOY_KEY.
-#   4. Check PAGES_BRANCH below matches the branch your user site publishes from.
+#      and tick "Allow write access".
+#   3. In this repo → Settings → Secrets and variables → Actions: add the private
+#      key (zork_deploy) as ZORK_DEPLOY_KEY. Then delete both local key files.
+#   4. Make sure the portfolio's deploy workflow runs on push to PAGES_BRANCH.
 # Until the secret exists, the publish step is skipped.
 name: Deploy
 
@@ -23,6 +28,7 @@ concurrency:
 env:
   PAGES_REPO: sid2364/sid2364.github.io
   PAGES_BRANCH: main
+  PAGES_DIR: public/zork
 
 jobs:
   deploy:
@@ -38,18 +44,32 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Publish to ${{ env.PAGES_REPO }}/zork
+      - name: Publish to ${{ env.PAGES_REPO }}/${{ env.PAGES_DIR }}
         if: env.HAS_KEY == 'true'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          deploy_key: ${{ secrets.ZORK_DEPLOY_KEY }}
-          external_repository: ${{ env.PAGES_REPO }}
-          publish_branch: ${{ env.PAGES_BRANCH }}
-          publish_dir: ./dist
-          destination_dir: zork
-          # Never touch the rest of the user site.
-          keep_files: true
-          commit_message: 'Deploy typezork ${{ github.sha }}'
+        env:
+          DEPLOY_KEY: ${{ secrets.ZORK_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+
+          git clone --depth 1 --branch "$PAGES_BRANCH" "git@github.com:$PAGES_REPO.git" portfolio
+          # Replace the whole folder so stale hashed assets from older builds go away.
+          rm -rf "portfolio/$PAGES_DIR"
+          mkdir -p "portfolio/$PAGES_DIR"
+          cp -R dist/. "portfolio/$PAGES_DIR/"
+
+          cd portfolio
+          git add -A "$PAGES_DIR"
+          if git diff --cached --quiet; then
+            echo "::notice::No changes to publish."
+            exit 0
+          fi
+          git -c user.name="typezork deploy" -c user.email="typezork-deploy@users.noreply.github.com" \
+            commit -m "Deploy typezork ${GITHUB_SHA::7}"
+          git push origin "HEAD:$PAGES_BRANCH"
       - name: Skipped publishing
         if: env.HAS_KEY != 'true'
         run: echo "::notice::ZORK_DEPLOY_KEY is not set; built but not published."

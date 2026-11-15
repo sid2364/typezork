@@ -118,9 +118,11 @@ events through `hooks`.
 
 ## Deploying
 
-`.github/workflows/deploy.yml` builds the site and pushes `dist/` into the `zork/` folder of
-`sid2364/sid2364.github.io`. It needs a deploy key; see the comments at the top of the workflow.
-Until the `ZORK_DEPLOY_KEY` secret exists, the workflow builds but doesn't publish.
+`.github/workflows/deploy.yml` builds the site and replaces `public/zork/` in
+`sid2364/sid2364.github.io` (a Next.js site) with the new `dist/`. Next.js copies `public/` into
+the built site as-is, so the portfolio's own deploy, triggered by that push, serves the game at
+`/zork/`. It needs a deploy key; see the comments at the top of the workflow. Until the
+`ZORK_DEPLOY_KEY` secret exists, the workflow builds but doesn't publish.
 
 ## Credits
 
