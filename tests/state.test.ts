@@ -83,7 +83,7 @@ describe('undo and restart', () => {
     expect(say(game, 'n')).toBe('Carry on, then.');
     expect(game.state.location).toBe('dragonCell');
     say(game, 'restart');
-    expect(say(game, 'y')).toMatch(/^The Crypt/);
+    expect(say(game, 'y')).toMatch(/^Zork/);
     expect(game.state.location).toBe('start');
     expect(game.state.turns).toBe(0);
   });

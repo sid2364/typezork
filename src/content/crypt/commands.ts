@@ -62,8 +62,7 @@ const answerRiddle: CommandDef = {
     }
     if (!w.has('torch')) {
       w.say(
-        "'Fire, yes,' the stream burbles, 'but words don't burn.' The water " +
-          'rushes on.',
+        "'Fire, yes,' the stream burbles, 'but words don't burn.' The water rushes on.",
         'error',
       );
       return;
