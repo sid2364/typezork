@@ -52,8 +52,13 @@
           <svg id="compass" class="compass__svg" role="group" aria-label="Compass"></svg>
         </section>
         <section class="minimap" aria-label="Map">
-          <h2 class="panel__title">Map</h2>
+          <h2 class="panel__title minimap__title">
+            Map <span class="minimap__count" id="map-count"></span>
+          </h2>
           <svg id="minimap" class="minimap__svg" role="img" aria-label="Map"></svg>
+          <p class="minimap__caption" aria-hidden="true">
+            <span>You are in</span> <span class="minimap__here" id="map-here"></span>
+          </p>
         </section>
       </aside>
 
@@ -99,7 +104,7 @@
           <h1 id="title-heading" class="title-screen__heading">Z O R K</h1>
           <p class="title-screen__rule" aria-hidden="true">══════════════════════</p>
           <p class="title-screen__sub">
-            A text adventure. You wake in a crypt. You need to get home.
+            A text-based adventure game.
           </p>
           <div class="title-screen__buttons">
             <button type="button" class="btn btn--big" id="continue-button" hidden>Continue</button>
@@ -107,7 +112,7 @@
           </div>
           <p class="title-screen__hint">Press Enter to begin</p>
         </div>
-        <p class="title-screen__credit">created by Sid Sahay</p>
+        <p class="title-screen__credit">created by Sid Sahay<a href="https://sid2364.github.io" target="_blank" rel="noopener noreferrer"> (sid2364)</a></p>
       </div>
 
       <dialog class="settings" id="settings">

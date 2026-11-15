@@ -143,7 +143,7 @@ function afterTurn(): void {
   $('#bar-status').textContent = `${view.room.name} · turn ${view.turns}`;
   document.title = `${view.room.name} — Zork`;
   help.render(view);
-  renderMinimap(minimap, def, view);
+  renderMinimap(minimap, def, view, { here: $('#map-here'), count: $('#map-count') });
   renderCompass(
     compass,
     view.exits.map((e) => e.dir),
