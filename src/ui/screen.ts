@@ -32,6 +32,8 @@ export class Screen {
   print(lines: readonly OutputLine[]): void {
     for (const l of lines) {
       if (l.style === 'pause' || l.style === 'clear') continue; // handled by the caller
+      // A new command: everything before it becomes "older" text.
+      if (l.style === 'echo') this.dimOlder();
       const el = document.createElement('p');
       el.className = `line line--${l.style}`;
       if (l.style === 'title') this.scroll.appendChild(spacer());
@@ -110,6 +112,13 @@ export class Screen {
     const callbacks = this.idle;
     this.idle = [];
     for (const fn of callbacks) fn();
+  }
+
+  /** Mark every line currently on screen as old, so the latest turn stands out. */
+  dimOlder(): void {
+    for (const el of this.scroll.querySelectorAll('.line:not(.line--old)')) {
+      el.classList.add('line--old');
+    }
   }
 
   private nearEnd(): boolean {

@@ -19,8 +19,28 @@ function el<K extends keyof SVGElementTagNameMap>(
   return node;
 }
 
-function label(name: string): string {
-  return name.length > 13 ? `${name.slice(0, 12)}…` : name;
+const FONT = 16;
+/** Rough width of a monospace character, as a fraction of the font size. */
+const CHAR_W = 0.62;
+const TEXT_W = BOX_W - 12;
+
+/**
+ * Fit a room name into its box: wrap onto two lines at word breaks, then shrink
+ * the font if a line is still too wide.
+ */
+function fitLabel(name: string): { lines: string[]; size: number } {
+  const perLine = Math.floor(TEXT_W / (FONT * CHAR_W));
+  const lines: string[] = [];
+  for (const word of name.split(' ')) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + word.length <= perLine) {
+      lines[lines.length - 1] = `${last} ${word}`;
+    } else lines.push(word);
+  }
+  if (lines.length > 2) lines.splice(1, lines.length, lines.slice(1).join(' '));
+  const longest = Math.max(...lines.map((l) => l.length));
+  const size = Math.min(FONT, TEXT_W / (longest * CHAR_W), lines.length > 1 ? 15 : FONT);
+  return { lines, size };
 }
 
 /** The persistent group that holds the rooms, so moving between rooms can animate. */
@@ -94,8 +114,19 @@ export function renderMinimap(svg: SVGSVGElement, def: GameDef, view: GameView):
     const g = el('g', { class: room.current ? 'map-room map-room--current' : 'map-room' });
     const title = el('title');
     title.textContent = room.name;
-    const text = el('text', { x, y: y + 6, 'text-anchor': 'middle' });
-    text.textContent = label(room.name);
+    const { lines, size } = fitLabel(room.name);
+    const lineHeight = size * 1.05;
+    const text = el('text', {
+      x,
+      y: y + size * 0.35 - ((lines.length - 1) * lineHeight) / 2,
+      'text-anchor': 'middle',
+      'font-size': size.toFixed(1),
+    });
+    lines.forEach((l, i) => {
+      const tspan = el('tspan', { x, dy: i === 0 ? 0 : lineHeight });
+      tspan.textContent = l;
+      text.append(tspan);
+    });
     g.append(
       title,
       el('rect', { x: x - BOX_W / 2, y: y - BOX_H / 2, width: BOX_W, height: BOX_H, rx: 4 }),

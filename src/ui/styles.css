@@ -259,7 +259,7 @@ input {
 
 .map-room text {
   fill: var(--fg);
-  font: 16px var(--font);
+  font-family: var(--font);
 }
 
 .map-room--current rect {
@@ -326,6 +326,7 @@ input {
 
 .line {
   margin: 0 0 0.45rem;
+  transition: opacity 0.4s ease;
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
@@ -339,6 +340,10 @@ input {
   color: var(--fg-strong);
   font-weight: 700;
   letter-spacing: 0.05em;
+}
+
+.line--old {
+  opacity: 0.55;
 }
 
 .line--echo {
@@ -435,12 +440,15 @@ input {
   white-space: nowrap;
 }
 
-.title-screen__by {
-  margin: 0.6rem 0 0;
+.title-screen__credit {
+  position: absolute;
+  bottom: 1rem;
+  left: 0;
+  right: 0;
+  margin: 0;
   color: var(--dim);
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
 }
 
 .title-screen__sub {
