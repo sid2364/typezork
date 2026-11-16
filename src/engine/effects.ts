@@ -42,6 +42,19 @@ export const win =
     w.win();
   };
 
+// end the game in defeat
+export const lose =
+  (text?: Text): Effect =>
+  (w) =>
+    w.lose(text);
+
+// give or take away points, once per key
+export const award =
+  (key: string, points: number): Effect =>
+  (w) => {
+    w.award(key, points);
+  };
+
 /** Run effects only when a condition holds. */
 export const when =
   (c: Condition, ...effects: Effect[]): Effect =>

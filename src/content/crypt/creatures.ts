@@ -1,4 +1,5 @@
-import { creature, revealExit, say } from '../../dsl';
+import { creature } from '../../dsl';
+import { dragonFriend, trollFriend } from './story';
 
 export const creatures = [
   creature('dragon', {
@@ -8,15 +9,34 @@ export const creatures = [
     location: 'dragonCell',
     killable: true,
     weakTo: ['sword', 'spear', 'staff'],
-    description:
-      'There is a giant dragon lying asleep in front of it. It seems to be guarding a passageway ' +
-      'headed east.',
+    description: (w) =>
+      w.flag('dragonEstranged')
+        ? 'The dragon lies with its back to you. The passage east is open. It does not turn round.'
+        : w.flag('dragonRevived')
+          ? 'The dragon lies awake and watches you. It is deciding about you, and it is in no ' +
+            'hurry. The passage east is open.'
+          : dragonFriend(w)
+            ? 'The dragon lies with its chin on its claws and watches you with one sleepy, ' +
+              'friendly eye. Its tail no longer blocks the passage east.'
+            : 'There is a giant dragon lying asleep in front of you. It seems to be guarding a ' +
+              'passageway headed east.',
     deadDescription:
       'You see the giant dragon you had slain with its entrails strewn across the stone floor. ' +
       'There is a passage that leads you east.',
-    examine:
-      'The dragon is enormous, scaly and very much asleep. A thin curl of smoke drifts from one ' +
-      "nostril. It guards the passage east as if it's being paid to.",
+    examine: (w) =>
+      dragonFriend(w)
+        ? 'Up close, the dragon is mostly ribs and patience. It is a better colour since it ate. ' +
+          'Its scales are polished as bright as mirrors, every one.'
+        : 'The dragon is enormous, scaly and very much asleep. A thin curl of smoke drifts from ' +
+          "one nostril. It guards the passage east as if it's being paid to. It is also thinner " +
+          'than a dragon should be. Its stomach makes a long, hollow sound, and it mumbles ' +
+          "something in its sleep that could be 'mutton'.",
+    beforeAttack: (w) =>
+      w.flag('dragonRevived')
+        ? 'No. Not again.'
+        : dragonFriend(w)
+          ? 'The dragon trusts you now. You look at the weapon in your hand, and put it away.'
+          : undefined,
     refuseTake: 'You cannot be serious.',
     alreadyDead: 'The dragon is already dead. Why must you be such a brute?',
     bareHanded:
@@ -36,10 +56,13 @@ export const creatures = [
         torch: 'You threaten a dragon with fire. The dragon, asleep, does not dignify this.',
         flower:
           "You tuck the flower behind the dragon's ear. It looks lovely. It is still very much alive.",
+        mutton:
+          'You slap the dragon with a leg of mutton. Its nose twitches. You have the feeling ' +
+          'that you hold the right thing the wrong way.',
+        boots: 'You throw a boot at the dragon. It bounces off without a sound. Felt, you see.',
       })[weapon] ??
       `You wave the ${w.thing(weapon).name} at the dragon threateningly. ` +
         'The dragon remains spectacularly unthreatened.',
-    onKill: [say('The passageway leading to the east opens up.')],
   }),
 
   creature('troll', {
@@ -48,15 +71,30 @@ export const creatures = [
     location: 'portcullis',
     killable: true,
     weakTo: ['spear', 'staff'],
-    description:
-      'A troll is wandering in the garden outside. It swings its massive club in the air every ' +
-      'now and then.',
+    description: (w) =>
+      w.flag('trollRevived')
+        ? 'The troll sits a little way off the garden path and watches you carefully. Its hand ' +
+          'is not over its mouth.'
+        : trollFriend(w)
+          ? "The troll sits by the garden path and practises words out loud. 'Garden. Club. " +
+            "Tooth.' It waves when it sees you."
+          : 'A troll is wandering in the garden outside. It swings its massive club in the air ' +
+            'every now and then.',
     deadDescription:
       'The troll lies dead on the grass. His tongue sticks out of his mouth making for an ' +
       'extremely unpleasant sight. You see a huge open space with a garden to the north.',
-    examine:
+    examine: (w) =>
       'The troll is large, green and smells like a wet sock. It swings its club absent-mindedly, ' +
-      'like someone twirling a pen in a meeting.',
+      'like someone twirling a pen in a meeting.' +
+      (trollFriend(w)
+        ? ' One of its front teeth is broken in half. It does not hide it.'
+        : ' It keeps one huge hand over its mouth, even when it talks.'),
+    beforeAttack: (w) =>
+      w.flag('trollRevived')
+        ? 'No. Not again.'
+        : trollFriend(w)
+          ? 'The troll waves at you with the club. You lower your weapon and wave back.'
+          : undefined,
     refuseTake: 'How were you even planning on doing that? And more importantly, why?',
     alreadyDead: 'The troll lies dead in front of you. How much more do you want to kill it?',
     bareHanded:
@@ -73,6 +111,5 @@ export const creatures = [
       })[weapon] ??
       `You size up the troll's club, then your ${w.thing(weapon).name}. ` +
         'You decide to live and let live.',
-    onKill: [revealExit('north'), say('It seems you can now walk about in the garden freely.')],
   }),
 ];

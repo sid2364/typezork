@@ -8,8 +8,29 @@ import { line, type OutputLine, type OutputStyle, type RoomId, type ThingId } fr
  * The view that conditions, effects and commands work through: immutable
  * definitions plus the mutable state, with an output buffer for messages.
  */
+// ask the player something, their next input goes to answer
+export type Asker = (
+  question: string,
+  answer: (tokens: string[]) => void,
+  opts?: {
+    // a yes or no question, the answer takes no turn
+    yesNo?: boolean;
+    // answers to offer as clickable hints
+    choices?: readonly string[];
+    // the player cannot walk away, only meta commands like look and undo work until they answer
+    strict?: boolean;
+  },
+) => void;
+
 export class World {
   readonly out: OutputLine[] = [];
+  // how many times the player has lost over every game played
+  // it lives outside the state so undo and restart do not forget it
+  deaths = 0;
+  // called with the new total every time the player loses
+  onDeath: ((total: number) => void) | undefined;
+  // set by the game, lets effects and hooks ask questions and not just commands
+  ask: Asker = () => {};
 
   constructor(
     readonly def: GameDef,
@@ -152,6 +173,36 @@ export class World {
   win(): void {
     this.state.over = true;
     this.state.won = true;
+  }
+
+  // end the game in defeat
+  lose(text?: Text): void {
+    if (this.state.over) return;
+    if (text) this.say(text, 'lose');
+    this.say(
+      'GAME OVER. Type UNDO to take back your last move, or RESTART to begin again.',
+      'lose',
+    );
+    this.state.over = true;
+    this.state.won = false;
+    this.deaths++;
+    this.onDeath?.(this.deaths);
+  }
+
+  // bring a dead creature back
+  revive(id: ThingId): void {
+    this.state.killed = this.state.killed.filter((x) => x !== id);
+  }
+
+  addScore(points: number): void {
+    this.state.score += points;
+  }
+
+  // add points once per key, returns true if they were given this time
+  award(key: string, points: number): boolean {
+    if (!this.once(`score:${key}`)) return false;
+    this.state.score += points;
+    return true;
   }
 
   // ---- description -----------------------------------------------------------

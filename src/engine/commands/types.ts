@@ -1,5 +1,5 @@
 import type { ThingId } from '../types';
-import type { World } from '../world';
+import type { Asker, World } from '../world';
 
 export interface ParsedCommand {
   readonly raw: string;
@@ -39,7 +39,7 @@ export interface CommandContext {
    */
   resolve(tokens: readonly string[], opts?: ResolveOptions): ThingId | undefined;
   /** Ask the player a question. Their next input goes to `answer`. */
-  ask(question: string, answer: (tokens: string[]) => void, opts?: { yesNo?: boolean }): void;
+  ask: Asker;
 }
 
 export interface CommandDef {

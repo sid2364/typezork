@@ -22,6 +22,8 @@ export function go(w: World, dir: Direction): void {
 
   const veto =
     w.bus.emit('beforeMove', { from, to: exit.to, dir }, w) ?? w.room(exit.to).beforeEnter?.(w);
+  // a hook may have ended the game, for example a trap or a guard that woke up
+  if (w.state.over) return;
   if (veto) {
     w.say(veto, 'error');
     return;

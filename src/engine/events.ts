@@ -10,6 +10,8 @@ export interface GameEvents {
   drop: { thing: ThingId };
   open: { thing: ThingId };
   kill: { thing: ThingId; weapon: ThingId };
+  // fired after a thing is described by examine or look at
+  examine: { thing: ThingId; first: boolean };
   turn: { turns: number };
 }
 

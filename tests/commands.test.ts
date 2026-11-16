@@ -40,8 +40,8 @@ describe('things', () => {
     expect(say(game, 'look')).toMatch(/^Crypt\nYou find yourself/);
     expect(say(game, 'examine candle')).toMatch(/^A stubby candle/);
     expect(say(game, 'look at the bones')).toMatch(/^It's a bone/);
-    expect(say(game, 'examine door')).toBe(
-      'A sturdy wooden door with an old iron handle.\nThe door is closed.',
+    expect(say(game, 'examine door')).toMatch(
+      /^A sturdy wooden door with an old iron handle\..*\nThe door is closed\.$/,
     );
     expect(say(game, 'examine unicorn')).toBe('You see no unicorn here.');
   });

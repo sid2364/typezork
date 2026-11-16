@@ -12,8 +12,20 @@ The door opens revealing a path towards the east.
 
 Dragon's Cell
 You see a staircase leading into the darkness in the north and a steel gate to the south.
-There is a giant dragon lying asleep in front of it. It seems to be guarding a passageway headed east.
+There is a giant dragon lying asleep in front of you. It seems to be guarding a passageway headed east.
 ```
+
+## The story
+
+You wake in a crypt and you need to get home. A hungry dragon and a troll that nobody understands
+stand in your way. You can feed, help, sneak past or kill them, and each choice has a price:
+
+- Kill the dragon and you lose your strength (and your weapon). Kill the troll and you lose your
+  voice. Kill both and you still reach home, but you fail the test.
+- A scroll or a potion can undo one kill. You need the part of you that is left to use it.
+- Some mistakes end the game early. Each game over adds a bone to the pile in the crypt.
+- You get points for what you examine, for kindness and even for kills. The more you look at,
+  the more the ending tells you. `score` shows your score, turns and rank.
 
 ## Running it
 
@@ -40,11 +52,13 @@ src/
     commands/      Built-in verbs (go, look, take, open, unlock, attack, undo, …)
     parser/        Tokenizer, verb lexicon, noun resolution ("it", "which do you mean…?")
     conditions.ts  has('key'), isDead('dragon'), flag('x'), not(), all(), any()
-    effects.ts     say(), revealExit(), spawnItem(), setFlag(), win(), once()
-    events.ts      Event bus: beforeMove (can veto), afterEnter, take, drop, open, kill, turn
+    effects.ts     say(), revealExit(), spawnItem(), setFlag(), win(), lose(), award(), once()
+    events.ts      Event bus: beforeMove (can veto), afterEnter, take, drop, open, kill, examine, turn
     map.ts         Minimap layout from exit directions
   dsl/             Builders for writing games: defineGame, room, item, creature, door, …
-  content/crypt/   The original pyzork map
+  content/crypt/   The original pyzork map, grown into a longer story
+    story.ts       Who is alive or a friend, the score, the hooks and the endings
+    dialogue.ts    Conversations with numbered choices, and the two revive scenes
   ui/              Web front-end (typewriter screen, help panel, minimap, settings)
   cli.ts           Terminal front-end
 ```

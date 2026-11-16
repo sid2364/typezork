@@ -31,6 +31,7 @@ const colour: Record<OutputLine['style'], string> = {
   error: '\x1b[33m',
   question: '\x1b[36m',
   win: '\x1b[1;35m',
+  lose: '\x1b[1;31m',
   echo: '\x1b[2m',
   pause: '',
   clear: '',
@@ -75,7 +76,16 @@ function print(lines: readonly OutputLine[]): void {
   }
 }
 
-const game = new Game(crypt, { storage: fileStorage });
+// game overs are counted in a small file so the crypt remembers them
+const DEATHS_FILE = join(SAVE_DIR, 'deaths.txt');
+const game = new Game(crypt, {
+  storage: fileStorage,
+  deaths: existsSync(DEATHS_FILE) ? Number(readFileSync(DEATHS_FILE, 'utf8')) || 0 : 0,
+  onDeath(total) {
+    mkdirSync(SAVE_DIR, { recursive: true });
+    writeFileSync(DEATHS_FILE, String(total));
+  },
+});
 print(game.start());
 
 const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: tty });

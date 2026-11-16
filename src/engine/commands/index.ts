@@ -42,4 +42,4 @@ export const BUILTIN_COMMANDS: readonly CommandDef[] = [
 
 export type { CommandContext, CommandDef, GameControl, ParsedCommand } from './types';
 export { go, enter } from './movement';
-export { openThing } from './things';
+export { describeThing, openThing } from './things';

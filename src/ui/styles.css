@@ -468,6 +468,12 @@ input {
   color: var(--question);
 }
 
+.line--lose {
+  margin-top: 1rem;
+  color: var(--error);
+  font-weight: 700;
+}
+
 .line--win {
   margin-top: 1rem;
   color: var(--accent);

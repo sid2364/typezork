@@ -107,6 +107,8 @@ export interface CreatureDef extends ThingCommon {
   readonly notWorthy?: string | ((w: World, weapon: ThingId) => string);
   /** Shown when the player attacks with bare hands (punch, kick, "with my fists", …). */
   readonly bareHanded?: Text;
+  // return a message to stop an attack before it starts, for a friend or a second chance
+  readonly beforeAttack?: (w: World) => string | undefined;
   readonly onKill?: readonly Effect[];
 }
 

@@ -42,7 +42,13 @@ export function openThing(w: World, id: ThingId): boolean {
   return true;
 }
 
-function describeThing(w: World, id: ThingId): void {
+// describe a thing the way examine does and tell listeners it was looked at
+export function describeThing(w: World, id: ThingId): void {
+  describe(w, id);
+  w.bus.emit('examine', { thing: id, first: w.once(`examined:${id}`) }, w);
+}
+
+function describe(w: World, id: ThingId): void {
   const thing = w.thing(id);
   if (thing.kind === 'creature' && w.isDead(id)) {
     w.say(w.listing(id)!);
@@ -327,6 +333,11 @@ export const attackCommand: CommandDef = {
     }
     if (w.isDead(target)) {
       w.say(creature.alreadyDead ?? `${capitalise(w.the(target))} is already dead.`);
+      return;
+    }
+    const refusal = creature.beforeAttack?.(w);
+    if (refusal) {
+      w.say(refusal);
       return;
     }
     if (!creature.killable) {

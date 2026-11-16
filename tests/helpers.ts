@@ -30,6 +30,7 @@ export function memoryStorage(): SaveStorage & { slots: Map<string, string> } {
   };
 }
 
+// the old way through, kill everything, it still reaches the forest but it fails the test
 export const WALKTHROUGH = [
   'open door',
   'east',
@@ -39,11 +40,43 @@ export const WALKTHROUGH = [
   'south',
   'unlock gate',
   'south',
-  'take spear',
+  'take spear and staff',
   'north',
   'kill dragon with spear',
   'east',
-  'kill troll with spear',
+  'kill troll with staff',
+  'north',
+  'north',
+  'take torch',
+  'south',
+  'south',
+  'wave torch',
+  'south',
+  'east',
+] as const;
+
+// in the armoury with the key
+export const TO_ARMOURY = WALKTHROUGH.slice(0, 8);
+
+// feed the dragon and end up in its cell with the scale
+export const FEED = [
+  'open door',
+  'east',
+  'north',
+  'take mutton',
+  'south',
+  'give mutton to dragon',
+  '1',
+  '2',
+] as const;
+
+// from the cell, show the troll its face and make a friend
+export const HELP = ['east', 'show scale to troll', '1', '3'] as const;
+
+// the kind way through
+export const KIND_ROUTE = [
+  ...FEED,
+  ...HELP,
   'north',
   'north',
   'take torch',

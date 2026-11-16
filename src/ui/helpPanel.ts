@@ -20,12 +20,17 @@ const CHEATSHEET: readonly (readonly Entry[])[] = [
   ],
   [['open ...', 'open ']],
   [['unlock ...', 'unlock ']],
+  [
+    ['talk to ...', 'talk to '],
+    ['give ... to ...', 'give '],
+  ],
   [['kill ... with ...', 'kill ']],
   [['inventory', 'inventory']],
   [
     ['undo', 'undo'],
     ['save', 'save'],
     ['load', 'load'],
+    ['score', 'score'],
     ['help', 'help'],
   ],
 ];

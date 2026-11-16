@@ -27,6 +27,10 @@ export interface GameOptions {
   readonly storage?: SaveStorage;
   /** How many turns UNDO can go back. */
   readonly undoLimit?: number;
+  // how many times the player has lost before, front-ends may remember this between games
+  readonly deaths?: number;
+  // called with the new total every time the player loses
+  readonly onDeath?: (total: number) => void;
 }
 
 export interface GameView {
@@ -35,6 +39,7 @@ export interface GameView {
   readonly exits: readonly { readonly dir: Direction; readonly to: string | null }[];
   readonly inventory: readonly { readonly id: ThingId; readonly name: string }[];
   readonly turns: number;
+  readonly score: number;
   readonly over: boolean;
   readonly won: boolean;
   /** The question the game is waiting on, if any. */
@@ -47,6 +52,9 @@ export interface GameView {
 interface Pending {
   readonly question: string;
   readonly yesNo: boolean;
+  readonly strict: boolean;
+  // answers to offer as clickable hints
+  readonly choices: readonly string[];
   readonly answer: (tokens: string[]) => void;
 }
 
@@ -72,6 +80,18 @@ export class Game {
     this.storage = options.storage;
     this.undoLimit = options.undoLimit ?? 50;
     this.world = new World(def, initialState(def), this.bus);
+    this.world.deaths = options.deaths ?? 0;
+    this.world.onDeath = options.onDeath;
+    this.world.ask = (question, answer, opts) => {
+      this.pending = {
+        question,
+        yesNo: opts?.yesNo ?? false,
+        strict: opts?.strict ?? false,
+        choices: opts?.choices ?? [],
+        answer,
+      };
+      this.world.say(question, 'question');
+    };
     def.hooks?.(this.bus);
 
     // Game commands override built-ins with the same id.
@@ -134,7 +154,14 @@ export class Game {
     if (this.pending) {
       const pending = this.pending;
       const tokens = tokenize(text);
-      if (pending.yesNo || !this.parse(tokens)) {
+      const parsed = this.parse(tokens);
+      if (pending.strict && parsed && this.byId.get(parsed.commandId)!.meta) {
+        // looking around or undoing is fine mid-conversation and the question stays open
+        this.execute(parsed);
+        if (this.pending === pending) w.say(pending.question, 'question');
+        return this.flush();
+      }
+      if (pending.yesNo || pending.strict || !parsed) {
         this.pending = undefined;
         this.step(() => pending.answer(tokens), pending.yesNo);
         return this.flush();
@@ -178,6 +205,7 @@ export class Game {
       })),
       inventory: w.inventory().map((id) => ({ id, name: w.thing(id).name })),
       turns: w.state.turns,
+      score: w.state.score,
       over: w.state.over,
       won: w.state.won,
       question: this.question,
@@ -260,10 +288,7 @@ export class Game {
       cmd: parsed,
       game: this.control,
       resolve: (tokens, opts) => this.resolve(parsed, preResolved, tokens, opts),
-      ask: (question, answer, opts) => {
-        this.pending = { question, yesNo: opts?.yesNo ?? false, answer };
-        w.say(question, 'question');
-      },
+      ask: w.ask,
     };
     this.byId.get(parsed.commandId)!.run(ctx);
   }
@@ -293,6 +318,8 @@ export class Game {
     this.pending = {
       question: `Which do you mean, ${list}?`,
       yesNo: false,
+      strict: false,
+      choices: [],
       answer: (answer) => {
         // "iron" answers "which key?" as "iron key"; a full name works too.
         let pick = resolveNoun([...answer, ...tokens], result.ids, this.def.things);
@@ -364,10 +391,13 @@ export class Game {
   private suggestions(): string[] {
     const w = this.world;
     if (w.state.over) return ['restart', 'undo'];
+    if (this.pending?.choices.length) return [...this.pending.choices];
+    const talk = this.byId.has('talk');
     const out: string[] = [];
     for (const id of w.thingsAt(w.here)) {
       const t = w.thing(id);
       if (t.kind === 'creature') {
+        if (!w.isDead(id) && talk) out.push(`talk to ${t.name}`);
         if (!w.isDead(id) && t.killable) out.push(`attack ${t.name}`);
       } else if (t.openable && !w.isOpen(id)) {
         out.push(`${w.isLocked(id) ? 'unlock' : 'open'} ${t.name}`);

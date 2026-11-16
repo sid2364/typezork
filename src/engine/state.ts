@@ -24,6 +24,7 @@ export interface GameState {
   /** The thing "it" refers to. */
   it: ThingId | null;
   turns: number;
+  score: number;
   over: boolean;
   won: boolean;
 }
@@ -56,6 +57,7 @@ export function initialState(def: GameDef): GameState {
     shownOnce: [],
     it: null,
     turns: 0,
+    score: 0,
     over: false,
     won: false,
   };

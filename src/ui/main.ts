@@ -8,6 +8,7 @@ import { renderMinimap } from './minimap';
 import { Screen } from './screen';
 import {
   autosave,
+  deaths,
   loadSettings,
   localSaves,
   saveSettings,
@@ -68,7 +69,15 @@ const screen = new Screen($('#scroll'), $('#live'), () =>
   reducedMotion.matches ? Infinity : SPEEDS[settings.speed],
 );
 
-let game = new Game(def, { storage: localSaves(def.id) });
+// every game over is remembered so the crypt can show it
+const newGame = (): Game =>
+  new Game(def, {
+    storage: localSaves(def.id),
+    deaths: deaths.load(def.id),
+    onDeath: (total) => deaths.save(def.id, total),
+  });
+
+let game = newGame();
 let endShown = false;
 
 const prompt = new PromptInput($('#prompt'), $('#command'), (text) => run(text));
@@ -138,9 +147,10 @@ function afterTurn(): void {
   const view = game.view();
   $('#status-room').textContent = view.room.name;
   $('#status-turns').textContent = String(view.turns);
+  $('#status-score').textContent = String(view.score);
   $('#status-exits').textContent = view.exits.map((e) => e.dir).join(', ') || 'none';
   $('#status-inventory').textContent = view.inventory.map((i) => i.name).join(', ') || 'nothing';
-  $('#bar-status').textContent = `${view.room.name} · turn ${view.turns}`;
+  $('#bar-status').textContent = `${view.room.name} · turn ${view.turns} · score ${view.score}`;
   document.title = `${view.room.name} — Zork`;
   help.render(view);
   renderMinimap(minimap, def, view, { here: $('#map-here'), count: $('#map-count') });
@@ -176,7 +186,7 @@ function afterTurn(): void {
 function begin(resume: boolean): void {
   titleScreen.hidden = true;
   screen.clear();
-  game = new Game(def, { storage: localSaves(def.id) });
+  game = newGame();
   const saved = resume ? autosave.load(def.id) : null;
   let lines;
   if (saved) {

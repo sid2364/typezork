@@ -40,6 +40,12 @@ export const autosave = {
   clear: (gameId: string) => remove(`${PREFIX}:${gameId}:autosave`),
 };
 
+// how many times the player has lost this game on this device
+export const deaths = {
+  load: (gameId: string): number => Number(get(`${PREFIX}:${gameId}:deaths`)) || 0,
+  save: (gameId: string, total: number) => set(`${PREFIX}:${gameId}:deaths`, String(total)),
+};
+
 export type Speed = 'slow' | 'normal' | 'fast' | 'instant';
 export type Theme = 'green' | 'amber';
 

@@ -1,11 +1,22 @@
-import { door, flag, guarded, hidden, isDead, room, win } from '../../dsl';
+import { door, flag, guarded, room } from '../../dsl';
+import type { World } from '../../engine/world';
+import { dragonAsleep, ending, trollFriend } from './story';
+
+// every game over leaves one more bone in the crypt
+const newBones = (w: World): string =>
+  w.deaths === 0
+    ? ''
+    : w.deaths === 1
+      ? ' Someone has added a bone to the pile since you were last here. You decide not to think about who.'
+      : ` Someone has added to the bones since you were last here. You count ${w.deaths} new ones. You decide not to think about who.`;
 
 export const rooms = [
   room('start', {
     name: 'Crypt',
-    description:
+    description: (w) =>
       'You find yourself in a dark empty crypt. There is an eerie feel to this place, and you do ' +
-      'not feel comfortable at all. You need to get home. There is a door to the east.',
+      'not feel comfortable at all. You need to get home. There is a door to the east.' +
+      newBones(w),
     exits: { east: door('door', 'dragonCell') },
     pos: [0, 0],
   }),
@@ -18,10 +29,12 @@ export const rooms = [
       west: 'start',
       north: 'dungeon',
       south: door('gate', 'weaponsRoom'),
+      // dead or fed or you wear the felt boots, the sneak itself is a hook in story.ts
       east: guarded(
         'portcullis',
-        isDead('dragon'),
-        "The dragon's bulk fills the passage to the east. You won't get past it while it lives.",
+        (w) => !dragonAsleep(w) || w.has('boots'),
+        "The dragon's bulk fills the passage to the east. You won't get past it while it lives. " +
+          'Not with feet as loud as yours, at least.',
       ),
     },
   }),
@@ -29,9 +42,19 @@ export const rooms = [
   room('dungeon', {
     name: 'Dungeon',
     description:
-      'You enter a small dungeon where you see ancient runes scrawled across the walls. A barred ' +
-      'cell lies to the south, its door barely holding something big back.',
-    exits: { south: 'dragonCell' },
+      'You enter a small dungeon where you see ancient runes scrawled across the walls. The ' +
+      'stairs lead back south, up to the cell and the something big that sleeps in it. A low ' +
+      'door to the west has a brass plate on it: KEEPER.',
+    exits: { south: 'dragonCell', west: 'keeper' },
+  }),
+
+  room('keeper', {
+    name: "Keeper's Quarters",
+    description:
+      'A small, tidy room. Someone lived here and left in the middle of an ordinary day: the ' +
+      'bed is made, a cup stands on the table, and a coat still hangs behind the door. The only ' +
+      'way out is back east, into the dungeon.',
+    exits: { east: 'dungeon' },
   }),
 
   room('weaponsRoom', {
@@ -39,8 +62,20 @@ export const rooms = [
     description:
       'You enter a room full of weapons. You see swords, knives, spears, staves, and hammers ' +
       'displayed all around you. Large windows illuminate the room with the daylight outside. A ' +
-      "narrow door to the north seems to lead back toward the dragon's lair.",
-    exits: { north: 'dragonCell' },
+      "narrow door to the north seems to lead back toward the dragon's lair. A tight spiral " +
+      'stair in the corner climbs up.',
+    exits: { north: 'dragonCell', up: 'tower' },
+  }),
+
+  room('tower', {
+    name: 'Tower Room',
+    description:
+      'You climb to a round room at the top of the tower. It was a dressing room once. Dust ' +
+      'covers the table, the chair and the floor. It does not cover the jewelled box in the ' +
+      'middle of the floor, which sits exactly where you would put a box if you wanted someone ' +
+      'to look at it. The stair goes back down.',
+    exits: { down: 'weaponsRoom' },
+    pos: [0, 1],
   }),
 
   room('portcullis', {
@@ -51,7 +86,13 @@ export const rooms = [
       "toward the dragon's cell.",
     exits: {
       west: 'dragonCell',
-      north: hidden('garden'),
+      // the troll moves aside once it is a friend or once it cannot object
+      north: guarded(
+        'garden',
+        (w) => w.isDead('troll') || trollFriend(w),
+        "The troll steps in front of you. 'Nub,' it says behind its hand, and shakes its " +
+          'head. It does not look angry. It looks like it is waiting for something.',
+      ),
       // The stream only parts once its riddle is answered (see the answer command).
       south: guarded(
         'river',
@@ -114,6 +155,6 @@ export const rooms = [
       'Suddenly a group of tribesmen come out and greet you. Oddly enough, you understand their ' +
       'tongue, and they treat you as one of their own, not feeling threatened by you at all. It ' +
       'hits you then; you have reached home.',
-    onEnter: [win('Bravo! You beat the game!')],
+    onEnter: [ending],
   }),
 ];
