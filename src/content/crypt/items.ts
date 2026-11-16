@@ -78,8 +78,8 @@ export const items = [
       'A leg of cured mutton hangs from a hook in the ceiling, high enough to be safe from ' +
       'anything large.',
     examine:
-      'A whole leg of mutton, cured with salt and smoke. Someone hung it here with care, one ' +
-      'of many. The other hooks are empty.',
+      'A whole leg of mutton, cured with salt and smoke. Someone hung it here with care.' +
+      ' The other hooks are empty.',
     takeMessage:
       'You unhook the mutton. It is heavy, and it smells wonderful. You feel sure that ' +
       'somebody is missing it.',
@@ -132,9 +132,8 @@ export const items = [
     description: 'A ledger lies open on the table.',
     examine:
       "The keeper's feeding ledger. Every day has the same line, in the same careful hand: " +
-      "'One leg of mutton. He sat up for it like a dog.' Some days add a note: 'He let me " +
-      "polish his scales. Bright as mirrors.' The entries stop in the middle of a page. There " +
-      'is no last word. There is only a day with nothing after it.',
+      "'One leg of mutton.' Some days add a note: 'He let me " +
+      "polish his scales.' The entries stop in the middle of a page.",
     refuseTake: 'It belongs on this table. You leave it open at the last page, the way it was.',
   }),
   item('note', {
@@ -146,8 +145,7 @@ export const items = [
     examine:
       "'The gardener is NOT dangerous. He hides his mouth since he broke the tooth, so nobody " +
       'understands him now. NUB is no. ZUG is see. MOG is face. GRAK is tooth. HUM is good. ' +
-      'BLUG is bad. HOOM is home. He only wants to see how bad it is. I keep meaning to bring ' +
-      "him a mirror.'",
+      'BLUG is bad. HOOM is home. He only wants to see how bad it is.',
     refuseTake: 'You leave the note where the keeper pinned it. You have read it. That is enough.',
   }),
   item('bowl', {
@@ -301,7 +299,8 @@ export const items = [
   }),
   item('torch', {
     examine:
-      "The flame burns a peculiar bright red. Oddly, the wind doesn't seem to bother it at all. Water, though, might be another story.",
+      "The flame burns a peculiar bright red. Oddly, the wind doesn't seem to bother it at all." +
+      'Water, though, might be another story.',
     name: 'torch',
     adjectives: ['flaming'],
     location: 'gazebo',

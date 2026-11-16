@@ -76,8 +76,8 @@ export function feedDragon(w: World): void {
       label: '"The keeper sent me."',
       run: () => {
         w.say(
-          "'No,' says the dragon. 'The keeper sent no one.'" +
-            "'I will believe you because you brought me my dinner until you are out of my sight.",
+          "'No,' says the dragon. 'The keeper sent no one. " +
+            "I will believe you because you brought me my dinner until you are out of my sight.'",
         );
         dragonAsksWhy(w);
       },
@@ -104,9 +104,7 @@ function dragonAsksWhy(w: World): void {
     {
       label: '"Home."',
       run: () => {
-        w.say(
-          "'Hoom,' says the dragon in his old accent. Satiated.",
-        );
+        w.say("'Hoom,' says the dragon in his old accent. Satiated.");
         giveScale(w);
       },
     },
@@ -115,7 +113,8 @@ function dragonAsksWhy(w: World): void {
       run: () => {
         w.award('dragonKind2', POINTS.kindWord);
         w.say(
-          "'Then you are looking for yourself,' says the dragon putting tucking his head into his wing for a nap.",
+          "'Then you are looking for yourself,' says the dragon putting " +
+            'tucking his head into his wing for a nap.',
         );
         giveScale(w);
       },
@@ -123,9 +122,7 @@ function dragonAsksWhy(w: World): void {
     {
       label: '"Something to fight, I thought."',
       run: () => {
-        w.say(
-          "'Yet you fed me.'",
-        );
+        w.say("'Yet you fed me.'");
         giveScale(w);
       },
     },
@@ -179,7 +176,7 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
         w.award('trollKind1', POINTS.kindWord);
         w.say(
           'The troll looks at the tooth. Then it looks at the rest of himself.' +
-          "'Hum,' it says slowly. You are almost " +
+            "'Hum,' it says slowly. You are almost " +
             'sure that is the troll word for good.',
         );
         trollFindsVoice(w, glass);
@@ -201,7 +198,8 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
         w.award('trollCruel', POINTS.cruelWord);
         w.setFlag('trollHurt');
         w.say(
-          "The troll's face closes like a door. It turns away from the ${name} and stands on the garden path with its back " +
+          `The troll's face closes like a door. It turns away from the ${name} and` +
+            ' stands on the garden path with its back ' +
             'to you. You feel the weight of your words.',
         );
       },
@@ -219,9 +217,7 @@ function trollFindsVoice(w: World, glass: 'mirror' | 'scale'): void {
     {
       label: '"I am not laughing."',
       run: () => {
-        w.say(
-          "The troll checks your face very carefully. 'You not laugh.'",
-        );
+        w.say("The troll checks your face very carefully. 'You not laugh.'");
         done();
       },
     },
@@ -236,9 +232,7 @@ function trollFindsVoice(w: World, glass: 'mirror' | 'scale'): void {
       label: '"I lost my voice too. I woke up without even a name."',
       run: () => {
         w.award('trollKind2', POINTS.kindWord);
-        w.say(
-          "'Then we find,' it says. 'You and me.'",
-        );
+        w.say("'Then we find,' it says. 'You and me.'");
         done();
       },
     },
@@ -288,7 +282,8 @@ export function reviveDragon(w: World): void {
       "things could happen... 'You came back,' it says. 'People with swords never come back.'",
   );
   w.say(
-    'It scratches under its chin, and a scale falls and rings on the floor. It is a dragonscale, and it is whole. The dragon looks at you with a new light in its eye.',
+    'It scratches under its chin, and a scale falls and rings on the floor. It is a dragonscale,' +
+      ' and it is whole. The dragon looks at you with a new light in its eye.',
   );
   w.say('You now have a dragonscale. Your arms have stopped shaking.');
 }
@@ -309,10 +304,6 @@ export function reviveTroll(w: World): void {
     'The troll then sneezes. It sits up. It looks at you, and at its club, and at you again. It ' +
       "puts a hand over its mouth. 'Nub,' it says, very small, behind the hand.",
   );
-  w.say(
-    "Something moves in your throat. 'I am sorry,' you say, and you hear it."
-  );
-  w.say(
-    'Far off, inside the castle, something large heaves an exhausted sigh of relief.',
-  );
+  w.say("Something moves in your throat. 'I am sorry,' you say, and you hear it.");
+  w.say('Far off, inside the castle, something large heaves an exhausted sigh of relief.');
 }

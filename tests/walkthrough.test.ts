@@ -89,7 +89,7 @@ describe('the old way through', () => {
     play(game, WALKTHROUGH.slice(0, 12));
     const before = game.state.score;
     expect(say(game, 'kill troll with staff')).toMatch(/That is both of them/);
-    expect(game.state.score).toBe(before + 25 - 100);
+    expect(game.state.score).toBe(before + 250 - 500);
   });
 });
 
@@ -131,7 +131,7 @@ describe('the dragon', () => {
     expect(game.state.location).toBe('dragonCell');
     expect(say(game, 'look')).toMatch(/friendly eye/);
     expect(game.question).toMatch(/What do you say/);
-    expect(say(game, 'two')).toMatch(/keeper never sends anyone/);
+    expect(say(game, 'two')).toMatch(/keeper sent no one/);
   });
 
   it('finishes the gift if the talk was cut short by a reload', () => {
@@ -269,7 +269,7 @@ describe('the troll', () => {
     play(game, [...FEED, 'east', 'show scale to troll']);
     const before = game.state.score;
     expect(say(game, '3')).toMatch(/face closes like a door/);
-    expect(game.state.score).toBe(before - 10);
+    expect(game.state.score).toBe(before - 100);
     expect(say(game, 'north')).toMatch(/Nub/);
     expect(say(game, 'show scale')).toMatch(/does not want to look again/);
     play(game, ['1', '1']);
@@ -346,8 +346,8 @@ describe('strength against voice', () => {
     expect(say(game, 'mix potion')).toMatch(/You now have a potion/);
     const before = game.state.score;
     const text = say(game, 'pour potion on troll');
-    expect(text).toMatch(/Your voice is back/);
-    expect(game.state.score).toBe(before + 50);
+    expect(text).toMatch(/'I am sorry,' you say, and you hear it/);
+    expect(game.state.score).toBe(before + 500);
     expect(game.state.killed).toEqual([]);
     expect(say(game, 'kill troll with staff')).toBe('No. Not again.');
     expect(say(game, 'talk to troll')).toMatch(/'Hello,' says the troll, carefully/);
@@ -397,7 +397,7 @@ describe('strength against voice', () => {
     const before = game.state.score;
     const text = say(game, 'read scroll');
     expect(text).toMatch(/You came back/);
-    expect(game.state.score).toBe(before + 50);
+    expect(game.state.score).toBe(before + 500);
     expect(game.state.killed).toEqual([]);
     expect(game.state.things.scale).toBe('inventory');
     expect(say(game, 'examine scale')).toMatch(/A crack runs across it/);
@@ -481,10 +481,10 @@ describe('locks, traps and other ways to end early', () => {
     const game = newGame();
     play(game, [...TO_ARMOURY, 'up']);
     const before = game.state.score;
-    expect(say(game, 'examine box')).toMatch(/cloud of black soot[^]*\n\(You lose 15 points/);
-    expect(game.state.score).toBe(before - 15);
+    expect(say(game, 'examine box')).toMatch(/cloud of black soot[^]*\n\(You lose 150 points/);
+    expect(game.state.score).toBe(before - 150);
     expect(say(game, 'examine box')).not.toMatch(/soot/);
-    expect(game.state.score).toBe(before - 15);
+    expect(game.state.score).toBe(before - 150);
     expect(say(game, 'take box')).toMatch(/count your fingers/);
   });
 
@@ -521,23 +521,23 @@ describe('score', () => {
     const game = newGame();
     expect(game.state.score).toBe(0);
     say(game, 'examine bone');
-    expect(game.state.score).toBe(1);
+    expect(game.state.score).toBe(10);
     say(game, 'examine bone');
-    expect(game.state.score).toBe(1);
+    expect(game.state.score).toBe(10);
     // the candle is also a piece of memory
     say(game, 'look at candle');
-    expect(game.state.score).toBe(7);
-    expect(game.view().score).toBe(7);
-    expect(say(game, 'score')).toBe('Your score is 7, in 0 turns. Rank: Sleepwalker.');
+    expect(game.state.score).toBe(70);
+    expect(game.view().score).toBe(70);
+    expect(say(game, 'score')).toBe('Your score is 70, in 0 turns. Rank: Sleepwalker.');
   });
 
   it('gives points for rooms, kindness and kills', () => {
     const game = newGame();
     play(game, ['open door', 'east']);
-    expect(game.state.score).toBe(2);
+    expect(game.state.score).toBe(20);
     play(game, FEED.slice(2));
     // one more room, the feed, and two kind lines
-    expect(game.state.score).toBe(2 + 2 + 25 + 5 + 5);
+    expect(game.state.score).toBe(20 + 20 + 250 + 50 + 50);
   });
 });
 
@@ -560,6 +560,6 @@ describe('small things', () => {
     const game = newGame();
     play(game, ['open door', 'east', 'north', 'west']);
     expect(say(game, 'read note')).toMatch(/HOOM is home/);
-    expect(say(game, 'read ledger')).toMatch(/Bright as mirrors/);
+    expect(say(game, 'read ledger')).toMatch(/polish his scales/);
   });
 });

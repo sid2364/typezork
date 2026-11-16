@@ -63,10 +63,10 @@ export const fragments = (w: World): number =>
   FRAGMENT_KEYS.filter((f) => w.flag(`frag:${f}`)).length;
 
 const RANKS: readonly (readonly [number, string])[] = [
-  [170, 'One Who Remembers'],
-  [130, 'Pathfinder'],
-  [90, 'Seeker'],
-  [50, 'Wanderer'],
+  [1700, 'One Who Remembers'],
+  [1300, 'Pathfinder'],
+  [900, 'Seeker'],
+  [500, 'Wanderer'],
   [-Infinity, 'Sleepwalker'],
 ];
 
