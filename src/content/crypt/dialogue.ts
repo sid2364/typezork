@@ -107,7 +107,7 @@ export function brawlSkeleton(w: World): void {
       'wall and waves you towards the door.',
   );
   w.say(
-    'For a moment, the way it tilts its skull reminds you of someone. You cannot put your finger on who.',
+    'For a moment, the way it tilts its skull reminds you of someone.',
   );
   w.setFlag('skeletonBeaten');
 }
