@@ -156,8 +156,7 @@ export function feedDragon(w: World): void {
       label: '"The keeper sent me."',
       run: () => {
         w.say(
-          '"No," says the dragon. "The keeper sent no one. ' +
-            'But you do not draw your sword."',
+          '"No," says the dragon. "The keeper sent no one. ' + 'But you do not draw your sword."',
         );
         dragonAsksWhy(w);
       },

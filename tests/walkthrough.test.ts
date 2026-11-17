@@ -693,6 +693,6 @@ describe('small things', () => {
     const game = pastSkeleton();
     play(game, ['open door', 'east', 'north', 'west']);
     expect(say(game, 'read note')).toMatch(/HOOM is home/);
-    expect(say(game, 'read ledger')).toMatch(/polish his scales/);
+    expect(say(game, 'read ledger')).toMatch(/One leg of mutton/);
   });
 });
