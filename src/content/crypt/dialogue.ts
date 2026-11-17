@@ -109,6 +109,21 @@ export function brawlSkeleton(w: World): void {
   w.setFlag('skeletonBeaten');
 }
 
+// a thrown bone gets the skeleton off the door too, much to its shame
+export function fetchForSkeleton(w: World): void {
+  w.move('bone', 'start');
+  w.say(
+    "The skeleton's skull snaps round. Before it can stop itself it lets go of the door and " +
+      'scrambles after the bone, and comes trotting back with it in its teeth.',
+  );
+  w.say(
+    'It freezes. It looks at you. It spits the bone onto the floor, sits down against the ' +
+      'wall, folds its arms, and will not meet your eye. The door is free.',
+  );
+  w.setFlag('skeletonFetched');
+  w.setFlag('skeletonBeaten');
+}
+
 // ---- the dragon ----------------------------------------------------------------
 
 export function feedDragon(w: World): void {

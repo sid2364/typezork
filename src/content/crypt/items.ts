@@ -86,9 +86,7 @@ export const items = [
     adjectives: ['cured'],
     location: 'dungeon',
     portable: true,
-    description:
-      'A leg of cured mutton hangs from a hook in the ceiling, high enough to be safe from ' +
-      'anything large.',
+    description: 'A leg of cured mutton hangs from a hook in the ceiling.',
     examine:
       'A whole leg of mutton, cured with salt and smoke. Someone hung it here with care.' +
       ' The other hooks are empty.',
@@ -97,15 +95,22 @@ export const items = [
       'somebody is missing it.',
   }),
   item('chest', {
-    examine:
-      'An old wooden chest banded with iron. Treasure? Bones? Tax returns? Only one way to find out.',
+    examine: (w) =>
+      !w.isOpen('chest')
+        ? 'An old wooden chest banded with iron. Treasure? Bones? Tax returns? Only one way to find out.'
+        : w.hasMoved('key')
+          ? 'An old wooden chest banded with iron. It held a key once. Now it holds a velvet cloth.'
+          : 'An old wooden chest banded with iron. Inside, a single key lies on a velvet cloth.',
     name: 'chest',
     location: 'dungeon',
     portable: false,
     description: 'You see a chest on the floor.',
     refuseTake: 'The chest is too heavy to lift.',
     openable: {
-      openMessage: 'You open the chest and find a key inside.',
+      openMessage: (w) =>
+        w.hasMoved('key')
+          ? 'You open the chest. There is nothing inside but a velvet cloth.'
+          : 'You open the chest and find a key inside.',
       alreadyOpen: 'The chest is already open.',
       onOpen: [spawnItem('key')],
     },
@@ -115,6 +120,7 @@ export const items = [
     name: 'key',
     adjectives: ['single'],
     location: 'nowhere',
+    inside: 'chest',
     portable: true,
     description: 'A single key lies inside the chest on a velvet cloth.',
     takeMessage: 'You have a key. But you do not know what it opens.',
@@ -144,8 +150,7 @@ export const items = [
     description: 'A ledger lies open on the table.',
     examine:
       "The keeper's feeding ledger. Every day has the same line, in the same careful hand: " +
-      '"One leg of mutton." Some days add a note: "He let me ' +
-      'polish his scales." The entries stop in the middle of a page.',
+      '"One leg of mutton." The entries stop in the middle of a page.',
     refuseTake: 'It belongs on this table. You leave it open at the last page, the way it was.',
   }),
   item('note', {
@@ -155,9 +160,9 @@ export const items = [
     portable: false,
     description: 'A note is pinned to the wall above the bed.',
     examine:
-      '"The gardener is NOT dangerous. He hides his mouth since he broke the tooth, so nobody ' +
-      'understands him now. NUB is no. ZUG is see. MOG is face. GRAK is tooth. HUM is good. ' +
-      'BLUG is bad. HOOM is home. He only wants to see how bad it is.',
+      '"The gardener is NOT dangerous."' +
+      '\nNUB is no.\nZUG is see.\nMOG is face.\nGRAK is tooth.\nHUM is good.\n' +
+      'BLUG is bad.\nHOOM is home.',
     refuseTake: 'You leave the note where the keeper pinned it. You have read it. That is enough.',
   }),
   item('bowl', {

@@ -116,9 +116,17 @@ export class World {
     return this.state.flags[name];
   }
 
-  /** Things at a location, in definition order. */
+  /** Visible things at a location, in definition order. */
   thingsAt(loc: Location): ThingId[] {
-    return Object.keys(this.def.things).filter((id) => this.state.things[id] === loc);
+    return Object.keys(this.def.things).filter(
+      (id) => this.state.things[id] === loc && !this.isShut(id),
+    );
+  }
+
+  /** True while a thing is still in its container and the container is closed. */
+  isShut(id: ThingId): boolean {
+    const container = this.thing(id).inside;
+    return !!container && !this.hasMoved(id) && !this.isOpen(container);
   }
 
   inventory(): ThingId[] {

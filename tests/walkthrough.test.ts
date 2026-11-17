@@ -120,6 +120,29 @@ describe('the skeleton', () => {
     expect(say(game, 'east')).toContain("Dragon's Cell");
   });
 
+  it('lets go of the door to fetch a thrown bone', () => {
+    const game = newGame();
+    say(game, 'take bone');
+    expect(say(game, 'throw bone')).toMatch(/trotting back[^]*spits the bone onto the floor/);
+    expect(game.state.things.bone).toBe('start');
+    const look = say(game, 'look');
+    expect(look).toMatch(/pretending nothing happened/);
+    expect(look).toMatch(/There is a bone here/);
+    expect(say(game, 'fight skeleton')).toMatch(/never speak of this/);
+    say(game, 'take bone');
+    expect(game.state.things.bone).toBe('inventory');
+    expect(say(game, 'give bone to skeleton')).toMatch(/"No," it says firmly/);
+    expect(say(game, 'east')).toContain("Dragon's Cell");
+  });
+
+  it('can be bribed with a bone partway through the tutorial', () => {
+    const game = newGame();
+    play(game, ['take bone', 'talk to skeleton', '1']);
+    expect(say(game, 'give bone to skeleton')).toMatch(/door is free/);
+    expect(hints(game, 'look')).toEqual([]);
+    expect(hints(game, 'look')).toEqual(['Hint: go east']);
+  });
+
   it('hints only once the player is stuck', () => {
     const game = newGame();
     expect(game.start().filter((l) => l.style === 'hint')).toEqual([]);

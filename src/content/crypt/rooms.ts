@@ -43,8 +43,7 @@ export const rooms = [
     name: 'Dungeon',
     description:
       'You enter a small dungeon where you see ancient runes scrawled across the walls. The ' +
-      'stairs lead back south, up to the cell and the something big that sleeps in it. A low ' +
-      'door to the west has a brass plate on it: KEEPER.',
+      'stairs lead back south, up to the cell and the something big that sleeps in it.',
     exits: { south: 'dragonCell', west: 'keeper' },
   }),
 

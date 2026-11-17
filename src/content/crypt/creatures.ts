@@ -1,6 +1,13 @@
 import { creature } from '../../dsl';
 import { brawlSkeleton } from './dialogue';
-import { dragonFriend, skeletonBeaten, skeletonClue, skeletonTalked, trollFriend } from './story';
+import {
+  dragonFriend,
+  skeletonBeaten,
+  skeletonClue,
+  skeletonFetched,
+  skeletonTalked,
+  trollFriend,
+} from './story';
 
 export const creatures = [
   // holds the crypt door until you talk to it, look at it and spar with it
@@ -11,19 +18,25 @@ export const creatures = [
     killable: false,
     // the room text says what the skeleton wants next, in step with the hints
     description: (w) =>
-      skeletonBeaten(w)
-        ? 'A skeleton sits slumped against the wall by the door, arms folded, looking very ' +
-          'pleased with itself.'
-        : 'A skeleton stands against the door with both bony hands wrapped round the handle. ' +
-          (!skeletonTalked(w)
-            ? 'It looks like it wants to have a conversation.'
-            : !skeletonClue(w)
-              ? 'It watches you, and waits for you to take a closer look.'
-              : 'Its cloth-wrapped knuckles are white. It is waiting for a fight.'),
+      skeletonFetched(w)
+        ? 'A skeleton sits against the wall by the door with its arms folded. It is pretending ' +
+          'nothing happened.'
+        : skeletonBeaten(w)
+          ? 'A skeleton sits slumped against the wall by the door, arms folded, looking very ' +
+            'pleased with itself.'
+          : 'A skeleton stands against the door with both bony hands wrapped round the handle. ' +
+            (!skeletonTalked(w)
+              ? 'It looks like it wants to have a conversation.'
+              : !skeletonClue(w)
+                ? 'It watches you, and waits for you to take a closer look.'
+                : 'Its cloth-wrapped knuckles are white. It is waiting for a fight.'),
     examine:
       'Up close, the skeleton seems in better shape than you would expect. Its knuckles are ' +
       "wrapped in strips of old cloth, the way a boxer's are. It just wants a good clean fight.",
     beforeAttack: (w) => {
+      if (skeletonFetched(w)) {
+        return 'The skeleton does not even look up. "We will never speak of this," it says.';
+      }
       if (skeletonBeaten(w)) {
         return 'The skeleton holds up a bony hand in defeat. "Once was enough. My ribs are still ringing."';
       }

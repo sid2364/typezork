@@ -10,6 +10,8 @@ import type { World } from '../../engine/world';
 export const skeletonTalked = (w: World): boolean => Boolean(w.flag('skeletonTalked'));
 export const skeletonClue = (w: World): boolean => Boolean(w.flag('skeletonClue'));
 export const skeletonBeaten = (w: World): boolean => Boolean(w.flag('skeletonBeaten'));
+// it chased a thrown bone instead, and would rather you forgot about it
+export const skeletonFetched = (w: World): boolean => Boolean(w.flag('skeletonFetched'));
 
 // the tutorial lets the player try things first, and only says what to type when they
 // are stuck: after TRIES commands in the crypt that did not get them any further

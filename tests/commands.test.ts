@@ -19,6 +19,17 @@ describe('movement', () => {
     );
   });
 
+  it('closing the chest hides the key inside it', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east', 'north', 'open chest']);
+    expect(say(game, 'look')).toContain('velvet cloth');
+    say(game, 'close chest');
+    expect(say(game, 'look')).not.toContain('key');
+    expect(say(game, 'take key')).not.toContain('You have a key');
+    say(game, 'open chest');
+    expect(say(game, 'take key')).toContain('You have a key');
+  });
+
   it('a closed, unlocked door opens on the way through', () => {
     const game = pastSkeleton();
     expect(say(game, 'east')).toMatch(

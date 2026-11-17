@@ -80,6 +80,11 @@ interface ThingCommon {
    * Once the player has moved it, a generic "There is a … here." is used instead.
    */
   readonly description?: Text;
+  /**
+   * An openable thing this starts inside. Until the player moves it, it can't be
+   * seen or reached while that container is closed.
+   */
+  readonly inside?: ThingId;
   /** Shown by EXAMINE. Falls back to description. */
   readonly examine?: Text;
   /** Shown when the player tries to take something that can't be taken. */

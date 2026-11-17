@@ -4,6 +4,7 @@ import type { ThingId } from '../../engine/types';
 import type { World } from '../../engine/world';
 import {
   feedDragon,
+  fetchForSkeleton,
   giveScale,
   reviveDragon,
   reviveTroll,
@@ -19,6 +20,7 @@ import {
   scoreLine,
   skeletonBeaten,
   skeletonClue,
+  skeletonFetched,
   skeletonTalked,
   trollFriend,
   weak,
@@ -114,7 +116,20 @@ function usualTarget(w: World, thing: ThingId): ThingId | undefined {
     return 'troll';
   }
   if (thing === 'scroll' && here('dragon')) return 'dragon';
+  if (thing === 'bone' && here('skeleton')) return 'skeleton';
   return undefined;
+}
+
+function giveToSkeleton(w: World, thing: ThingId): void {
+  if (thing !== 'bone') {
+    w.say(`The skeleton has no use for the ${w.thing(thing).name}.`);
+  } else if (skeletonFetched(w)) {
+    w.say('The skeleton looks at the bone. Its finger bones twitch. "No," it says firmly.');
+  } else if (skeletonBeaten(w)) {
+    w.say('The skeleton eyes the bone. "I know what you are doing," it says.');
+  } else {
+    fetchForSkeleton(w);
+  }
 }
 
 function giveToDragon(w: World, thing: ThingId): void {
@@ -214,6 +229,7 @@ const giveCommand: CommandDef = {
 
     if (target === 'dragon') giveToDragon(w, thing);
     else if (target === 'troll') giveToTroll(w, thing);
+    else if (target === 'skeleton') giveToSkeleton(w, thing);
     else if (target === 'stream') {
       if (thing === 'torch') partStream(w, false);
       else w.say('The stream rushes past, unimpressed.', 'error');
