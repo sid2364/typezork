@@ -69,7 +69,7 @@ export function talkToSkeleton(w: World): void {
     {
       label: '"Let me through."',
       run: () => {
-        w.say('"Nobody says please anymore...", says the skeleton.');
+        w.say('"Wow, nobody says please anymore...", says the skeleton.');
         skeletonChallenge(w);
       },
     },
@@ -87,8 +87,7 @@ function skeletonChallenge(w: World): void {
   // if the player already had a good look, the skeleton skips to the point
   w.say(
     skeletonClue(w)
-      ? '"You have already had a good look at me," says the skeleton. "So you know what I ' +
-          'want. Fists up."'
+      ? '"You have already taken a good look at me," says the skeleton. "Fists up!"'
       : '"Look at me closely," says the skeleton. You must admit to yourself that you need a ' +
           'closer look, you still feel a bit dizzy.',
   );
@@ -102,13 +101,11 @@ export function brawlSkeleton(w: World): void {
       'its jaw goes spinning across the floor.',
   );
   w.say(
-    'It picks the jaw up, clicks it back in, and laughs. "Not bad," it says. ' +
+    'It picks the jaw up, clicks it back in, and cackles. It\'s whole frame shakes violently. "Not bad," it says. ' +
       'It sits down against the ' +
       'wall and waves you towards the door.',
   );
-  w.say(
-    'For a moment, the way it tilts its skull reminds you of someone.',
-  );
+  w.say('For a moment, the way it tilts its skull reminds you of someone.');
   w.setFlag('skeletonBeaten');
 }
 
