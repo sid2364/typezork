@@ -162,7 +162,7 @@ describe('the skeleton', () => {
     expect(say(game, 'look')).toMatch(/wants to have a conversation/);
     say(game, 'examine skeleton');
     say(game, 'talk');
-    expect(say(game, '1')).toMatch(/already had a good look at me/);
+    expect(say(game, '1')).toMatch(/already taken a good look at me/);
     const look = say(game, 'look');
     expect(look).toMatch(/waiting for a fight/);
     expect(look).not.toMatch(/conversation|closer look/);
