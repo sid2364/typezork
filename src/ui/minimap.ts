@@ -127,12 +127,12 @@ export function renderMinimap(
 
   if (caption) {
     caption.here.textContent = current?.name ?? '–';
-    caption.count.textContent = `${rooms.length} ${rooms.length === 1 ? 'room' : 'rooms'}`;
+    caption.count.textContent = `${rooms.length} ${rooms.length === 1 ? 'location' : 'locations'}`;
   }
 
   svg.setAttribute(
     'aria-label',
-    `Map of explored rooms: ${rooms.map((r) => r.name).join(', ')}. ` +
+    `Map of explored locations: ${rooms.map((r) => r.name).join(', ')}. ` +
       `You are in ${current?.name ?? 'an unknown place'}.`,
   );
 }

@@ -85,7 +85,7 @@ export const creatures = [
     bareHanded:
       'You roll up your sleeves and punch the dragon squarely on the snout. It opens one ' +
       'enormous eye, regards you the way you might regard an ambitious moth, and goes back to ' +
-      'sleep. Your knuckles will remember this.',
+      'sleep.',
     notWorthy: (w, weapon) =>
       (<Record<string, string>>{
         knife:

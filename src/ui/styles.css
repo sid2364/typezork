@@ -171,6 +171,7 @@ input {
   flex: 1;
   color: var(--dim);
   font-size: 0.85rem;
+  text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -235,7 +236,7 @@ input {
 
 .compass__svg {
   display: block;
-  width: min(100%, 190px);
+  width: min(100%, 160px, 22dvh);
   margin: 0 auto;
   overflow: visible;
 }
@@ -308,7 +309,7 @@ input {
 /* A round window onto the map: sharp in the middle, blurring and fading out towards the rim. */
 .minimap__lens {
   position: relative;
-  width: min(100%, 260px);
+  width: min(100%, 220px, 32dvh);
   aspect-ratio: 1;
   margin: 0 auto;
   border-radius: 50%;
@@ -519,6 +520,11 @@ input {
   outline: none;
 }
 
+.prompt__input::placeholder {
+  color: var(--dim);
+  opacity: 1;
+}
+
 @keyframes blink {
   50% {
     opacity: 0.25;
@@ -685,6 +691,7 @@ input {
   .bar__status {
     order: 3;
     flex-basis: 100%;
+    text-align: left;
   }
 
   /* Drawers share the screen's grid cell, so they always start below the header. */

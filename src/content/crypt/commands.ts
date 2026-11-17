@@ -261,8 +261,8 @@ function talkTo(w: World, target: ThingId): void {
       giveScale(w);
     } else if (w.flag('dragonEstranged')) {
       w.say(
-        'The dragon keeps its back to you. "You fed me," it says to the wall. "Then you did ' +
-          'that. I do not know which one is you."',
+        'The dragon turns its back to you. "You feed me," it says to the wall. "Then you do ' +
+          'that. Which one is you?"',
       );
     } else if (w.flag('dragonRevived')) {
       w.say('"I am still deciding about you," says the dragon. "But you may sit, while I decide."');
@@ -273,13 +273,12 @@ function talkTo(w: World, target: ThingId): void {
     if (w.isDead('troll')) {
       w.say('The troll does not answer.');
     } else if (w.flag('trollRevived')) {
-      w.say('"Hello," says the troll, carefully. It does not come closer. But it said hello.');
+      w.say('"Hello," says the troll, carefully. It does not come closer.');
     } else if (trollFriend(w)) {
       w.say('"HELLO," says the troll, with all of its mouth. It is still very proud of the word.');
     } else {
       w.say(
-        '"Ooga wug zug mog," the troll says behind one huge hand. It points at its eyes, then ' +
-          'at its own face, and then makes a small square in the air with two fingers. ' +
+        '"Ooga wug zug mog," the troll says hiding his face behind one huge hand.' +
           '"Grak nub." It points at the hand over its mouth, and looks away.',
       );
     }
