@@ -295,7 +295,7 @@ function talkTo(w: World, target: ThingId): void {
     } else {
       w.say(
         '"Ooga wug zug mog," the troll says hiding his face behind one huge hand.' +
-          '"Grak nub." It points at the hand over its mouth, and looks away.',
+          ' "Grak nub." It points at the hand over its mouth, and looks away.',
       );
     }
   } else if (target === 'duck') {

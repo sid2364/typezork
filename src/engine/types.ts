@@ -11,6 +11,7 @@ export type OutputStyle =
   | 'info' // ordinary responses
   | 'error' // "you can't do that" style responses
   | 'question' // the game is waiting for an answer
+  | 'option' // a numbered answer the player can pick
   | 'hint' // what to try next, shown after everything else
   | 'win' // victory text
   | 'lose' // game over text

@@ -19,7 +19,7 @@ const WORDS: Readonly<Record<string, number>> = {
 // show numbered lines and wait until the player picks one
 export function choose(w: World, options: readonly Option[]): void {
   const numbers = options.map((_, i) => String(i + 1));
-  const list = () => options.forEach((o, i) => w.say(`${i + 1}. ${o.label}`));
+  const list = () => options.forEach((o, i) => w.say(`${i + 1}. ${o.label}`, 'option'));
   const ask = () =>
     w.ask(
       `What do you say? (${numbers.join(', ')})`,
@@ -157,7 +157,7 @@ export function feedDragon(w: World): void {
       run: () => {
         w.say(
           '"No," says the dragon. "The keeper sent no one. ' +
-            'I will believe you because you brought me my dinner until you are out of my sight."',
+            'But you do not draw your sword."',
         );
         dragonAsksWhy(w);
       },
@@ -256,7 +256,7 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
         w.award('trollKind1', POINTS.kindWord);
         w.say(
           'The troll looks at the tooth. Then it looks at the rest of himself.' +
-            '"Hum," it says slowly. You are almost ' +
+            ' "Hum," it says slowly. You are almost ' +
             'sure that is the troll word for good.',
         );
         trollFindsVoice(w, glass);

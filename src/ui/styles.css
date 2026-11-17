@@ -10,6 +10,7 @@
   --accent: #e6ff6a;
   --error: #ffcf4d;
   --question: #6af2ff;
+  --option: #b6ffc9;
   --hint: #9ab8ff;
   --glow: 0 0 6px rgb(61 255 116 / 45%);
   --font: 'IBM Plex Mono', 'SF Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
@@ -25,6 +26,7 @@
   --accent: #fff07a;
   --error: #ff7a4d;
   --question: #ffd56a;
+  --option: #ffe2a8;
   --hint: #ffc4e1;
   --glow: 0 0 6px rgb(255 176 0 / 45%);
 }
@@ -276,6 +278,10 @@ input {
   cursor: pointer;
 }
 
+.compass__stair:not(.compass__point--open) {
+  display: none;
+}
+
 .compass__point--open .compass__plain,
 .compass__point--open .compass__shade {
   stroke: var(--fg);
@@ -385,6 +391,11 @@ input {
   stroke-linejoin: round;
 }
 
+.map-stub--stair {
+  fill: var(--fg);
+  stroke-width: 1;
+}
+
 .help__suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -469,6 +480,10 @@ input {
 
 .line--question {
   color: var(--question);
+}
+
+.line--option {
+  color: var(--option);
 }
 
 .line--hint {

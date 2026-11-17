@@ -33,6 +33,26 @@ const polar = (deg: number, r: number): string => {
   return `${(Math.sin(a) * r).toFixed(2)},${(-Math.cos(a) * r).toFixed(2)}`;
 };
 
+/** [direction, label, x, y, 1 to point up or -1 to point down] */
+const STAIRS: readonly [Direction, string, number, number, 1 | -1][] = [
+  ['up', 'UP', 100, -108, 1],
+  ['down', 'DN', 100, 108, -1],
+];
+
+// an open point goes that way on click, or on Enter or Space when focused
+function clickable(g: SVGGElement, dir: Direction, onGo: (dir: Direction) => void): void {
+  const go = () => {
+    if (g.classList.contains('compass__point--open')) onGo(dir);
+  };
+  g.addEventListener('click', go);
+  g.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      go();
+    }
+  });
+}
+
 interface CompassParts {
   points: Map<Direction, SVGGElement>;
 }
@@ -89,22 +109,38 @@ function build(svg: SVGSVGElement, onGo: (dir: Direction) => void): CompassParts
     text.setAttribute('y', ly!);
     text.textContent = label;
     g.append(text);
-    const go = () => {
-      if (g.classList.contains('compass__point--open')) onGo(dir);
-    };
-    g.addEventListener('click', go);
-    g.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        go();
-      }
-    });
+    clickable(g, dir, onGo);
     points.set(dir, g);
     (main ? layers.main : layers.diagonal).append(g);
   }
 
+  // up and down sit on the right, ▲ top and ▼ bottom, and only show when there is a stair
+  const stairs = el('g');
+  for (const [dir, label, x, y, flip] of STAIRS) {
+    const g = el('g', {
+      class: 'compass__point compass__stair',
+      transform: `translate(${x} ${y})`,
+    });
+    const h = 8 * flip;
+    g.append(
+      el('polygon', { points: `0,${-h} 9,${h} -9,${h}`, class: 'compass__plain' }),
+      Object.assign(
+        el('text', {
+          class: 'compass__label',
+          'text-anchor': 'middle',
+          'dominant-baseline': 'central',
+          y: 20 * flip,
+        }),
+        { textContent: label },
+      ),
+    );
+    clickable(g, dir, onGo);
+    points.set(dir, g);
+    stairs.append(g);
+  }
+
   const hub = el('circle', { r: 3.5, class: 'compass__hub' });
-  svg.replaceChildren(defs, layers.diagonal, layers.main, hub);
+  svg.replaceChildren(defs, layers.diagonal, layers.main, hub, stairs);
   const parts = { points };
   built.set(svg, parts);
   return parts;
@@ -128,9 +164,8 @@ export function renderCompass(
       g.removeAttribute('tabindex');
     }
   }
-  const names = exits.filter((d) => d !== 'up' && d !== 'down');
   svg.setAttribute(
     'aria-label',
-    names.length ? `Compass. You can go ${names.join(', ')}.` : 'Compass. No exits.',
+    exits.length ? `Compass. You can go ${exits.join(', ')}.` : 'Compass. No exits.',
   );
 }

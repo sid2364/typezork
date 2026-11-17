@@ -160,9 +160,9 @@ export const items = [
     portable: false,
     description: 'A note is pinned to the wall above the bed.',
     examine:
-      '"The gardener is NOT dangerous."' +
+      '"The gardener is NOT dangerous. Remind him of himself.' +
       '\nNUB is no.\nZUG is see.\nMOG is face.\nGRAK is tooth.\nHUM is good.\n' +
-      'BLUG is bad.\nHOOM is home.',
+      'BLUG is bad.\nHOOM is home."',
     refuseTake: 'You leave the note where the keeper pinned it. You have read it. That is enough.',
   }),
   item('bowl', {
@@ -317,7 +317,7 @@ export const items = [
   item('torch', {
     examine:
       "The flame burns a peculiar bright red. Oddly, the wind doesn't seem to bother it at all." +
-      'Water, though, might be another story.',
+      ' Water, though, might be another story.',
     name: 'torch',
     adjectives: ['flaming'],
     location: 'gazebo',

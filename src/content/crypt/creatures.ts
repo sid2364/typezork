@@ -155,7 +155,7 @@ export const creatures = [
     alreadyDead: 'The troll lies dead in front of you. How much more do you want to kill it?',
     bareHanded:
       'You punch the troll in the belly. It giggles, which is somehow worse. Then it remembers ' +
-      'it is holding a club, and you remember you have somewhere else to be.',
+      'it is holding a club, and you remember you have elsewhere to be.',
     notWorthy: (w, weapon) =>
       (<Record<string, string>>{
         bone: 'You offer the troll the bone. It looks deeply offended. Trolls are vegetarian, apparently.',

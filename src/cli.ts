@@ -30,6 +30,7 @@ const colour: Record<OutputLine['style'], string> = {
   info: '',
   error: '\x1b[33m',
   question: '\x1b[36m',
+  option: '\x1b[92m',
   hint: '\x1b[3;94m',
   win: '\x1b[1;35m',
   lose: '\x1b[1;31m',

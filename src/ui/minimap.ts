@@ -109,11 +109,23 @@ export function renderMinimap(
     const [dx, dy] = vector(dir);
     // Sit the chevron in the gap just outside the square's edge (or corner, for diagonals).
     const reach = SIZE / 2 + GAP / 2;
+    const at = `translate(${x + dx * reach} ${y + dy * reach})`;
+    if (dir === 'up' || dir === 'down') {
+      // stairs sit on a diagonal too, so give them their own mark: ▲ up, ▼ down
+      children.push(
+        el('path', {
+          d: dir === 'up' ? 'M 0 -3.5 L 4 3 L -4 3 Z' : 'M 0 3.5 L 4 -3 L -4 -3 Z',
+          transform: at,
+          class: 'map-stub map-stub--stair',
+        }),
+      );
+      continue;
+    }
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
     children.push(
       el('path', {
         d: 'M -2.5 -4 L 2 0 L -2.5 4',
-        transform: `translate(${x + dx * reach} ${y + dy * reach}) rotate(${angle})`,
+        transform: `${at} rotate(${angle})`,
         class: 'map-stub',
       }),
     );
