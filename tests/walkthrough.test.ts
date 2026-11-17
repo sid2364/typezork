@@ -108,7 +108,7 @@ describe('the skeleton', () => {
     expect(say(game, 'talk to skeleton')).toMatch(/Someone to talk to/);
     expect(game.question).toMatch(/What do you say/);
     expect(say(game, 'east')).toMatch(/waiting for an answer/);
-    expect(say(game, '1')).toMatch(/came this way before you[^]*Look at me closely/);
+    expect(say(game, '1')).toMatch(/came this way before you[^]*know what you're dealing with/);
 
     expect(say(game, 'open door')).toMatch(/You will have to make me/);
     expect(say(game, 'fight skeleton')).toMatch(/Look closer/);

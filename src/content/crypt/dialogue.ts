@@ -88,7 +88,7 @@ function skeletonChallenge(w: World): void {
   w.say(
     skeletonClue(w)
       ? '"You have already taken a good look at me," says the skeleton. "Fists up!"'
-      : '"Look at me closely," says the skeleton. You must admit to yourself that you need a ' +
+      : '"Do you even know what you\'re dealing with?" asks the skeleton. You must admit to yourself that you need a ' +
           'closer look, you still feel a bit dizzy.',
   );
   w.setFlag('skeletonTalked');

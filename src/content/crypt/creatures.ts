@@ -21,7 +21,7 @@ export const creatures = [
               ? 'It watches you, and waits for you to take a closer look.'
               : 'Its cloth-wrapped knuckles are white. It is waiting for a fight.'),
     examine:
-      'Up close, the skeleton is in better shape than you would expect. Its knuckles are ' +
+      'Up close, the skeleton seems in better shape than you would expect. Its knuckles are ' +
       "wrapped in strips of old cloth, the way a boxer's are. It just wants a good clean fight.",
     beforeAttack: (w) => {
       if (skeletonBeaten(w)) {
@@ -34,7 +34,7 @@ export const creatures = [
         );
       }
       if (!skeletonClue(w)) {
-        return '"You do not even know what you are fighting," says the skeleton. "Look closer."';
+        return '"Do you even know what you\'re dealing with?" asks the skeleton. "Look closer."';
       }
       return undefined;
     },
@@ -42,7 +42,7 @@ export const creatures = [
     immune:
       '"Put that down," says the skeleton. "Hands only. I do not have the skin for anything ' +
       'else."',
-    refuseTake: 'The skeleton slaps your hand away. It is surprisingly quick.',
+    refuseTake: 'The skeleton slaps your hand away.',
   }),
 
   creature('dragon', {
