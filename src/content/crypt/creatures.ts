@@ -1,7 +1,50 @@
 import { creature } from '../../dsl';
-import { dragonFriend, trollFriend } from './story';
+import { brawlSkeleton } from './dialogue';
+import { dragonFriend, skeletonBeaten, skeletonClue, skeletonTalked, trollFriend } from './story';
 
 export const creatures = [
+  // holds the crypt door until you talk to it, look at it and spar with it
+  creature('skeleton', {
+    name: 'skeleton',
+    aliases: ['skull'],
+    location: 'start',
+    killable: false,
+    // the room text says what the skeleton wants next, in step with the hints
+    description: (w) =>
+      skeletonBeaten(w)
+        ? 'A skeleton sits slumped against the wall by the door, arms folded, looking very ' +
+          'pleased with itself.'
+        : 'A skeleton stands against the door with both bony hands wrapped round the handle. ' +
+          (!skeletonTalked(w)
+            ? 'It looks like it wants to have a conversation.'
+            : !skeletonClue(w)
+              ? 'It watches you, and waits for you to take a closer look.'
+              : 'Its cloth-wrapped knuckles are white. It is waiting for a fight.'),
+    examine:
+      'Up close, the skeleton is in better shape than you would expect. Its knuckles are ' +
+      "wrapped in strips of old cloth, the way a boxer's are. It just wants a good clean fight.",
+    beforeAttack: (w) => {
+      if (skeletonBeaten(w)) {
+        return 'The skeleton holds up a bony hand in defeat. "Once was enough. My ribs are still ringing."';
+      }
+      if (!skeletonTalked(w)) {
+        return (
+          'The skeleton lets go of the door with one hand, just long enough to wag a finger ' +
+          'at you. Manners. It looks like it wants a conversation first.'
+        );
+      }
+      if (!skeletonClue(w)) {
+        return '"You do not even know what you are fighting," says the skeleton. "Look closer."';
+      }
+      return undefined;
+    },
+    brawl: brawlSkeleton,
+    immune:
+      '"Put that down," says the skeleton. "Hands only. I do not have the skin for anything ' +
+      'else."',
+    refuseTake: 'The skeleton slaps your hand away. It is surprisingly quick.',
+  }),
+
   creature('dragon', {
     name: 'dragon',
     aliases: ['beast'],
@@ -30,7 +73,7 @@ export const creatures = [
         : 'The dragon is enormous, scaly and very much asleep. A thin curl of smoke drifts from ' +
           "one nostril. It guards the passage east as if it's being paid to. It is also thinner " +
           'than a dragon should be. Its stomach makes a long, hollow sound, and it mumbles ' +
-          "something in its sleep that could be 'mutton'.",
+          'something in its sleep that could be "mutton".',
     beforeAttack: (w) =>
       w.flag('dragonRevived')
         ? 'No. Not again.'
@@ -76,8 +119,8 @@ export const creatures = [
         ? 'The troll sits a little way off the garden path and watches you carefully. Its hand ' +
           'is not over its mouth.'
         : trollFriend(w)
-          ? "The troll sits by the garden path and practises words out loud. 'Garden. Club. " +
-            "Tooth.' It waves when it sees you."
+          ? 'The troll sits by the garden path and practises words out loud. "Garden. Club. ' +
+            'Tooth." It waves when it sees you.'
           : 'A troll is wandering in the garden outside. It swings its massive club in the air ' +
             'every now and then.',
     deadDescription:

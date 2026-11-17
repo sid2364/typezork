@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   FEED,
   HELP,
+  hints,
   KIND_ROUTE,
   memoryStorage,
   newGame,
+  pastSkeleton,
   play,
   say,
   TO_ARMOURY,
+  TUTORIAL,
   WALKTHROUGH,
 } from './helpers';
 
@@ -15,7 +18,7 @@ const TORCH_AND_HOME = ['north', 'north', 'take torch', 'south', 'south', 'wave 
 
 describe('the kind way through', () => {
   it('reaches the forest whole', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     const text = play(game, KIND_ROUTE);
     expect(game.state.location).toBe('end');
     expect(game.state.over).toBe(true);
@@ -36,11 +39,11 @@ describe('the kind way through', () => {
   });
 
   it('remembers more if you looked at more', () => {
-    const quick = play(newGame(), KIND_ROUTE);
+    const quick = play(pastSkeleton(), KIND_ROUTE);
     expect(quick).toMatch(/forgotten something important, about a candle/);
     expect(quick).not.toMatch(/Nobody put you in the crypt/);
 
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['examine candle', 'examine door']);
     play(game, [...FEED, 'examine scale', ...HELP]);
     const text = play(game, KIND_ROUTE.slice(FEED.length + HELP.length));
@@ -48,7 +51,7 @@ describe('the kind way through', () => {
   });
 
   it('the dev room adds one quiet line', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, ...HELP, 'north', 'north', 'take torch', 'east', 'north']);
     expect(say(game, 'examine screen')).toMatch(/You find yourself in a dark empty crypt/);
     const text = play(game, ['south', 'west', 'south', 'south', 'fire', 'south', 'east']);
@@ -58,7 +61,7 @@ describe('the kind way through', () => {
 
 describe('the old way through', () => {
   it('still reaches the forest, but fails the test', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     const text = play(game, WALKTHROUGH);
     expect(game.state.location).toBe('end');
     expect(game.state.over).toBe(true);
@@ -70,14 +73,14 @@ describe('the old way through', () => {
   });
 
   it('also works as a single chained line', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     say(game, WALKTHROUGH.join(', then '));
     expect(game.state.location).toBe('end');
     expect(game.state.over).toBe(true);
   });
 
   it('refuses normal commands after the game is over', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH);
     expect(say(game, 'west')).toMatch(/game is over/);
     expect(say(game, 'undo')).toContain('River');
@@ -85,7 +88,7 @@ describe('the old way through', () => {
   });
 
   it('killing both costs far more than the kills gave', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 12));
     const before = game.state.score;
     expect(say(game, 'kill troll with staff')).toMatch(/That is both of them/);
@@ -93,16 +96,121 @@ describe('the old way through', () => {
   });
 });
 
+describe('the skeleton', () => {
+  it('holds the door until you talk, look and fight', () => {
+    const game = newGame();
+    expect(say(game, 'look')).toMatch(/wants to have a conversation/);
+    expect(say(game, 'open door')).toMatch(/will not let go/);
+    expect(say(game, 'east')).toMatch(/will not let go/);
+    expect(game.state.location).toBe('start');
+    expect(say(game, 'fight skeleton')).toMatch(/Manners/);
+
+    expect(say(game, 'talk to skeleton')).toMatch(/Someone to talk to/);
+    expect(game.question).toMatch(/What do you say/);
+    expect(say(game, 'east')).toMatch(/waiting for an answer/);
+    expect(say(game, '1')).toMatch(/came this way before you[^]*Look at me closely/);
+
+    expect(say(game, 'open door')).toMatch(/You will have to make me/);
+    expect(say(game, 'fight skeleton')).toMatch(/Look closer/);
+    expect(say(game, 'examine skeleton')).toMatch(/good clean fight/);
+    expect(say(game, 'fight skeleton')).toMatch(/jaw goes spinning/);
+    expect(game.state.killed).toEqual([]);
+    expect(say(game, 'look')).toMatch(/pleased with itself/);
+    expect(say(game, 'fight skeleton')).toMatch(/Once was enough/);
+    expect(say(game, 'east')).toContain("Dragon's Cell");
+  });
+
+  it('hints only once the player is stuck', () => {
+    const game = newGame();
+    expect(game.start().filter((l) => l.style === 'hint')).toEqual([]);
+    // two tries of their own, then a nudge
+    expect(hints(game, 'open door')).toEqual([]);
+    expect(hints(game, 'examine candle')).toEqual(['Hint: talk to skeleton']);
+    expect(hints(game, 'east')).toEqual([]);
+    expect(hints(game, 'take bone')).toEqual(['Hint: talk to skeleton']);
+    // no hint mid-conversation, and the count starts again after it
+    expect(hints(game, 'talk')).toEqual([]);
+    expect(hints(game, '1')).toEqual([]);
+    expect(hints(game, 'open door')).toEqual([]);
+    const out = game.submit('fight skeleton');
+    expect(out.at(-1)).toEqual({ text: 'Hint: examine skeleton', style: 'hint' });
+    expect(out.at(-2)?.text).toMatch(/Look closer/);
+    // examining is progress: no hint for it
+    expect(hints(game, 'examine skeleton')).toEqual([]);
+    expect(hints(game, 'east')).toEqual([]);
+    expect(hints(game, 'look')).toEqual(['Hint: fight skeleton']);
+    // the right command is never followed by a hint, the way out waits two tries as well
+    expect(hints(game, 'fight skeleton')).toEqual([]);
+    expect(hints(game, 'look')).toEqual([]);
+    expect(hints(game, 'inventory')).toEqual(['Hint: go east']);
+    expect(hints(game, 'east')).toEqual([]);
+    // once out of the crypt the tutorial is over, even back inside it
+    expect(hints(game, 'west')).toEqual([]);
+    expect(hints(game, 'look')).toEqual([]);
+    expect(hints(game, 'look')).toEqual([]);
+  });
+
+  it('gives no hints to someone who knows what to do', () => {
+    const game = newGame();
+    const inputs = [...TUTORIAL, 'east'];
+    const lines = [...game.start(), ...inputs.flatMap((input) => game.submit(input))];
+    expect(lines.filter((l) => l.style === 'hint')).toEqual([]);
+  });
+
+  it('keeps the room, the skeleton and the hints in step, whatever the order', () => {
+    const game = newGame();
+    expect(say(game, 'look')).toMatch(/wants to have a conversation/);
+    say(game, 'examine skeleton');
+    say(game, 'talk');
+    expect(say(game, '1')).toMatch(/already had a good look at me/);
+    const look = say(game, 'look');
+    expect(look).toMatch(/waiting for a fight/);
+    expect(look).not.toMatch(/conversation|closer look/);
+    expect(hints(game, 'look')).toEqual(['Hint: fight skeleton']);
+  });
+
+  it('asks for a closer look once you have talked', () => {
+    const game = newGame();
+    play(game, ['talk', '2']);
+    expect(say(game, 'look')).toMatch(/waits for you to take a closer look/);
+  });
+
+  it('the door is a clue too', () => {
+    const game = newGame();
+    play(game, ['talk', '2']);
+    expect(say(game, 'examine door')).toMatch(/wants to be made to let go/);
+    expect(say(game, 'punch skeleton')).toMatch(/jaw goes spinning/);
+  });
+
+  it('only fights with bare hands', () => {
+    const game = newGame();
+    play(game, ['take bone', 'talk to skeleton', '3', 'examine skeleton']);
+    expect(say(game, 'kill skeleton with bone')).toMatch(/Hands only/);
+    expect(game.state.flags.skeletonBeaten).toBeUndefined();
+    expect(say(game, 'kill skeleton with fists')).toMatch(/jaw goes spinning/);
+  });
+
+  it('lets you straight by after a death', () => {
+    const game = newGame(undefined, { deaths: 1 });
+    expect(say(game, 'east')).toMatch(/will not let go/);
+    expect(say(game, 'talk to skeleton')).toMatch(/You again/);
+    expect(game.question).toBeNull();
+    expect(game.state.flags.skeletonBeaten).toBe(true);
+    expect(say(game, 'spar with skeleton')).toMatch(/Once was enough/);
+    expect(say(game, 'east')).toContain("Dragon's Cell");
+  });
+});
+
 describe('the dragon', () => {
   it('blocks the way east while it sleeps', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'east')).toMatch(/won't get past it/);
     expect(say(game, 'sneak')).toMatch(/feet as loud as yours/);
   });
 
   it('hints that it is only hungry', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'examine dragon')).toMatch(/thinner than a dragon should be/);
     expect(say(game, 'talk to dragon')).toMatch(/mutton/);
@@ -110,7 +218,7 @@ describe('the dragon', () => {
   });
 
   it('can be fed, and gives a scale', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, FEED.slice(0, 5));
     expect(say(game, 'feed dragon')).toMatch(/You are not the keeper/);
     expect(game.question).toMatch(/What do you say/);
@@ -125,7 +233,7 @@ describe('the dragon', () => {
   });
 
   it('holds you in the conversation until you answer', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, FEED.slice(0, 6));
     expect(say(game, 'east')).toMatch(/waiting for an answer/);
     expect(game.state.location).toBe('dragonCell');
@@ -136,7 +244,7 @@ describe('the dragon', () => {
 
   it('finishes the gift if the talk was cut short by a reload', () => {
     const storage = memoryStorage();
-    const game = newGame(undefined, { storage });
+    const game = pastSkeleton({ storage });
     play(game, FEED.slice(0, 6));
     say(game, 'save');
     say(game, 'load');
@@ -145,7 +253,7 @@ describe('the dragon', () => {
   });
 
   it('needs the felt boots to sneak past', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east', 'north', 'west']);
     expect(say(game, 'take boots')).toMatch(/no sound at all/);
     play(game, ['east', 'south']);
@@ -155,7 +263,7 @@ describe('the dragon', () => {
   });
 
   it('smells the mutton when you sneak', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [
       'open door',
       'east',
@@ -173,7 +281,7 @@ describe('the dragon', () => {
 
   it('wakes up if you sneak with something that clanks', () => {
     let deaths = 0;
-    const game = newGame(undefined, { onDeath: (n) => (deaths = n) });
+    const game = pastSkeleton({ onDeath: (n) => (deaths = n) });
     play(game, [...TO_ARMOURY, 'take sword', 'north', 'north', 'west', 'take boots', 'east']);
     play(game, ['south']);
     const text = say(game, 'east');
@@ -188,7 +296,7 @@ describe('the dragon', () => {
   });
 
   it('comes for you if you sneaked past it and then kill the troll', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'take staff', 'north', 'north', 'west', 'take boots', 'east']);
     play(game, ['south', 'east']);
     expect(game.state.location).toBe('portcullis');
@@ -198,7 +306,7 @@ describe('the dragon', () => {
   });
 
   it('takes your weapon with it when it dies', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 10));
     const text = say(game, 'kill dragon with spear');
     expect(text).toMatch(/slay the dragon/);
@@ -211,7 +319,7 @@ describe('the dragon', () => {
   });
 
   it('asks which weapon when none is given', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 10));
     expect(say(game, 'kill dragon')).toBe(
       'You do not stand a chance if you fight with your bare hands.\n' +
@@ -225,7 +333,7 @@ describe('the dragon', () => {
   });
 
   it('a new command abandons the weapon question', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 10));
     say(game, 'kill dragon');
     expect(say(game, 'go north')).toContain('Dungeon');
@@ -233,7 +341,7 @@ describe('the dragon', () => {
   });
 
   it('bare hands with nothing carried', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'kill dragon')).toMatch(/Come back another day/);
   });
@@ -241,16 +349,16 @@ describe('the dragon', () => {
 
 describe('the troll', () => {
   it('blocks the garden and asks for something it cannot say', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, 'east']);
-    expect(say(game, 'north')).toMatch(/'Nub,' it says behind its hand/);
+    expect(say(game, 'north')).toMatch(/"Nub," it says behind its hand/);
     expect(game.state.location).toBe('portcullis');
     expect(say(game, 'talk to troll')).toMatch(/Ooga wug zug mog/);
     expect(say(game, 'give flower to troll')).toMatch(/not carrying any flower/);
   });
 
   it('finds its voice when it sees its face', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, 'east']);
     expect(say(game, 'show scale to troll')).toMatch(/broken in half/);
     say(game, '2');
@@ -265,7 +373,7 @@ describe('the troll', () => {
   });
 
   it('closes up at a cruel word, and gives you another chance', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, 'east', 'show scale to troll']);
     const before = game.state.score;
     expect(say(game, '3')).toMatch(/face closes like a door/);
@@ -277,7 +385,7 @@ describe('the troll', () => {
   });
 
   it('keeps the hand mirror from the tower', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'take spear', 'up', 'take mirror', 'down', 'north']);
     play(game, ['kill dragon with spear', 'east', 'show mirror to troll', '1']);
     expect(say(game, '1')).toMatch(/keeps the mirror/);
@@ -285,14 +393,14 @@ describe('the troll', () => {
   });
 
   it('is not weak to every weapon', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'take sword and knife', 'north', 'kill dragon with sword', 'east']);
     expect(say(game, 'kill troll with knife')).toMatch(/live and let live/);
     expect(say(game, 'kill troll with sword')).toMatch(/You do not possess this sword/);
   });
 
   it('takes your voice with it when it dies', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 13));
     expect(game.state.killed).toEqual(['dragon', 'troll']);
     expect(say(game, 'sing')).toBe('You open your mouth. Nothing comes out.');
@@ -324,7 +432,7 @@ describe('strength against voice', () => {
   ];
 
   it('the dragon takes its scale back', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     const text = play(game, FED_THEN_KILLED);
     expect(text).toMatch(/Your voice is gone/);
     expect(text).toMatch(/You give it back because there is nothing else to do/);
@@ -338,7 +446,7 @@ describe('strength against voice', () => {
   });
 
   it('a potion made with strong hands brings the troll back', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, FED_THEN_KILLED);
     expect(say(game, 'mix potion')).toMatch(/would need a recipe/);
     play(game, ['north', 'take flower', 'north', 'east', 'take parchment', 'west', 'south']);
@@ -346,11 +454,11 @@ describe('strength against voice', () => {
     expect(say(game, 'mix potion')).toMatch(/You now have a potion/);
     const before = game.state.score;
     const text = say(game, 'pour potion on troll');
-    expect(text).toMatch(/'I am sorry,' you say, and you hear it/);
+    expect(text).toMatch(/"I am sorry," you say, and you hear it/);
     expect(game.state.score).toBe(before + 500);
     expect(game.state.killed).toEqual([]);
     expect(say(game, 'kill troll with staff')).toBe('No. Not again.');
-    expect(say(game, 'talk to troll')).toMatch(/'Hello,' says the troll, carefully/);
+    expect(say(game, 'talk to troll')).toMatch(/"Hello," says the troll, carefully/);
     const end = play(game, [...TORCH_AND_HOME.slice(0, 5), 'say fire', 'south', 'east']);
     expect(end).toMatch(/whole, with a scar/);
     expect(game.state.won).toBe(true);
@@ -372,7 +480,7 @@ describe('strength against voice', () => {
   ];
 
   it('one kill is a choice, not a failure', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, KILLED_THEN_HELPED);
     const end = play(game, ['north', 'take torch', 'south', 'south', 'fire', 'south', 'east']);
     expect(end).toMatch(/An empty place by the fire|There is an empty place by the fire/);
@@ -381,7 +489,7 @@ describe('strength against voice', () => {
   });
 
   it('weak hands cannot make the potion', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'take bone']);
     play(game, KILLED_THEN_HELPED.slice(1));
     play(game, ['take flower', 'north', 'east', 'take parchment']);
@@ -390,7 +498,7 @@ describe('strength against voice', () => {
   });
 
   it('a scroll read in your own voice brings the dragon back', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...KILLED_THEN_HELPED, 'north', 'east', 'take scroll']);
     expect(say(game, 'read scroll')).toMatch(/stand where the strength fell/);
     play(game, ['west', 'south', 'south', 'west']);
@@ -408,7 +516,7 @@ describe('strength against voice', () => {
   });
 
   it('with both dead there is nothing left to revive with', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'take bone']);
     play(game, WALKTHROUGH.slice(1, 13));
     play(game, ['north', 'take flower', 'north', 'east', 'take scroll and parchment']);
@@ -421,7 +529,7 @@ describe('strength against voice', () => {
 
 describe('the stream', () => {
   it('blocks you until its riddle is answered with fire', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, ...HELP]);
     expect(say(game, 'south')).toMatch(/You cannot get past the stream/);
     expect(say(game, 'answer water')).toMatch(/not the answer/);
@@ -450,7 +558,7 @@ describe('the stream', () => {
     'wave torch',
     'use torch',
   ])('"%s" solves the riddle with the torch in hand', (input) => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, ...HELP, 'north', 'north', 'take torch', 'south', 'south']);
     expect(say(game, input)).toMatch(/bends and parts/);
     say(game, 'south');
@@ -460,7 +568,7 @@ describe('the stream', () => {
 
 describe('locks, traps and other ways to end early', () => {
   it('the gate is locked without the key', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'south')).toBe('The gate is locked.');
     expect(say(game, 'open gate')).toBe('The gate is locked.');
@@ -469,7 +577,7 @@ describe('locks, traps and other ways to end early', () => {
   });
 
   it('open gate with the key unlocks and opens it', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east', 'north', 'open chest', 'take key', 'south']);
     expect(say(game, 'open gate')).toBe(
       'You turn the key in the lock. The gate is unlocked.\n' +
@@ -478,7 +586,7 @@ describe('locks, traps and other ways to end early', () => {
   });
 
   it('looking at the trapped box costs points, once', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'up']);
     const before = game.state.score;
     expect(say(game, 'examine box')).toMatch(/cloud of black soot[^]*\n\(You lose 150 points/);
@@ -489,7 +597,7 @@ describe('locks, traps and other ways to end early', () => {
   });
 
   it('opening the trapped box ends the game', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'up']);
     const text = say(game, 'open box');
     expect(text).toMatch(/trapdoor/);
@@ -501,15 +609,15 @@ describe('locks, traps and other ways to end early', () => {
   });
 
   it('the dragonscale warns you about the trap', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED.slice(0, 4), 'open chest', 'take key', ...FEED.slice(4), 'south']);
     expect(say(game, 'up')).toMatch(/dragonscale in your pocket grows warm/);
   });
 
   it('every game over leaves a bone in the crypt', () => {
-    expect(say(newGame(), 'look')).not.toMatch(/added/);
-    expect(say(newGame(undefined, { deaths: 1 }), 'look')).toMatch(/added a bone to the pile/);
-    const game = newGame(undefined, { deaths: 2 });
+    expect(say(pastSkeleton(), 'look')).not.toMatch(/added/);
+    expect(say(pastSkeleton({ deaths: 1 }), 'look')).toMatch(/added a bone to the pile/);
+    const game = pastSkeleton({ deaths: 2 });
     expect(say(game, 'look')).toMatch(/You count 2 new ones/);
     play(game, [...TO_ARMOURY, 'up', 'open box', 'restart']);
     expect(say(game, 'look')).toMatch(/You count 3 new ones/);
@@ -528,22 +636,24 @@ describe('score', () => {
     say(game, 'look at candle');
     expect(game.state.score).toBe(70);
     expect(game.view().score).toBe(70);
-    expect(say(game, 'score')).toBe('Your score is 70, in 0 turns. Rank: Sleepwalker.');
+    expect(say(game, 'score')).toMatch(/^Your score is 70, in 0 turns. Rank: Sleepwalker.$/m);
   });
 
   it('gives points for rooms, kindness and kills', () => {
-    const game = newGame();
+    const game = pastSkeleton();
+    // looking at the skeleton is the only score the tutorial gives
+    expect(game.state.score).toBe(10);
     play(game, ['open door', 'east']);
-    expect(game.state.score).toBe(20);
+    expect(game.state.score).toBe(10 + 20);
     play(game, FEED.slice(2));
     // one more room, the feed, and two kind lines
-    expect(game.state.score).toBe(20 + 20 + 250 + 50 + 50);
+    expect(game.state.score).toBe(10 + 20 + 20 + 250 + 50 + 50);
   });
 });
 
 describe('small things', () => {
   it('there is no place like home', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     expect(say(game, 'go home')).toBe('Not yet.');
     play(game, [...FEED, ...HELP, 'north', 'north', 'east', 'north']);
     expect(say(game, 'home')).toMatch(/no place like it[^]*Crypt/);
@@ -551,13 +661,13 @@ describe('small things', () => {
   });
 
   it('the duck listens', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, [...FEED, ...HELP, 'north', 'north', 'east']);
     expect(say(game, 'talk to duck')).toMatch(/takes no credit/);
   });
 
   it('reading is still examining', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east', 'north', 'west']);
     expect(say(game, 'read note')).toMatch(/HOOM is home/);
     expect(say(game, 'read ledger')).toMatch(/polish his scales/);

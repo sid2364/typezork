@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { crypt } from '../src/content/crypt';
 import { Game } from '../src/engine';
 import { deserialize, initialState, SaveError, serialize } from '../src/engine/state';
-import { memoryStorage, newGame, play, say, WALKTHROUGH } from './helpers';
+import { memoryStorage, newGame, play, say, WALKTHROUGH, pastSkeleton } from './helpers';
 
 describe('state', () => {
   it('round-trips through JSON', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 11));
     const text = game.serialize();
     expect(deserialize(crypt, text)).toEqual(game.state);
@@ -31,7 +31,7 @@ describe('state', () => {
 describe('save, load, restore', () => {
   it('save and load through storage', () => {
     const storage = memoryStorage();
-    const game = newGame(crypt, { storage });
+    const game = pastSkeleton({ storage });
     play(game, ['open door', 'east']);
     expect(say(game, 'save')).toBe('Game saved.');
     play(game, ['north', 'open chest']);
@@ -42,11 +42,11 @@ describe('save, load, restore', () => {
   });
 
   it('without storage', () => {
-    expect(say(newGame(), 'save')).toBe("Saving isn't available here.");
+    expect(say(pastSkeleton(), 'save')).toBe("Saving isn't available here.");
   });
 
   it('restore() continues a game', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east', 'north']);
     const copy = new Game(crypt);
     copy.restore(game.serialize());
@@ -58,16 +58,19 @@ describe('save, load, restore', () => {
 
 describe('undo and restart', () => {
   it('undo steps back one turn at a time', () => {
-    const game = newGame();
+    const game = pastSkeleton();
+    const start = game.state.turns;
     play(game, ['open door', 'east', 'north']);
-    expect(game.state.turns).toBe(3);
+    expect(game.state.turns).toBe(start + 3);
     expect(say(game, 'undo')).toMatch(/^Previous turn undone\.\nDragon's Cell/);
     say(game, 'undo');
     expect(game.state.location).toBe('start');
     expect(game.state.opened).toEqual(['door']);
     say(game, 'undo');
     expect(game.state.opened).toEqual([]);
-    expect(say(game, 'undo')).toBe('There is nothing to undo.');
+    // one more undo takes back the fight with the skeleton
+    say(game, 'undo');
+    expect(game.state.flags.skeletonBeaten).toBeUndefined();
   });
 
   it('look and inventory do not take a turn', () => {
@@ -77,7 +80,7 @@ describe('undo and restart', () => {
   });
 
   it('restart asks first', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'restart')).toBe('Do you really want to start over? (y/n)');
     expect(say(game, 'n')).toBe('Carry on, then.');

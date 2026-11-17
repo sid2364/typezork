@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { creature, defineGame, door, GameDefinitionError, item, room, twoWay } from '../src/dsl';
 import { computeLayout } from '../src/engine/map';
 import { crypt } from '../src/content/crypt';
-import { newGame, say } from './helpers';
+import { newGame, say, pastSkeleton } from './helpers';
 
 describe('defineGame', () => {
   it('builds two-way connections with opposite directions', () => {
@@ -119,7 +119,7 @@ describe('minimap layout', () => {
   });
 
   it('shows visited rooms, edges and stubs', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     say(game, 'open door');
     say(game, 'east');
     const map = game.view().map;

@@ -24,6 +24,8 @@ export type Asker = (
 
 export class World {
   readonly out: OutputLine[] = [];
+  // hints wait here until the output is handed over, so they always come last
+  readonly hints: string[] = [];
   // how many times the player has lost over every game played
   // it lives outside the state so undo and restart do not forget it
   deaths = 0;
@@ -47,6 +49,12 @@ export class World {
   say(t: Text, style: OutputStyle = 'info'): void {
     const text = this.text(t);
     if (text) this.out.push(line(text, style));
+  }
+
+  // a hint for the player, held back and shown after the rest of the output
+  hint(t: Text): void {
+    const text = this.text(t);
+    if (text && !this.hints.includes(text)) this.hints.push(text);
   }
 
   /** Returns true the first time it is called with a given key. */

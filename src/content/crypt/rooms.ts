@@ -90,7 +90,7 @@ export const rooms = [
       north: guarded(
         'garden',
         (w) => w.isDead('troll') || trollFriend(w),
-        "The troll steps in front of you. 'Nub,' it says behind its hand, and shakes its " +
+        'The troll steps in front of you. "Nub," it says behind its hand, and shakes its ' +
           'head. It does not look angry. It looks like it is waiting for something.',
       ),
       // The stream only parts once its riddle is answered (see the answer command).
@@ -98,8 +98,8 @@ export const rooms = [
         'river',
         flag('streamParted'),
         (w) =>
-          "The stream says to you, 'It eats many things; it fears me but not the wind. But give " +
-          "me enough and I will subside momentarily.' You cannot get past the stream. It seems " +
+          'The stream says to you, "It eats many things; it fears me but not the wind. But give ' +
+          'me enough and I will subside momentarily." You cannot get past the stream. It seems ' +
           'to be waiting for an answer.' +
           (w.has('torch') ? ' The torch in your hand flickers.' : ''),
       ),
@@ -143,8 +143,8 @@ export const rooms = [
   room('devRoom', {
     name: 'Dev Room',
     description:
-      "This small chamber houses humming computers. A poster reads 'There is no place like " +
-      "127.0.0.1.' A narrow doorway to the south leads back to the library.",
+      'This small chamber houses humming computers. A poster reads "There is no place like ' +
+      '127.0.0.1." A narrow doorway to the south leads back to the library.',
     exits: { south: 'library' },
   }),
 

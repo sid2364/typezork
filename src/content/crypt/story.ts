@@ -6,6 +6,41 @@ import type { World } from '../../engine/world';
 
 // ---- who is who ----------------------------------------------------------------
 
+// the skeleton at the crypt door: talk to it, look at it properly, then spar with it
+export const skeletonTalked = (w: World): boolean => Boolean(w.flag('skeletonTalked'));
+export const skeletonClue = (w: World): boolean => Boolean(w.flag('skeletonClue'));
+export const skeletonBeaten = (w: World): boolean => Boolean(w.flag('skeletonBeaten'));
+
+// the tutorial lets the player try things first, and only says what to type when they
+// are stuck: after TRIES commands in the crypt that did not get them any further
+const TRIES = 2;
+const HINTS = {
+  talk: 'Hint: talk to skeleton',
+  examine: 'Hint: examine skeleton',
+  fight: 'Hint: fight skeleton',
+  leave: 'Hint: go east',
+} as const;
+
+const tutorialStep = (w: World): keyof typeof HINTS =>
+  skeletonBeaten(w)
+    ? 'leave'
+    : !skeletonTalked(w)
+      ? 'talk'
+      : !skeletonClue(w)
+        ? 'examine'
+        : 'fight';
+
+function tutorialHint(w: World): void {
+  // the tutorial is over once the player has left the crypt
+  if (w.here !== 'start' || w.state.visited.includes('dragonCell')) return;
+  const step = tutorialStep(w);
+  // a new step starts the count again
+  const tries = (w.flag('hintStep') ?? 'talk') === step ? Number(w.flag('hintTries') ?? 0) + 1 : 0;
+  w.setFlag('hintStep', step);
+  w.setFlag('hintTries', tries);
+  if (tries > 0 && tries % TRIES === 0) w.hint(HINTS[step]);
+}
+
 // the dragon is alive and on your side, fed or brought back
 export const dragonFriend = (w: World): boolean =>
   !w.isDead('dragon') && Boolean(w.flag('dragonFriend'));
@@ -78,6 +113,8 @@ export const scoreLine = (w: World): string =>
 // ---- hooks ---------------------------------------------------------------------
 
 export function hooks(bus: EventBus): void {
+  bus.on('ready', (_, w) => tutorialHint(w));
+
   bus.on('afterEnter', ({ room, firstVisit }, w) => {
     if (firstVisit) w.addScore(POINTS.room);
     if (room === 'tower' && w.has('scale')) {
@@ -86,6 +123,10 @@ export function hooks(bus: EventBus): void {
   });
 
   bus.on('examine', ({ thing, first }, w) => {
+    // a close look at the skeleton, or at its hands on the door, shows what it wants
+    if (thing === 'skeleton' || (thing === 'door' && !skeletonBeaten(w))) {
+      w.setFlag('skeletonClue');
+    }
     if (!first) return;
     if (thing === 'box') {
       w.addScore(POINTS.trap);
@@ -179,7 +220,7 @@ function killedTroll(w: World): void {
           ? ', and then lets it fall.'
           : ', and waits until the scale is in it. You give it back because there is ' +
             'nothing else to do.') +
-        " 'He grew the turnips,' the dragon says, 'and he never once ate the mutton.' It walks " +
+        ' "He grew the turnips," the dragon says, "and he never once ate the mutton." It walks ' +
         'back into the castle and does not look at you.',
     );
     w.move('scale', 'nowhere');
@@ -274,7 +315,7 @@ export function ending(w: World): void {
   } else {
     w.say(
       'One of them has a broken tooth, and starts to cover it with a hand, then remembers, ' +
-        "and takes the hand away. 'Booga hoom,' it says, loud enough for the whole forest. " +
+        'and takes the hand away. "Booga hoom," it says, loud enough for the whole forest. ' +
         'You are home. You say it back, and your voice is your own, and it carries.',
     );
   }

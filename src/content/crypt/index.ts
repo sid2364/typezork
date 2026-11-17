@@ -19,4 +19,5 @@ export const crypt = defineGame({
   things: [...items, ...creatures],
   commands,
   hooks,
+  synonyms: { attack: ['spar', 'box', 'wrestle'] },
 });

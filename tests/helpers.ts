@@ -8,13 +8,31 @@ export function newGame(def: GameDef = crypt, options: GameOptions = {}): Game {
   return game;
 }
 
-/** Submit a command and return the non-echo output as one string. */
+// the crypt tutorial: talk to the skeleton, look at it properly, then spar with it
+export const TUTORIAL = ['talk to skeleton', '1', 'examine skeleton', 'fight skeleton'] as const;
+
+/** A new crypt game with the skeleton already beaten, standing at the open-able door. */
+export function pastSkeleton(options: GameOptions = {}): Game {
+  const game = newGame(crypt, options);
+  play(game, TUTORIAL);
+  return game;
+}
+
+/** Submit a command and return the story output as one string (no echo, markers or hints). */
 export function say(game: Game, input: string): string {
   return game
     .submit(input)
-    .filter((l) => l.style !== 'echo' && l.style !== 'pause' && l.style !== 'clear')
+    .filter((l) => !['echo', 'pause', 'clear', 'hint'].includes(l.style))
     .map((l) => l.text)
     .join('\n');
+}
+
+/** Submit a command and return only the hints it gave. */
+export function hints(game: Game, input: string): string[] {
+  return game
+    .submit(input)
+    .filter((l) => l.style === 'hint')
+    .map((l) => l.text);
 }
 
 export function play(game: Game, inputs: readonly string[]): string {

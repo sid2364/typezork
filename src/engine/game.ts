@@ -121,6 +121,7 @@ export class Game {
   /** Title, intro and the first room. */
   start(): OutputLine[] {
     this.world.out.length = 0;
+    this.world.hints.length = 0;
     this.intro(false);
     return this.flush();
   }
@@ -128,6 +129,7 @@ export class Game {
   /** Describe where the player is, e.g. after restoring an autosave. */
   resume(): OutputLine[] {
     this.world.out.length = 0;
+    this.world.hints.length = 0;
     this.world.describeRoom();
     if (this.state.over) this.world.say('The game is over. Type RESTART to play again.');
     return this.flush();
@@ -147,6 +149,7 @@ export class Game {
   submit(input: string): OutputLine[] {
     const w = this.world;
     w.out.length = 0;
+    w.hints.length = 0;
     const text = input.trim();
     if (!text) return [];
     w.out.push(line(`> ${text}`, 'echo'));
@@ -164,7 +167,7 @@ export class Game {
       if (pending.yesNo || pending.strict || !parsed) {
         this.pending = undefined;
         this.step(() => pending.answer(tokens), pending.yesNo);
-        return this.flush();
+        return this.settle();
       }
       // The player ignored the question and typed a new command.
       this.pending = undefined;
@@ -190,7 +193,7 @@ export class Game {
       this.execute(parsed);
       if (this.pending || (this.state.over && !wasOver)) break;
     }
-    return this.flush();
+    return this.settle();
   }
 
   view(): GameView {
@@ -216,9 +219,16 @@ export class Game {
 
   // ---- internals -------------------------------------------------------------
 
+  // tell listeners the game waits for a new command, unless it still waits for an answer
+  private settle(): OutputLine[] {
+    if (!this.pending && !this.state.over) this.bus.emit('ready', {}, this.world);
+    return this.flush();
+  }
+
   private flush(): OutputLine[] {
-    const out = [...this.world.out];
+    const out = [...this.world.out, ...this.world.hints.map((h) => line(h, 'hint'))];
     this.world.out.length = 0;
+    this.world.hints.length = 0;
     return out;
   }
 

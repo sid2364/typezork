@@ -2,7 +2,14 @@ import { describeThing, enter, go } from '../../engine/commands';
 import type { CommandContext, CommandDef } from '../../engine/commands/types';
 import type { ThingId } from '../../engine/types';
 import type { World } from '../../engine/world';
-import { feedDragon, giveScale, reviveDragon, reviveTroll, showMirror } from './dialogue';
+import {
+  feedDragon,
+  giveScale,
+  reviveDragon,
+  reviveTroll,
+  showMirror,
+  talkToSkeleton,
+} from './dialogue';
 import {
   dragonAsleep,
   dragonFriend,
@@ -10,6 +17,9 @@ import {
   mute,
   POINTS,
   scoreLine,
+  skeletonBeaten,
+  skeletonClue,
+  skeletonTalked,
   trollFriend,
   weak,
 } from './story';
@@ -41,7 +51,7 @@ function partStream(w: World, said: boolean): void {
     return;
   }
   if (!w.has('torch')) {
-    w.say("'Fire, yes,' the stream burbles, 'but words don't burn.' The water rushes on.", 'error');
+    w.say(`"Fire, yes," the stream burbles, "but words don't burn." The water rushes on.`, 'error');
     return;
   }
   w.say(
@@ -118,7 +128,7 @@ function giveToDragon(w: World, thing: ThingId): void {
   } else if (thing === 'mutton') {
     feedDragon(w);
   } else if (dragonFriend(w)) {
-    w.say(`The dragon looks at the ${name} politely. 'Is it mutton?' it asks. It is not mutton.`);
+    w.say(`The dragon looks at the ${name} politely. "Is it mutton?" it asks. It is not mutton.`);
   } else if (thing === 'bone') {
     w.say(
       'You hold the bone under the nose of the dragon. It sniffs in its sleep, and its whole ' +
@@ -149,7 +159,7 @@ function giveToTroll(w: World, thing: ThingId): void {
     );
   } else {
     w.say(
-      `The troll looks at the ${name}. 'Nub,' it says behind its hand. It makes a small ` +
+      `The troll looks at the ${name}. "Nub," it says behind its hand. It makes a small ` +
         'square in the air with two fingers, and points at its own face.',
     );
   }
@@ -224,40 +234,53 @@ const giveCommand: CommandDef = {
 // ---- talk ----------------------------------------------------------------------
 
 function talkTo(w: World, target: ThingId): void {
-  if (target === 'dragon') {
+  if (target === 'skeleton') {
+    if (skeletonBeaten(w)) {
+      w.say('"Go on," says the skeleton. "And come back with all your bones."');
+    } else if (!skeletonTalked(w)) {
+      talkToSkeleton(w);
+    } else {
+      w.say(
+        skeletonClue(w)
+          ? '"Enough talk," says the skeleton. "Fists up. Fight me."'
+          : '"I have said my piece," says the skeleton. "Now look closer. Examine me. Then put ' +
+              'your fists up."',
+      );
+    }
+  } else if (target === 'dragon') {
     if (w.isDead('dragon')) {
       w.say('The dragon does not answer. It is the kind of silence that you made yourself.');
     } else if (dragonAsleep(w)) {
       w.say(
-        "'Hello?' you say. The dragon does not wake. '...keeper?...' it mumbles in its sleep. " +
-          "Then its stomach answers for it: a long, hollow sound. '...mutton...' says the " +
+        '"Hello?" you say. The dragon does not wake. "...keeper?..." it mumbles in its sleep. ' +
+          'Then its stomach answers for it: a long, hollow sound. "...mutton..." says the ' +
           'dragon, and sighs a little smoke.',
       );
     } else if (!w.flag('scaleGiven')) {
-      w.say("'Ah,' says the dragon. 'Where were we? I was about to give you something.'");
+      w.say('"Ah," says the dragon. "Where were we? I was about to give you something."');
       giveScale(w);
     } else if (w.flag('dragonEstranged')) {
       w.say(
-        "The dragon keeps its back to you. 'You fed me,' it says to the wall. 'Then you did " +
-          "that. I do not know which one is you.'",
+        'The dragon keeps its back to you. "You fed me," it says to the wall. "Then you did ' +
+          'that. I do not know which one is you."',
       );
     } else if (w.flag('dragonRevived')) {
-      w.say("'I am still deciding about you,' says the dragon. 'But you may sit, while I decide.'");
+      w.say('"I am still deciding about you," says the dragon. "But you may sit, while I decide."');
     } else {
-      w.say("'Still here,' says the dragon. 'Still waiting. It is easier with company.'");
+      w.say('"Still here," says the dragon. "Still waiting. It is easier with company."');
     }
   } else if (target === 'troll') {
     if (w.isDead('troll')) {
       w.say('The troll does not answer.');
     } else if (w.flag('trollRevived')) {
-      w.say("'Hello,' says the troll, carefully. It does not come closer. But it said hello.");
+      w.say('"Hello," says the troll, carefully. It does not come closer. But it said hello.');
     } else if (trollFriend(w)) {
-      w.say("'HELLO,' says the troll, with all of its mouth. It is still very proud of the word.");
+      w.say('"HELLO," says the troll, with all of its mouth. It is still very proud of the word.');
     } else {
       w.say(
-        "'Ooga wug zug mog,' the troll says behind one huge hand. It points at its eyes, then " +
+        '"Ooga wug zug mog," the troll says behind one huge hand. It points at its eyes, then ' +
           'at its own face, and then makes a small square in the air with two fingers. ' +
-          "'Grak nub.' It points at the hand over its mouth, and looks away.",
+          '"Grak nub." It points at the hand over its mouth, and looks away.',
       );
     }
   } else if (target === 'duck') {
@@ -269,8 +292,8 @@ function talkTo(w: World, target: ThingId): void {
     w.say(
       w.flag('streamParted')
         ? 'The stream has said all it wanted to say.'
-        : "The stream says it again, patiently: 'It eats many things; it fears me but not the " +
-            "wind. But give me enough and I will subside momentarily.'",
+        : 'The stream says it again, patiently: "It eats many things; it fears me but not the ' +
+            'wind. But give me enough and I will subside momentarily."',
     );
   } else if (target === 'candle') {
     w.say('You talk to the candle. It flickers in all the right places. A good listener.');
@@ -511,6 +534,7 @@ export const commands: CommandDef[] = [
         dragon: 'The dragon is, if anything, more likely to eat you.',
         troll: 'You would need a very large fork and a very strong stomach.',
         duck: 'You bite the rubber duck. It squeaks reproachfully.',
+        skeleton: 'There is nothing left on it to eat. Someone got there first.',
       };
       w.say(jokes[id] ?? `You'd rather not eat ${w.the(id)}.`);
     },
@@ -536,6 +560,7 @@ export const commands: CommandDef[] = [
         mutton:
           'Salt, smoke and rosemary. Your stomach makes a sound. Something else makes a bigger one.',
         boots: 'Felt, dust and, very faintly, dragon.',
+        skeleton: 'Dust and candle smoke. It smells, you realise, a lot like you.',
       };
       w.say(smells[id] ?? `${w.the(id).replace(/^./, (c) => c.toUpperCase())} smells of dust.`);
     },

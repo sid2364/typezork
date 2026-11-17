@@ -28,6 +28,11 @@ export function openThing(w: World, id: ThingId): boolean {
     w.say(o.alreadyOpen ?? `${capitalise(w.the(id))} is already open.`);
     return true;
   }
+  const veto = o.beforeOpen?.(w);
+  if (veto) {
+    w.say(veto, 'error');
+    return false;
+  }
   if (w.isLocked(id)) {
     if (!o.lockedBy || !w.has(o.lockedBy)) {
       w.say(o.lockedMessage ?? `${capitalise(w.the(id))} is locked.`, 'error');
@@ -338,6 +343,14 @@ export const attackCommand: CommandDef = {
     const refusal = creature.beforeAttack?.(w);
     if (refusal) {
       w.say(refusal);
+      return;
+    }
+    const unarmed =
+      UNARMED_VERBS.has(cmd.verb) ||
+      cmd.indirect.length === 0 ||
+      BARE_HANDS.has(cmd.indirect.join(' '));
+    if (creature.brawl && unarmed) {
+      creature.brawl(w);
       return;
     }
     if (!creature.killable) {

@@ -1,12 +1,12 @@
 import { item, lose, spawnItem } from '../../dsl';
+import { skeletonBeaten, skeletonTalked } from './story';
 
 export const items = [
   // ---- crypt ----
   item('candle', {
     examine:
       'A stubby candle, nearly burnt out. It has clearly been through a lot. You decide not to ' +
-      'burden it further. Under the wax, two words are scratched into the stone: KEEP GOING. ' +
-      'The handwriting looks a lot like yours.',
+      'burden it further.',
     name: 'candle',
     adjectives: ['small', 'burning'],
     location: 'start',
@@ -25,14 +25,26 @@ export const items = [
     takeMessage: 'You now have a bone.',
   }),
   item('door', {
-    examine:
+    examine: (w) =>
       'A sturdy wooden door with an old iron handle. The bolt is on this side. Whoever shut ' +
-      'this door did it from where you stand.',
+      'this door did it from where you stand.' +
+      (skeletonBeaten(w)
+        ? ''
+        : " The skeleton's hands are wrapped round the handle, and its knuckles are bound in " +
+          "strips of old cloth, the way a boxer's are. It is not holding the door like a guard. " +
+          'It is holding it like someone who wants to be made to let go.'),
     name: 'door',
     location: 'start',
     portable: false,
     refuseTake: "You can't take the door.",
     openable: {
+      beforeOpen: (w) => {
+        if (skeletonBeaten(w)) return undefined;
+        return skeletonTalked(w)
+          ? 'The skeleton holds on. "Words will not move me," it says. "You will have to make me."'
+          : 'The skeleton has both hands round the handle and will not let go. It tilts its ' +
+              'skull at you, the way people do when they are waiting for you to say something.';
+      },
       openMessage: 'The door opens revealing a path towards the east.',
       alreadyOpen: 'The door is already open.',
     },
@@ -132,8 +144,8 @@ export const items = [
     description: 'A ledger lies open on the table.',
     examine:
       "The keeper's feeding ledger. Every day has the same line, in the same careful hand: " +
-      "'One leg of mutton.' Some days add a note: 'He let me " +
-      "polish his scales.' The entries stop in the middle of a page.",
+      '"One leg of mutton." Some days add a note: "He let me ' +
+      'polish his scales." The entries stop in the middle of a page.',
     refuseTake: 'It belongs on this table. You leave it open at the last page, the way it was.',
   }),
   item('note', {
@@ -143,7 +155,7 @@ export const items = [
     portable: false,
     description: 'A note is pinned to the wall above the bed.',
     examine:
-      "'The gardener is NOT dangerous. He hides his mouth since he broke the tooth, so nobody " +
+      '"The gardener is NOT dangerous. He hides his mouth since he broke the tooth, so nobody ' +
       'understands him now. NUB is no. ZUG is see. MOG is face. GRAK is tooth. HUM is good. ' +
       'BLUG is bad. HOOM is home. He only wants to see how bad it is.',
     refuseTake: 'You leave the note where the keeper pinned it. You have read it. That is enough.',
@@ -327,9 +339,9 @@ export const items = [
     portable: true,
     description: 'A scroll with a red ribbon lies on the top shelf.',
     examine:
-      "The ribbon comes off easily. The scroll says: 'TO CALL BACK A STRENGTH. Stand where " +
+      'The ribbon comes off easily. The scroll says: "TO CALL BACK A STRENGTH. Stand where ' +
       'the strength fell. Read these words aloud, in your own voice. This works once. It does ' +
-      "not work for those who have nothing left to read with.' Under that are three lines in " +
+      'not work for those who have nothing left to read with." Under that are three lines in ' +
       'a language you do not know and, somehow, can pronounce.',
     takeMessage: 'You take the scroll. It is warmer than paper should be.',
   }),
@@ -341,9 +353,9 @@ export const items = [
     portable: true,
     description: 'An old parchment sticks out of a book on the desk.',
     examine:
-      "A page torn from something older than the library. 'TO CALL BACK A VOICE. A flower for " +
+      'A page torn from something older than the library. "TO CALL BACK A VOICE. A flower for ' +
       'the breath. A bone for the body. This page for the memory. Grind them together with ' +
-      "strong hands, and pour it where the voice fell. Weak hands will only make a mess.'",
+      'strong hands, and pour it where the voice fell. Weak hands will only make a mess."',
     takeMessage: 'You pull the parchment free. The book lets it go, as if it kept it for you.',
   }),
   item('potion', {
@@ -356,7 +368,7 @@ export const items = [
       'miracle you have ever seen.',
   }),
   item('poster', {
-    examine: "The poster reads 'There is no place like 127.0.0.1.' You're beginning to agree.",
+    examine: `The poster reads "There is no place like 127.0.0.1." You're beginning to agree.`,
     name: 'poster',
     location: 'devRoom',
     portable: false,
@@ -369,7 +381,7 @@ export const items = [
     location: 'devRoom',
     portable: false,
     examine:
-      "One screen is on. Green text on black: 'You find yourself in a dark empty crypt.' " +
+      'One screen is on. Green text on black: "You find yourself in a dark empty crypt." ' +
       'Below it, a cursor blinks and waits for someone to type. The chair in front of it is ' +
       'still warm.',
     refuseTake: 'You get the feeling that it is not yours to move. Not from this side.',

@@ -60,6 +60,8 @@ export interface Openable {
   readonly alreadyOpen?: Text;
   readonly lockedMessage?: Text;
   readonly unlockMessage?: Text;
+  /** Return a message to stop the thing being opened, e.g. while someone holds it shut. */
+  readonly beforeOpen?: (w: World) => string | undefined;
   /** Runs the first time the thing is opened. */
   readonly onOpen?: readonly Effect[];
 }
@@ -109,6 +111,8 @@ export interface CreatureDef extends ThingCommon {
   readonly bareHanded?: Text;
   // return a message to stop an attack before it starts, for a friend or a second chance
   readonly beforeAttack?: (w: World) => string | undefined;
+  /** A fight with bare hands (fight x, punch x, kill x with fists). Replaces the usual unarmed response. */
+  readonly brawl?: Effect;
   readonly onKill?: readonly Effect[];
 }
 

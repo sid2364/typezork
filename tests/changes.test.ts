@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { crypt } from '../src/content/crypt';
 import { Game } from '../src/engine';
-import { newGame, play, say, WALKTHROUGH } from './helpers';
+import { newGame, play, say, WALKTHROUGH, pastSkeleton } from './helpers';
 
 describe('intro and restart markers', () => {
   it('pauses between the intro and the first room', () => {
@@ -13,7 +13,7 @@ describe('intro and restart markers', () => {
   });
 
   it('restart clears the screen and pauses again', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     say(game, 'open door');
     game.submit('restart');
     const styles = game.submit('yes').map((l) => l.style);
@@ -24,7 +24,7 @@ describe('intro and restart markers', () => {
 
 describe('go back', () => {
   it('returns to the previous room, and back again', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east', 'north']);
     expect(say(game, 'go back')).toContain("Dragon's Cell");
     expect(say(game, 'back')).toContain('Dungeon');
@@ -33,25 +33,25 @@ describe('go back', () => {
   });
 
   it.each(['cd ..', 'cd', 'cd -', 'cd ../..'])('"%s" goes back', (input) => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east', 'north']);
     expect(say(game, input)).toContain("Dragon's Cell");
     expect(game.state.location).toBe('dragonCell');
   });
 
   it('cd also takes a direction', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     say(game, 'cd north');
     expect(game.state.location).toBe('dungeon');
   });
 
   it('needs somewhere to go back to', () => {
-    expect(say(newGame(), 'go back')).toBe("Back where? You haven't been anywhere yet.");
+    expect(say(pastSkeleton(), 'go back')).toBe("Back where? You haven't been anywhere yet.");
   });
 
   it('respects guards on the way back', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 13)); // at the portcullis, no torch
     play(game, ['north', 'go back']);
     expect(game.state.location).toBe('portcullis');
@@ -60,13 +60,13 @@ describe('go back', () => {
 
 describe('shortcuts are gone', () => {
   it.each(['n', 'i', 'l', 'x candle'])('"%s" is not understood', (input) => {
-    expect(say(newGame(), input)).toMatch(/I don't know how to/);
+    expect(say(pastSkeleton(), input)).toMatch(/I don't know how to/);
   });
 });
 
 describe('bare hands', () => {
   it('kill dragon with hands', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'kill dragon with bare hands')).toMatch(/punch the dragon squarely/);
     expect(say(game, 'punch dragon')).toMatch(/ambitious moth/);
@@ -74,14 +74,14 @@ describe('bare hands', () => {
   });
 
   it('answering the weapon question with fists', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 10));
     say(game, 'kill dragon');
     expect(say(game, 'my fists')).toMatch(/punch the dragon/);
   });
 
   it('the troll has its own jokes', () => {
-    const game = newGame();
+    const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 12));
     expect(say(game, 'kick troll')).toMatch(/giggles/);
   });
@@ -99,7 +99,7 @@ describe('jokes', () => {
 
 describe('compact help', () => {
   it('groups related commands on one line', () => {
-    const text = say(newGame(), 'help');
+    const text = say(pastSkeleton(), 'help');
     expect(text).toContain('take bone · drop bone');
     expect(text).toContain('go north · go back');
     expect(text.split('\n').length).toBeLessThanOrEqual(9);

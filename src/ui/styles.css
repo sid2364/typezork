@@ -10,6 +10,7 @@
   --accent: #e6ff6a;
   --error: #ffcf4d;
   --question: #6af2ff;
+  --hint: #9ab8ff;
   --glow: 0 0 6px rgb(61 255 116 / 45%);
   --font: 'IBM Plex Mono', 'SF Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
 }
@@ -24,6 +25,7 @@
   --accent: #fff07a;
   --error: #ff7a4d;
   --question: #ffd56a;
+  --hint: #ffc4e1;
   --glow: 0 0 6px rgb(255 176 0 / 45%);
 }
 
@@ -466,6 +468,11 @@ input {
 
 .line--question {
   color: var(--question);
+}
+
+.line--hint {
+  color: var(--hint);
+  font-style: italic;
 }
 
 .line--lose {

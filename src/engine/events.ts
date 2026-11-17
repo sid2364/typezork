@@ -13,6 +13,8 @@ export interface GameEvents {
   // fired after a thing is described by examine or look at
   examine: { thing: ThingId; first: boolean };
   turn: { turns: number };
+  // fired when a command or an answer is done and the game waits for the next command
+  ready: Record<string, never>;
 }
 
 export type EventName = keyof GameEvents;
