@@ -99,6 +99,16 @@ const FRAGMENT_KEYS = [...new Set(Object.values(FRAGMENTS))];
 export const fragments = (w: World): number =>
   FRAGMENT_KEYS.filter((f) => w.flag(`frag:${f}`)).length;
 
+// the potion of remembering: every fragment not found yet, with its points
+export function rememberAll(w: World): number {
+  const missing = FRAGMENT_KEYS.filter((f) => !w.flag(`frag:${f}`));
+  for (const f of missing) {
+    w.setFlag(`frag:${f}`);
+    w.addScore(POINTS.fragment);
+  }
+  return missing.length;
+}
+
 const RANKS: readonly (readonly [number, string])[] = [
   [1700, 'One Who Remembers'],
   [1300, 'Pathfinder'],
@@ -132,7 +142,6 @@ export function hooks(bus: EventBus): void {
     if (!first) return;
     if (thing === 'box') {
       w.addScore(POINTS.trap);
-      w.say(`(You lose ${-POINTS.trap} points, and some dignity.)`);
       return;
     }
     w.addScore(POINTS.examine);
@@ -145,6 +154,25 @@ export function hooks(bus: EventBus): void {
       w.setFlag('sawScreen');
       w.addScore(POINTS.screen);
     }
+  });
+
+  // the duck is not to be taken: the first grab costs points, after that it only warns
+  bus.on('beforeTake', ({ thing }, w) => {
+    if (thing !== 'duck') return;
+    if (w.flag('duckTrap')) {
+      return (
+        'You reach for the duck. It looks at you. You remember the books, and put your ' +
+        'hand away.'
+      );
+    }
+    w.setFlag('duckTrap');
+    w.addScore(POINTS.trap);
+    return (
+      'You close your hand round the duck. It squeaks, very loudly, and every book in the ' +
+      'library slams shut at once. Dust falls from the shelves in a slow grey curtain. When it ' +
+      'settles, the duck is exactly where it was, and you are covered in the opinions of old ' +
+      'books.'
+    );
   });
 
   // tiptoeing east past a dragon that is still asleep
@@ -235,7 +263,7 @@ function killedTroll(w: World): void {
 function killedBoth(w: World): void {
   w.addScore(POINTS.killBoth);
   w.say(
-    `That is both of them. (You lose ${-POINTS.killBoth} points.) The castle is very quiet ` +
+    'That is both of them. The castle is very quiet ' +
       'now, and so are you. Your arms shake and your mouth is empty.',
   );
 }
@@ -314,6 +342,13 @@ export function ending(w: World): void {
       'One of them has a broken tooth, and is a little shy of you. But when you say you are ' +
         'sorry, out loud, in the voice you got back, the answer is a nod, and a place to sit.',
     );
+  } else if (w.flag('trollHurt') && !w.flag('trollFriend')) {
+    // the cruel word was never taken back
+    w.say(
+      'One of them has a broken tooth, and keeps a hand over its mouth all evening. It sits at ' +
+        'the edge of the firelight, close enough to hear, too far to talk. You know what you ' +
+        'said. Your voice is your own, and you have not yet used it to say anything else.',
+    );
   } else {
     w.say(
       'One of them has a broken tooth, and starts to cover it with a hand, then remembers, ' +
@@ -368,6 +403,10 @@ function verdict(w: World): string {
       'You passed the test, but it is not finished. One part of you is still asleep in a ' +
       'castle, and still hungry.'
     );
+  }
+  // the cruel word to the troll was never taken back
+  if (w.flag('trollHurt') && !w.flag('trollFriend')) {
+    return 'You passed the test. You came home whole, but with something left unsaid.';
   }
   if (w.flag('dragonRevived') || w.flag('trollRevived') || w.flag('dragonEstranged')) {
     return (

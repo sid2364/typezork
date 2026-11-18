@@ -17,12 +17,12 @@ const WORDS: Readonly<Record<string, number>> = {
 };
 
 // show numbered lines and wait until the player picks one
-export function choose(w: World, options: readonly Option[]): void {
+export function choose(w: World, options: readonly Option[], prompt = 'What do you say?'): void {
   const numbers = options.map((_, i) => String(i + 1));
   const list = () => options.forEach((o, i) => w.say(`${i + 1}. ${o.label}`, 'option'));
   const ask = () =>
     w.ask(
-      `What do you say? (${numbers.join(', ')})`,
+      `${prompt} (${numbers.join(', ')})`,
       (tokens) => {
         const n = Number(tokens[0]) || WORDS[tokens[0] ?? ''] || 0;
         const option = tokens.length === 1 ? options[n - 1] : undefined;
@@ -277,9 +277,9 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
         w.award('trollCruel', POINTS.cruelWord);
         w.setFlag('trollHurt');
         w.say(
-          `The troll's face closes like a door. It turns away from the ${name} and` +
-            ' stands on the garden path with its back ' +
-            'to you. You feel the weight of your words.',
+          `The troll's face closes like a door. It turns away from the ${name} and steps off ` +
+            'the garden path with its back to you. You feel the weight of your words. The way ' +
+            'north is open, but nobody is waving you through.',
         );
       },
     },
@@ -340,29 +340,74 @@ function trollLetsYouPass(w: World, glass: 'mirror' | 'scale'): void {
 
 // ---- second chances ------------------------------------------------------------
 
+// the scroll, read anywhere: look back at who you killed and call one of them back
+export function revisitDecisions(w: World): void {
+  const dragon = w.isDead('dragon');
+  const troll = w.isDead('troll');
+  w.say(
+    troll
+      ? 'You open your mouth to read, and nothing comes out. Then the words lift off the page ' +
+          'on their own, one at a time, and say themselves in a voice that is almost yours. A voice from the great beyond.'
+      : 'You unroll the scroll and read the three lines aloud. Your voice shakes on the first, ' +
+          'holds on the second, and by the third it is simply your voice.',
+  );
+  const seen = [
+    dragon ? 'the dragon, thin, its head turned toward the door' : '',
+    troll ? 'the troll in the grass, its club beside it' : '',
+  ].filter(Boolean);
+  w.say(
+    'The castle goes quiet around you, as if it were listening. You see again what you left ' +
+      `behind: ${seen.join(', and ')}.`,
+  );
+  w.say(
+    dragon && troll
+      ? 'The scroll is warm in your hands. It can call back who you sent away, one of them.'
+      : 'The scroll is warm in your hands. It can call back who you sent away.',
+  );
+  const callBack = (revive: (w: World) => void) => () => {
+    revive(w);
+    w.move('scroll', 'nowhere');
+    w.say('The scroll burns away in your hands without any heat.');
+    if (dragon && troll) {
+      // it is no longer both of them, so the penalty for killing both goes away
+      w.addScore(-POINTS.killBoth);
+      w.say('The other on, unfortunately, stays where you left it.');
+    }
+  };
+  choose(
+    w,
+    [
+      ...(dragon ? [{ label: 'Call back the dragon.', run: callBack(reviveDragon) }] : []),
+      ...(troll ? [{ label: 'Call back the troll.', run: callBack(reviveTroll) }] : []),
+      {
+        label: 'Roll the scroll up again.',
+        run: () =>
+          w.say(
+            'You roll the scroll up and tie the ribbon.',
+          ),
+      },
+    ],
+    'What do you choose?',
+  );
+}
+
 export function reviveDragon(w: World): void {
   w.revive('dragon');
   w.setFlag('dragonFriend');
   w.setFlag('dragonRevived');
   w.setFlag('scaleCracked');
   w.setFlag('scaleGiven');
-  w.move('scroll', 'nowhere');
   w.move('scale', 'inventory');
   w.markMoved('scale');
   w.award('reviveDragon', POINTS.revive);
   w.say(
-    'You read the three lines aloud. Your voice shakes on the first, holds on the second, ' +
-      'and on the third it is simply your voice. The scroll burns away in your hands without ' +
-      'any heat.',
+    'Where the dragon was felled, something breathes in. It is a long breath like a door that opens ' +
+      'in a house shut for years. There is then a silence in which many things could happen. "You ' +
+      'came back," a voice says. "People with swords never come back."',
   );
   w.say(
-    'The dragon breathes in. It is a long breath, like a door that opens in a house shut for ' +
-      'years. One eye opens and finds you. "You," it says. There is a silence in which many ' +
-      'things could happen... "You came back," it says. "People with swords never come back."',
-  );
-  w.say(
-    'It scratches under its chin, and a scale falls and rings on the floor. It is a dragonscale,' +
-      ' and it is whole. The dragon looks at you with a new light in its eye.',
+    'Something falls out of the air and rings on the ground at your feet. It is a dragonscale, ' +
+      'cracked across the middle. Far off, the dragon begins to settle into a slumber again.',
   );
   w.say('You now have a dragonscale. Your arms have stopped shaking.');
 }
@@ -372,17 +417,16 @@ export function reviveTroll(w: World): void {
   w.setFlag('trollFriend');
   w.setFlag('trollRevived');
   w.setFlag('dragonEstranged', false);
-  w.move('potion', 'nowhere');
   w.award('reviveTroll', POINTS.revive);
   w.say(
-    'You pour the potion over the troll. It smells of flowers and old paper. For a moment ' +
-      'nothing happens, and you feel the special loneliness of someone who has done one bad ' +
-      'thing and one silly thing.',
+    'Where the troll was felled, the grass stirs. For a moment nothing else happens, and you feel the ' +
+      'special loneliness of someone who has done nothing wrong.',
   );
   w.say(
-    'The troll then sneezes. It sits up. It looks at you, and at its club, and at you again. It ' +
-      'puts a hand over its mouth. "Nub," it says, very small, behind the hand.',
+    'Then a sneeze, a big sneeze. The troll sits up. "Nub," it says, very small, behind the hand. You hear it, from where you stand.',
   );
-  w.say('Something moves in your throat. "I am sorry," you say, and you hear it.');
-  w.say('Far off, inside the castle, something large heaves an exhausted sigh of relief.');
+  w.say('Something moves in your throat. "I am sorry," you say, and you hear the words.');
+  if (!w.isDead('dragon')) {
+    w.say('Far off, inside the castle, something large heaves an exhausted sigh of relief.');
+  }
 }

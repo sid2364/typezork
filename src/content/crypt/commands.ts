@@ -6,8 +6,7 @@ import {
   feedDragon,
   fetchForSkeleton,
   giveScale,
-  reviveDragon,
-  reviveTroll,
+  revisitDecisions,
   showMirror,
   talkToSkeleton,
 } from './dialogue';
@@ -17,6 +16,7 @@ import {
   MUTE,
   mute,
   POINTS,
+  rememberAll,
   scoreLine,
   skeletonBeaten,
   skeletonClue,
@@ -112,7 +112,7 @@ function usualTarget(w: World, thing: ThingId): ThingId | undefined {
   const here = (id: ThingId) => w.locationOf(id) === w.here;
   if (thing === 'mutton' && here('dragon')) return 'dragon';
   if (thing === 'torch' && here('stream')) return 'stream';
-  if ((thing === 'scale' || thing === 'mirror' || thing === 'potion') && here('troll')) {
+  if ((thing === 'scale' || thing === 'mirror') && here('troll')) {
     return 'troll';
   }
   if (thing === 'scroll' && here('dragon')) return 'dragon';
@@ -137,7 +137,7 @@ function giveToDragon(w: World, thing: ThingId): void {
   if (w.isDead('dragon')) {
     w.say(
       thing === 'scroll'
-        ? 'The dragon cannot read it. Somebody has to read it aloud.'
+        ? 'The dragon cannot read. The scroll is for you to read.'
         : `The dragon is past caring about the ${name}. You made sure of that.`,
     );
   } else if (thing === 'mutton') {
@@ -158,10 +158,7 @@ function giveToDragon(w: World, thing: ThingId): void {
 function giveToTroll(w: World, thing: ThingId): void {
   const name = w.thing(thing).name;
   if (w.isDead('troll')) {
-    if (thing === 'potion') reviveTroll(w);
-    else w.say(`The troll is past caring about the ${name}. You made sure of that.`);
-  } else if (thing === 'potion') {
-    w.say('The troll sniffs the potion and sneezes. It does not need it. It is, after all, alive.');
+    w.say(`The troll is past caring about the ${name}. You made sure of that.`);
   } else if (trollFriend(w)) {
     w.say(`The troll looks at the ${name} and says its name out loud, slowly, with great pride.`);
   } else if (thing === 'mirror' || thing === 'scale') {
@@ -240,7 +237,7 @@ const giveCommand: CommandDef = {
     } else if (thing === 'torch') {
       w.say('You wave the torch about. It crackles cheerfully.');
     } else if (thing === 'potion') {
-      w.say('The page said to pour it where the voice fell. This is not the place.');
+      w.say('Nobody else can drink this for you.');
     } else {
       w.say(`You wave the ${w.thing(thing).name} about. Nothing happens.`);
     }
@@ -361,33 +358,31 @@ const readCommand: CommandDef = {
     }
     const id = ctx.resolve(cmd.direct);
     if (!id) return;
-    if (id !== 'scroll' || !w.has('scroll') || !w.isDead('dragon')) {
+    if (id !== 'scroll' || !w.has('scroll')) {
       describeThing(w, id);
       return;
     }
-    if (mute(w)) {
+    if (!w.isDead('dragon') && !w.isDead('troll')) {
       w.say(
-        'You open your mouth to read. Nothing comes out. The words stay on the page. The ' +
-          'scroll did warn you: it does not work for those who have nothing left to read with.',
+        'You read the first line aloud. The words hang in the air, look around for someone to ' +
+          'call back, and find no one. They settle back onto the page. You have not sent anyone ' +
+          'away.',
       );
-    } else if (w.here !== 'dragonCell') {
-      w.say(
-        'You read the first line aloud. The words hang in the air, look around for something ' +
-          'to do, and fade. The scroll says to stand where the strength fell.',
-      );
-    } else {
-      reviveDragon(w);
+      return;
     }
+    revisitDecisions(w);
   },
 };
 
-const INGREDIENTS = ['flower', 'bone', 'parchment'] as const;
+// the recipe wants a flower, a bone and something iron: any metal weapon will do
+const INGREDIENTS = ['flower', 'bone'] as const;
+const IRON = ['sword', 'spear', 'hammer'] as const;
 
 const mixCommand: CommandDef = {
   id: 'mix',
   verbs: ['mix', 'brew', 'grind', 'make', 'prepare', 'craft'],
   run({ w }) {
-    if (w.locationOf('potion') !== 'nowhere' || w.flag('trollRevived')) {
+    if (w.locationOf('potion') !== 'nowhere' || w.flag('potionDrunk')) {
       w.say('You have made the only potion you know how to make.');
       return;
     }
@@ -395,29 +390,66 @@ const mixCommand: CommandDef = {
       w.say('You do not know how to make anything. You would need a recipe.', 'error');
       return;
     }
-    const missing = INGREDIENTS.filter((id) => !w.has(id)).map((id) => w.thing(id).name);
-    if (missing.length) {
-      w.say(
-        `The recipe wants a flower, a bone and the page itself. You do not have the ${missing.join(' or the ')}.`,
-        'error',
-      );
-      return;
-    }
     if (weak(w)) {
       w.say(
-        'You try to grind the bone. Your hands shake, and the bone does not even notice. The ' +
-          'page said strong hands. Yours stayed with the dragon.',
+        'You smooth the page out to read the recipe. Your hands shake just holding it. Grinding ' +
+          'bone and working iron would take strong hands. Yours stayed with the dragon.',
         'error',
       );
       return;
     }
-    for (const id of INGREDIENTS) w.move(id, 'nowhere');
+    const iron = IRON.find((id) => w.has(id));
+    const missing = [
+      ...INGREDIENTS.filter((id) => !w.has(id)).map((id) => `the ${w.thing(id).name}`),
+      ...(iron ? [] : ['anything made of iron']),
+    ];
+    if (missing.length) {
+      w.say(
+        `The recipe wants a flower, a bone and some iron. You do not have ${missing.join(' or ')}.`,
+        'error',
+      );
+      return;
+    }
+    for (const id of [...INGREDIENTS, iron!]) w.move(id, 'nowhere');
     w.move('potion', 'inventory');
     w.markMoved('potion');
     w.say(
-      'You grind the bone to powder between two stones, with your own two hands. You add the ' +
-        'flower, and then the page, which goes soft and falls apart as if it wanted to. You now ' +
-        'have a potion. It smells better than it looks.',
+      `You grind the bone to powder between two stones, with your own two hands. You add the ` +
+        `flower, and then scrape the ${w.thing(iron!).name} against the stones until the powder ` +
+        `turns the colour of rust. The ${w.thing(iron!).name} is no use to anyone after that. You ` +
+        `now have a potion. It smells better than it looks.`,
+    );
+  },
+};
+
+// the potion of remembering gives back every memory you have not found yet
+const drinkCommand: CommandDef = {
+  id: 'drink',
+  verbs: ['drink', 'sip', 'quaff'],
+  run({ w }) {
+    if (!w.has('potion')) {
+      w.say('There is nothing here that you would trust in a cup.');
+      return;
+    }
+    w.move('potion', 'nowhere');
+    w.setFlag('potionDrunk');
+    if (rememberAll(w) === 0) {
+      w.say(
+        'You drink the potion. It tastes of old paper. Nothing new comes back. You already ' +
+          'remember everything.',
+      );
+      return;
+    }
+    w.say(
+      'You drink the potion. It tastes of old paper, then of nothing, then of a room you have ' +
+        'not stood in for a very long time.',
+    );
+    w.say(
+      'It comes back the way a word comes back. A candle, and your own hands lighting it. A ' +
+        'door, and your own hand drawing the bolt. Runes on a wall that you can read, because ' +
+        'you wrote them. Dark water, and a reflection you did not know. And a face in a glass, ' +
+        'with lines painted under its eyes. You remember it all at once. This was a rite of ' +
+        'passage, a test you set yourself, to see what sort of person you have become.',
     );
   },
 };
@@ -475,15 +507,11 @@ export const commands: CommandDef[] = [
   talkCommand,
   readCommand,
   mixCommand,
+  drinkCommand,
   sneakCommand,
   wearCommand,
   scoreCommand,
   homeCommand,
-  quip('drink', ['drink', 'sip'], (w) =>
-    w.has('potion')
-      ? 'It is not for you. Well. It is, a little. But not like that.'
-      : 'There is nothing here that you would trust in a cup.',
-  ),
   spoken(
     'xyzzy',
     ['xyzzy', 'plugh', 'abracadabra'],

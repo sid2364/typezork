@@ -22,7 +22,7 @@ stand in your way. You can feed, help, sneak past or kill them, and each choice 
 
 - Kill the dragon and you lose your strength (and your weapon). Kill the troll and you lose your
   voice. Kill both and you still reach home, but you fail the test.
-- A scroll or a potion can undo one kill. You need the part of you that is left to use it.
+- A scroll can undo one kill, wherever you read it. A potion helps you remember.
 - Some mistakes end the game early. Each game over adds a bone to the pile in the crypt.
 - You get points for what you examine, for kindness and even for kills. The more you look at,
   the more the ending tells you. `score` shows your score, turns and rank.
@@ -58,7 +58,7 @@ src/
   dsl/             Builders for writing games: defineGame, room, item, creature, door, …
   content/crypt/   The original pyzork map, grown into a longer story
     story.ts       Who is alive or a friend, the score, the hooks and the endings
-    dialogue.ts    Conversations with numbered choices, and the two revive scenes
+    dialogue.ts    Conversations with numbered choices, and the revive scene
   ui/              Web front-end (typewriter screen, help panel, minimap, settings)
   cli.ts           Terminal front-end
 ```

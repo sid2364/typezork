@@ -85,10 +85,10 @@ export const rooms = [
       "toward the dragon's cell.",
     exits: {
       west: 'dragonCell',
-      // the troll moves aside once it is a friend or once it cannot object
+      // the troll moves aside once it is a friend, once it is hurt, or once it cannot object
       north: guarded(
         'garden',
-        (w) => w.isDead('troll') || trollFriend(w),
+        (w) => w.isDead('troll') || trollFriend(w) || Boolean(w.flag('trollHurt')),
         'The troll steps in front of you. "Nub," it says behind its hand, and shakes its ' +
           'head. It does not look angry. It looks like it is waiting for something.',
       ),
@@ -118,7 +118,7 @@ export const rooms = [
     name: 'Garden',
     description:
       'Wild flowers with exotic fragrances bloom about you and the light of day makes for a ' +
-      'beautiful scene in the garden. Behind you, you see the castle. There is a gazebo up north.',
+      'beautiful scene in the garden. There is a gazebo up north, and to the south a path leads to the castle.',
     exits: { south: 'portcullis', north: 'gazebo' },
   }),
 
@@ -127,7 +127,8 @@ export const rooms = [
     description:
       'You are at a gazebo. You see snow-festooned mountain peaks that extend and meet the ' +
       'horizon in the north. Below you there is nothing but the deepest valley you have ever ' +
-      'seen. You hear a strange sound emanating from the east.',
+      'seen. To the south, is the fragrant garden whose scent fills the air even here.' +
+      ' You hear a strange sound emanating from the east.',
     exits: { south: 'garden', east: 'library' },
   }),
 

@@ -6,6 +6,8 @@ export interface GameEvents {
   /** Handlers may return a message to stop the move. */
   beforeMove: { from: RoomId; to: RoomId; dir: Direction };
   afterEnter: { room: RoomId; from: RoomId | null; firstVisit: boolean };
+  /** Handlers may return a message to stop the take. */
+  beforeTake: { thing: ThingId };
   take: { thing: ThingId };
   drop: { thing: ThingId };
   open: { thing: ThingId };

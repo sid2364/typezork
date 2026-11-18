@@ -335,7 +335,7 @@ export const items = [
     location: 'library',
     portable: false,
     description: 'A rubber duck sits proudly on the desk.',
-    refuseTake: 'The duck silently listens to your problems.',
+    // trying to take it springs a trap, see story.ts
   }),
   item('scroll', {
     name: 'scroll',
@@ -344,10 +344,9 @@ export const items = [
     portable: true,
     description: 'A scroll with a red ribbon lies on the top shelf.',
     examine:
-      'The ribbon comes off easily. The scroll says: "TO CALL BACK A STRENGTH. Stand where ' +
-      'the strength fell. Read these words aloud, in your own voice. This works once. It does ' +
-      'not work for those who have nothing left to read with." Under that are three lines in ' +
-      'a language you do not know and, somehow, can pronounce.',
+      'The ribbon comes off easily. The scroll says: "TO CALL BACK WHO YOU SENT AWAY. Read ' +
+      'these words wherever you are. They will find their way." ' +
+      'Under that are three lines in a language you do not speak, yet can pronounce.',
     takeMessage: 'You take the scroll. It is warmer than paper should be.',
   }),
   item('parchment', {
@@ -358,10 +357,9 @@ export const items = [
     portable: true,
     description: 'An old parchment sticks out of a book on the desk.',
     examine:
-      'A page torn from something older than the library. "TO CALL BACK A VOICE. A flower for ' +
-      'the breath. A bone for the body. This page for the memory. Grind them together with ' +
-      'strong hands, and pour it where the voice fell. Weak hands will only make a mess."',
-    takeMessage: 'You pull the parchment free. The book lets it go, as if it kept it for you.',
+      'A page torn from something older than the library. "TO CALL BACK A MEMORY. A flower ' +
+      'for the breath. A bone for the body. Iron for blood."',
+    takeMessage: 'You pull the parchment free. The book lets it go.',
   }),
   item('potion', {
     name: 'potion',
@@ -369,8 +367,8 @@ export const items = [
     location: 'nowhere',
     portable: true,
     examine:
-      'A grey-green potion that smells of flowers and old paper. It is the least impressive ' +
-      'miracle you have ever seen.',
+      'A grey-green potion that smells of flowers, old paper and rust. It is the least impressive ' +
+      'miracle you have ever seen. The page said to drink it.',
   }),
   item('poster', {
     examine: `The poster reads "There is no place like 127.0.0.1." You're beginning to agree.`,

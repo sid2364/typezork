@@ -107,6 +107,11 @@ function takeOne(w: World, id: ThingId): void {
   const thing = w.thing(id);
   if (w.has(id)) {
     w.say('You already have that!', 'error');
+    return;
+  }
+  const veto = w.bus.emit('beforeTake', { thing: id }, w);
+  if (veto) {
+    w.say(veto);
   } else if (thing.kind === 'creature') {
     w.say(thing.refuseTake ?? 'You cannot be serious.', 'error');
   } else if (!thing.portable) {
