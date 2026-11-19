@@ -143,11 +143,11 @@ export function rememberAll(w: World): number {
 }
 
 const RANKS: readonly (readonly [number, string])[] = [
-  [2400, 'The Oned'],
+  [2400, 'The One'],
   [1400, 'Fearless Wayfinder'],
-  [800, 'Curious Seeker'],
-  [300, 'Adventurous Wanderer'],
-  [-Infinity, 'Clueless Sleepwalker'],
+  [800, 'Seeker'],
+  [300, 'Wanderer'],
+  [-Infinity, 'Sleepwalker'],
 ];
 
 export const rank = (score: number): string => RANKS.find(([min]) => score >= min)![1];
