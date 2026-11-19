@@ -591,7 +591,7 @@ export function talkToTroll(w: World): void {
       run: () => {
         w.say(
           'The troll tries harder, but cannot seem to get the words out. He looks away, ashamed.' +
-          ' You think to yourself maybe he needs to see himself more clearly.',
+            ' You think to yourself maybe he needs to see himself more clearly.',
         );
       },
     },

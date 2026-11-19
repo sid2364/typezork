@@ -338,10 +338,7 @@ export function ending(w: World): void {
         'nothing comes out. A child runs up and holds out her arms. Yours do not lift, they lack the strength.',
     );
     w.say('You are home but you are not whole.');
-    w.say(
-      'You did not pass the test.',
-      'lose',
-    );
+    w.say('You did not pass the test.', 'lose');
     w.say(scoreLine(w));
     w.state.over = true;
     return;

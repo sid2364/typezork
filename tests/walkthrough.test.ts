@@ -573,7 +573,16 @@ describe('the troll', () => {
 
   it('comes home with its voice if you say sorry and then show it its face', () => {
     const game = pastSkeleton();
-    play(game, [...FEED, 'east', 'show scale to troll', '3', 'north', 'north', 'talk to troll', '1']);
+    play(game, [
+      ...FEED,
+      'east',
+      'show scale to troll',
+      '3',
+      'north',
+      'north',
+      'talk to troll',
+      '1',
+    ]);
     expect(game.state.flags.trollForgave).toBe(true);
     play(game, ['take torch', 'south', 'south', 'show scale to troll', '1', '1']);
     expect(game.state.flags.trollFriend).toBe(true);
@@ -949,16 +958,14 @@ describe('score', () => {
     say(game, 'look at candle');
     expect(game.state.score).toBe(70);
     expect(game.view().score).toBe(70);
-    expect(say(game, 'score')).toMatch(
-      /^Your score is 70, in 0 turns. Rank: Clueless Sleepwalker.$/m,
-    );
+    expect(say(game, 'score')).toMatch(/^Your score is 70, in 0 turns. Rank: Sleepwalker.$/m);
   });
 
   it('shows the rank as a level for the status bar', () => {
-    expect(newGame().view().rank).toEqual({ name: 'Clueless Sleepwalker', level: 1, of: 5 });
-    expect(rankInfo(299)).toEqual({ name: 'Clueless Sleepwalker', level: 1, of: 5 });
-    expect(rankInfo(300)).toEqual({ name: 'Adventurous Wanderer', level: 2, of: 5 });
-    expect(rankInfo(2400)).toEqual({ name: 'The Oned', level: 5, of: 5 });
+    expect(newGame().view().rank).toEqual({ name: 'Sleepwalker', level: 1, of: 5 });
+    expect(rankInfo(299)).toEqual({ name: 'Sleepwalker', level: 1, of: 5 });
+    expect(rankInfo(300)).toEqual({ name: 'Wanderer', level: 2, of: 5 });
+    expect(rankInfo(2400)).toEqual({ name: 'The One', level: 5, of: 5 });
   });
 
   it('gives points for rooms, kindness and kills', () => {
