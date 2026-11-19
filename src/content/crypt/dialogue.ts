@@ -1,6 +1,6 @@
 // the two conversations of the game, and the things that follow from them
 import type { World } from '../../engine/world';
-import { POINTS, skeletonClue } from './story';
+import { POINTS, skeletonClue, trollSulks, worthyWeapon } from './story';
 
 interface Option {
   readonly label: string;
@@ -126,17 +126,50 @@ export function fetchForSkeleton(w: World): void {
 
 // ---- the dragon ----------------------------------------------------------------
 
+// the first word to the dragon before he is fed: he half wakes, and goes back to sleep
+export function talkToSleepingDragon(w: World): void {
+  w.setFlag('dragonAsked');
+  w.say(
+    '"Hello?" you say. One enormous eye opens a crack. "...keeper?" says the dragon. The ' +
+      'eye looks at you for a while. "No. You are not the keeper."',
+  );
+  choose(w, [
+    {
+      label: '"The keeper sent me."',
+      run: () => {
+        w.say(
+          'Both eyes open. "Did he?" says the dragon. "The keeper never came to me without my ' +
+            'mutton. He kept it downstairs, in the cold."',
+        );
+        w.say(
+          'His stomach makes a long, hollow sound. The eyes close again, and in a moment he ' +
+            'is snoring.',
+        );
+      },
+    },
+    {
+      label: '"Move. I need to go east."',
+      run: () => {
+        w.say(
+          'The dragon shifts his tail, not out of the way. "Nobody passes a hungry dragon," he ' +
+            'grumbles, and the eye closes. In a moment he is snoring again.',
+        );
+      },
+    },
+  ]);
+}
+
 export function feedDragon(w: World): void {
   w.move('mutton', 'nowhere');
   w.setFlag('dragonFriend');
   w.award('feed', POINTS.feed);
   w.say(
     "You put the mutton leg down by the dragon's nose and step back, fast. A nostril moves. " +
-      'An eye opens. It looks at the mutton leg, and then it ' +
+      'An eye opens. He looks at the mutton leg, and then it ' +
       'is gone, bone and all.',
   );
   w.say(
-    'The eye turns to you. "You are not the keeper," the dragon says, its voice deep and ' +
+    'The eye turns to you. "You are not the keeper," the dragon says, his voice deep and ' +
       'tired. "The keeper said: wait. And so I wait. I have waited a long time. ' +
       'Do you know how long, o little one?"',
   );
@@ -154,12 +187,7 @@ export function feedDragon(w: World): void {
     },
     {
       label: '"The keeper sent me."',
-      run: () => {
-        w.say(
-          '"No," says the dragon. "The keeper sent no one. ' + 'But you do not draw your sword."',
-        );
-        dragonAsksWhy(w);
-      },
+      run: () => keeperProof(w),
     },
     {
       label: '"I only need to go east."',
@@ -171,12 +199,82 @@ export function feedDragon(w: World): void {
         dragonAsksWhy(w);
       },
     },
+    // only for someone who has seen the keeper's empty room
+    ...(sawKeeperRoom(w)
+      ? [
+          {
+            label: '"The keeper is gone. His bed is made, his cup is on the table."',
+            run: () => {
+              tellKeeper(w);
+              dragonAsksWhy(w);
+            },
+          },
+        ]
+      : []),
+  ]);
+}
+
+const sawKeeperRoom = (w: World): boolean => w.state.visited.includes('keeper');
+
+// the news can be told once, at the first meeting or any time after
+export const keeperNewsPending = (w: World): boolean => sawKeeperRoom(w) && !w.flag('keeperTold');
+
+export function tellKeeper(w: World): void {
+  w.setFlag('keeperTold');
+  w.award('keeperNews', POINTS.keeperNews);
+  w.say(
+    'The dragon is quiet for a long time. Smoke goes up from one nostril and does not stop. ' +
+      '"I see," he says at last. "Let it be known that he always made his bed."',
+  );
+  w.say('"Well, then I must stop waiting," he sighs.');
+}
+
+// a lie about the keeper has to be backed up with what the keeper wrote. a wrong answer
+// keeps the passage shut until you get it right, and a late right answer earns nothing
+export function keeperProof(w: World): void {
+  const retry = Boolean(w.flag('dragonDoubt'));
+  w.say(
+    retry
+      ? '"Well?" says the dragon. "What does the keeper think of the gardener?"'
+      : '"Did he," says the dragon, and both eyes are open now. "Then you know what he thinks ' +
+          'of the gardener. So, tell me."',
+  );
+  const wrong = () => {
+    w.setFlag('dragonDoubt');
+    w.setFlag('dragonFooled');
+    w.say(
+      'The dragon looks at you for a long moment. "Do you really consider me to be a fool?" ' +
+        'His tail stays where it is, across the passage east.',
+    );
+  };
+  const right = () => {
+    if (!retry) {
+      w.setFlag('dragonDeceived');
+      w.award('deceive', POINTS.deceive);
+      w.say(
+        'The dragon breathes out, long and slow. "That is what he always said," he says. ' +
+          '"Word for word. So he did send you."',
+      );
+      dragonAsksWhy(w);
+      return;
+    }
+    w.setFlag('dragonDoubt', false);
+    w.say(
+      '"That is what he always said," says the dragon. "You know it now. You did not know it ' +
+        'then." He pulls his tail off the passage headed east, and lays his head down with ' +
+        'his back to you. You see a scale under his chin glimmer in the torchlight.',
+    );
+  };
+  choose(w, [
+    { label: '"He is not to be trusted."', run: wrong },
+    { label: '"He is not dangerous."', run: right },
+    { label: '"He dislikes brussels sprouts."', run: wrong },
   ]);
 }
 
 function dragonAsksWhy(w: World): void {
   w.say(
-    'It looks at you keenly. "You smell of candle smoke," it says, "and you seem lost. ' +
+    'He looks at you keenly. "You smell of candle smoke," he says, "and you seem lost. ' +
       'What do you look for?"',
   );
   choose(w, [
@@ -192,8 +290,8 @@ function dragonAsksWhy(w: World): void {
       run: () => {
         w.award('dragonKind2', POINTS.kindWord);
         w.say(
-          '"Then you are looking for yourself," says the dragon putting ' +
-            'tucking his head into his wing for a nap.',
+          '"Then you are looking for yourself," says the dragon, tucking his head into his ' +
+            'wing for a nap.',
         );
         giveScale(w);
       },
@@ -201,22 +299,79 @@ function dragonAsksWhy(w: World): void {
     {
       label: '"Something to fight, I thought."',
       run: () => {
-        w.say('"Yet you fed me."');
-        giveScale(w);
+        w.say('"Yet you fed me," says the dragon. He gets up. It takes a while. "Then fight."');
+        challengeDragon(w);
       },
     },
   ]);
 }
 
+// the dragon will fight you, but only fairly, and only if you came armed
+export function challengeDragon(w: World): void {
+  const weapon = worthyWeapon(w);
+  if (!weapon) {
+    w.setFlag('dragonChallenged');
+    w.say(
+      'He looks you up and down, and finds nothing worth fighting. "Come back with a worthy ' +
+        'weapon," he says, and lays his tail back across the passage east.',
+    );
+    return;
+  }
+  w.setFlag('dragonChallenged', false);
+  dragonDuel(w, weapon);
+}
+
+function dragonDuel(w: World, weapon: string): void {
+  const name = w.thing(weapon).name;
+  w.say(
+    `You draw your ${name}. The dragon is awake now, and fed, and he is not thin any more ` +
+      'where it counts. He is fast for something so big. You are not as fast as you thought. ' +
+      `Twice his claw stops a hair from your face. Once your ${name} rings off his scales.`,
+  );
+  w.say(
+    'Then he does something strange. He lowers his head and leaves his neck open, and looks at ' +
+      'you.',
+  );
+  choose(
+    w,
+    [
+      {
+        label: `Strike while his guard is down.`,
+        run: () => {
+          w.setFlag('dragonKilledAwake');
+          w.kill('dragon');
+          w.bus.emit('kill', { thing: 'dragon', weapon }, w);
+        },
+      },
+      {
+        label: `Lower your ${name}.`,
+        run: () => {
+          w.move(weapon, 'nowhere');
+          w.setFlag('dragonDueled');
+          w.setFlag('scaleScorched');
+          w.award('duel', POINTS.duel);
+          w.say(
+            `You lower the ${name}. The dragon breathes on it, gently, and it runs off your ` +
+              'hand like water and hisses on the stone. "Good," he says. "Now you know what ' +
+              'strength is for."',
+          );
+          giveScale(w);
+        },
+      },
+    ],
+    'What do you do?',
+  );
+}
+
 // also used by talk if the conversation was cut short, for example by a reload
 export function giveScale(w: World): void {
   w.say(
-    'The dragon scratches under its chin with a lazy claw. Something falls and rings on the ' +
+    'The dragon scratches under his chin with a lazy claw. Something falls and rings on the ' +
       'stone like a dropped coin. "A dragonscale," he says, "to aid you in your journey."',
   );
   w.say(
-    'It pulls its tail off the passage headed east and lays its head back down. "If the keeper ' +
-      'comes," it says, already half asleep, "say that I waited."',
+    'He pulls his tail off the passage headed east and lays his head back down. "If the keeper ' +
+      'comes," he says, already half asleep, "say that I waited."',
   );
   w.say('You now have a dragonscale.');
   w.move('scale', 'inventory');
@@ -228,24 +383,37 @@ export function giveScale(w: World): void {
 
 export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
   const name = w.thing(glass).name;
-  if (w.flag('trollHurt')) {
+  const seen = Boolean(w.flag('trollSawFace'));
+  w.setFlag('trollSawFace');
+  if (trollSulks(w) && seen) {
     w.say(
       `The troll does not want to look again. You hold the ${name} steady and wait. After a ` +
-        'long time, one eye comes round. "Grak nub," it says behind its hand. "Ooga blug."',
+        'long time, one eye comes round. "Grak nub," he says behind his hand. "Ooga blug."',
+    );
+  } else if (trollSulks(w)) {
+    w.say(
+      `The troll will not look at anything you hold up. You hold the ${name} steady and wait. ` +
+        'After a long time, curiosity wins, and one eye comes round. Then the other. He ' +
+        'looks for a long moment, and then he takes his hand away from his mouth. One of his ' +
+        'front teeth is broken in half.',
+    );
+    w.say(
+      '"Grak nub," he says, very quietly. "Ooga blug." You do not need the words. He thinks ' +
+        'he is ugly.',
     );
   } else {
     w.say(
-      `You hold up the ${name}. The troll stops swinging its club. It comes closer, one slow ` +
-        'step at a time, and looks. For a long moment it only looks. Then it takes its hand ' +
-        'away from its mouth. One of its front teeth is broken in half.' +
+      `You hold up the ${name}. The troll stops swinging his club. He comes closer, one slow ` +
+        'step at a time, and looks. For a long moment he only looks. Then he takes his hand ' +
+        'away from his mouth. One of his front teeth is broken in half.' +
         (glass === 'scale' && w.flag('scaleCracked')
-          ? ' The crack in the scale runs right through its face. The troll does not seem ' +
-            'to mind. It is used to broken things.'
+          ? ' The crack in the scale runs right through his face. The troll does not seem ' +
+            'to mind. He is used to broken things.'
           : ''),
     );
     w.say(
-      '"Grak nub," it says, very quietly. "Ooga blug." You do not need the words. It thinks ' +
-        'it is ugly.',
+      '"Grak nub," he says, very quietly. "Ooga blug." You do not need the words. He thinks ' +
+        'he is ugly.',
     );
   }
   choose(w, [
@@ -254,8 +422,8 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
       run: () => {
         w.award('trollKind1', POINTS.kindWord);
         w.say(
-          'The troll looks at the tooth. Then it looks at the rest of himself.' +
-            ' "Hum," it says slowly. You are almost ' +
+          'The troll looks at the tooth. Then he looks at the rest of himself.' +
+            ' "Hum," he says slowly. You are almost ' +
             'sure that is the troll word for good.',
         );
         trollFindsVoice(w, glass);
@@ -265,31 +433,39 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
       label: '"It makes you look... funny?"',
       run: () => {
         w.say(
-          `The troll makes a silly face in the ${name}. His broken tooth is visible. It laughs, ` +
-            'with its whole mouth, for the first time in what must be years.',
+          `The troll makes a silly face in the ${name}. His broken tooth is visible. He laughs, ` +
+            'with his whole mouth, for the first time in what must be years.',
         );
+        if (w.locationOf('turnip') === 'nowhere') {
+          w.move('turnip', 'inventory');
+          w.markMoved('turnip');
+          w.say(
+            'Still laughing, he digs in a pocket and pushes a small, muddy turnip into your ' +
+              'hands. "From garden," he says. "Small one. Not step on."',
+          );
+        }
         trollFindsVoice(w, glass);
       },
     },
     {
       label: '"Yes. It is quite horrendous."',
-      run: () => {
-        w.award('trollCruel', POINTS.cruelWord);
-        w.setFlag('trollHurt');
-        w.say(
-          `The troll's face closes like a door. It turns away from the ${name} and steps off ` +
-            'the garden path with its back to you. You feel the weight of your words. The way ' +
-            'north is open, but nobody is waving you through.',
-        );
-      },
+      run: () =>
+        hurtTroll(
+          w,
+          `The troll's face closes like a door. He turns away from the ${name}` +
+            (w.here === 'gazebo'
+              ? ', sits back down and looks at the mountains. You feel the weight of your words.'
+              : ' and walks off north through the garden with his back to you. You feel the ' +
+                'weight of your words. The way north is open.'),
+        ),
     },
   ]);
 }
 
 function trollFindsVoice(w: World, glass: 'mirror' | 'scale'): void {
   w.say(
-    'Then the troll speaks again, slowly, with nothing in front of its mouth. The words come ' +
-      'out clear. "You... talk good," it says. "I talk bad. Since tooth. All laugh. So I stop."',
+    'Then the troll speaks again, slowly, with nothing in front of his mouth. The words come ' +
+      'out clear. "You... talk good," he says. "I talk bad. Since tooth. All laugh. So I stop."',
   );
   const done = () => trollLetsYouPass(w, glass);
   choose(w, [
@@ -301,9 +477,9 @@ function trollFindsVoice(w: World, glass: 'mirror' | 'scale'): void {
       },
     },
     {
-      label: '"Say something. Loud. I want to hear it."',
+      label: '"Say something, be loud!"',
       run: () => {
-        w.say('The troll thinks about this. It breathes in. It is a lot of breath.');
+        w.say('The troll thinks. He takes a big breath in. You feel the air move.');
         done();
       },
     },
@@ -311,7 +487,7 @@ function trollFindsVoice(w: World, glass: 'mirror' | 'scale'): void {
       label: '"I lost my voice too. I woke up without even a name."',
       run: () => {
         w.award('trollKind2', POINTS.kindWord);
-        w.say('"Then we find," it says. "You and me."');
+        w.say('"Then we find," he says. "You and me."');
         done();
       },
     },
@@ -320,22 +496,118 @@ function trollFindsVoice(w: World, glass: 'mirror' | 'scale'): void {
 
 function trollLetsYouPass(w: World, glass: 'mirror' | 'scale'): void {
   w.say(
-    'It stands up straight, which takes a while, because there is a lot of troll. ' +
-      '"I AM TROLL," it says. Birds leave the castle walls. The troll looks very surprised ' +
-      'at the sound of its own voice. Then it smiles, broken tooth and all, and does not ' +
+    'He stands up straight. This takes a while, because there is a lot of troll. ' +
+      '"I AM TROLL," he says. Birds leave the castle walls. The troll looks surprised ' +
+      'at the sound of his own voice. Then he smiles, broken tooth and all, and does not ' +
       'cover it.',
   );
   w.say(
-    '"Garden," it says, and points north with the club. "My garden. You go. Do not step on ' +
+    '"Garden," he says, and points north with the club. "My garden. You go. Do not step on ' +
       'small ones."' +
       (glass === 'mirror'
-        ? ' It keeps the mirror, and holds it the way you hold a bird. You do not ask for it back.'
-        : ' It gives the scale back with two careful fingers.'),
+        ? ' He keeps the mirror, and holds it the way you hold a bird. You do not ask for it back.'
+        : ' He gives the scale back with two careful fingers.'),
   );
   if (glass === 'mirror') w.move('mirror', 'nowhere');
+  forgiven(w);
   w.setFlag('trollFriend');
   w.award('help', POINTS.help);
   w.say('It seems you can now walk about in the garden freely.');
+}
+
+// a troll that was hurt and made up with you goes back to its garden path
+function forgiven(w: World): void {
+  if (!w.flag('trollHurt')) return;
+  w.setFlag('trollForgave');
+  w.move('troll', 'portcullis');
+}
+
+// a hurt troll sulks in the gazebo until you take the cruel word back
+export function apologiseToTroll(w: World): void {
+  w.say(
+    'The troll sits at the edge of the gazebo with his back to you, gazing at the mountains. ' +
+      'He does not turn round. His hand is over his mouth.',
+  );
+  // a mirror or a scale in your pocket can go straight into the conversation
+  const glass = (['mirror', 'scale'] as const).find((id) => w.has(id));
+  choose(w, [
+    {
+      label: w.flag('trollSawFace')
+        ? '"I am sorry. I was wrong. It is only a tooth."'
+        : '"I am sorry. I should not have called you that."',
+      run: () => {
+        w.award('trollSorry', POINTS.kindWord);
+        w.say(
+          'For a long time nothing happens. Then the troll turns round, slowly, the way a ' +
+            'mountain would. "You say sorry," he says from behind his hand. "Out loud. Hum." ' +
+            'He gets up, picks up his club, and stumps off south to his garden path, and ' +
+            'leaves the torch where it was.',
+        );
+        forgiven(w);
+      },
+    },
+    {
+      label: '"I need that torch."',
+      run: () =>
+        w.say(
+          '"Nub," says the troll to the mountains. He does not move, and neither does the torch.',
+        ),
+    },
+    {
+      label: '"Never mind."',
+      run: () => w.say('The troll goes on looking at the mountains.'),
+    },
+    ...(glass
+      ? [{ label: `Hold up the ${w.thing(glass).name}.`, run: () => showMirror(w, glass) }]
+      : []),
+  ]);
+}
+
+// a cruel word sends the troll off to sulk in the gazebo, over the torch
+function hurtTroll(w: World, text: string): void {
+  w.award('trollCruel', POINTS.cruelWord);
+  w.setFlag('trollHurt');
+  w.setFlag('trollForgave', false);
+  w.say(text);
+  w.move('troll', 'gazebo');
+}
+
+// once you have read the keeper's note, you know what some of the troll's words mean
+function gloss(w: World, meaning: string): void {
+  if (w.flag('readNote')) w.say(`You remember the keeper's note. ${meaning}`);
+}
+
+// the first word to the troll: it cannot say what it wants, but it can show you
+export function talkToTroll(w: World): void {
+  w.setFlag('trollAsked');
+  w.say(
+    'The troll looks at you over the top of the hand he keeps over his mouth. "Ooga wug zug ' +
+      'mog," he says. "Grak nub."',
+  );
+  gloss(w, 'ZUG is see. MOG is face. GRAK is tooth. NUB is no.');
+  choose(w, [
+    {
+      label: '"I don\'t understand."',
+      run: () => {
+        w.say(
+          'The troll tries harder, but cannot seem to get the words out. He looks away, ashamed.' +
+          ' You think to yourself maybe he needs to see himself more clearly.',
+        );
+      },
+    },
+    {
+      label: '"Let me through, you stupid oaf."',
+      run: () => {
+        hurtTroll(
+          w,
+          'The troll looks at you for a long time. "Blug," he says, very quietly, and walks off ' +
+            'north through the garden with his back to you. The way north is open, but nobody ' +
+            'is waving you through.',
+        );
+        gloss(w, 'BLUG is bad.');
+      },
+    },
+  ]);
 }
 
 // ---- second chances ------------------------------------------------------------
@@ -352,8 +624,8 @@ export function revisitDecisions(w: World): void {
           'holds on the second, and by the third it is simply your voice.',
   );
   const seen = [
-    dragon ? 'the dragon, thin, its head turned toward the door' : '',
-    troll ? 'the troll in the grass, its club beside it' : '',
+    dragon ? 'the dragon, thin, his head turned toward the door' : '',
+    troll ? 'the troll in the grass, his club beside him' : '',
   ].filter(Boolean);
   w.say(
     'The castle goes quiet around you, as if it were listening. You see again what you left ' +
@@ -371,7 +643,7 @@ export function revisitDecisions(w: World): void {
     if (dragon && troll) {
       // it is no longer both of them, so the penalty for killing both goes away
       w.addScore(-POINTS.killBoth);
-      w.say('The other on, unfortunately, stays where you left it.');
+      w.say('The other one, unfortunately, stays where you left it.');
     }
   };
   choose(
@@ -381,10 +653,7 @@ export function revisitDecisions(w: World): void {
       ...(troll ? [{ label: 'Call back the troll.', run: callBack(reviveTroll) }] : []),
       {
         label: 'Roll the scroll up again.',
-        run: () =>
-          w.say(
-            'You roll the scroll up and tie the ribbon.',
-          ),
+        run: () => w.say('You roll the scroll up and tie the ribbon.'),
       },
     ],
     'What do you choose?',
@@ -423,7 +692,7 @@ export function reviveTroll(w: World): void {
       'special loneliness of someone who has done nothing wrong.',
   );
   w.say(
-    'Then a sneeze, a big sneeze. The troll sits up. "Nub," it says, very small, behind the hand. You hear it, from where you stand.',
+    'Then a sneeze, a big sneeze. The troll sits up. "Nub," he says, very small, behind the hand. You hear it, from where you stand.',
   );
   w.say('Something moves in your throat. "I am sorry," you say, and you hear the words.');
   if (!w.isDead('dragon')) {

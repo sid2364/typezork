@@ -21,7 +21,12 @@ export const items = [
     aliases: ['bones', 'pile'],
     location: 'start',
     portable: true,
-    description: 'You see a pile of bones in front of you.',
+    // every game over leaves one more bone in the pile
+    description: (w) =>
+      'You see a pile of bones in front of you.' +
+      (w.deaths === 0
+        ? ''
+        : ` You count ${w.deaths} new bone${w.deaths === 1 ? '' : 's'} in the pile.`),
     takeMessage: 'You now have a bone.',
   }),
   item('door', {
@@ -303,7 +308,21 @@ export const items = [
       'face with two painted lines under each eye.' +
       (w.flag('scaleCracked')
         ? ' A crack runs across it now. Your face is on both sides of the crack.'
-        : ' You look for a long time. It is a little like being introduced to someone.'),
+        : w.flag('scaleScorched')
+          ? ' One edge is scorched black, where the dragon breathed on your blade. It is still ' +
+            'warm. Your face looks back at you through the soot, a little braver.'
+          : ' You look for a long time. It is a little like being introduced to someone.'),
+  }),
+  // the troll's gift, if you laughed with it. it is not for anything
+  item('turnip', {
+    name: 'turnip',
+    aliases: ['turnips'],
+    adjectives: ['small', 'muddy'],
+    location: 'nowhere',
+    portable: true,
+    examine:
+      "A small, muddy turnip from the troll's garden. Somebody grew it very carefully. It is " +
+      'not for anything. That is what makes it a present.',
   }),
   item('flower', {
     examine: 'A wild flower with an exotic scent. Very pretty. Completely useless in a fight.',

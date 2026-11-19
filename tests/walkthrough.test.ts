@@ -13,6 +13,7 @@ import {
   TUTORIAL,
   WALKTHROUGH,
 } from './helpers';
+import { rankInfo } from '../src/content/crypt/story';
 
 const TORCH_AND_HOME = ['north', 'north', 'take torch', 'south', 'south', 'wave torch', 'south'];
 
@@ -228,7 +229,7 @@ describe('the dragon', () => {
   it('blocks the way east while it sleeps', () => {
     const game = pastSkeleton();
     play(game, ['open door', 'east']);
-    expect(say(game, 'east')).toMatch(/won't get past it/);
+    expect(say(game, 'east')).toMatch(/won't get past him/);
     expect(say(game, 'sneak')).toMatch(/feet as loud as yours/);
   });
 
@@ -236,8 +237,19 @@ describe('the dragon', () => {
     const game = pastSkeleton();
     play(game, ['open door', 'east']);
     expect(say(game, 'examine dragon')).toMatch(/thinner than a dragon should be/);
-    expect(say(game, 'talk to dragon')).toMatch(/mutton/);
+    expect(say(game, 'talk to dragon')).toMatch(/You are not the keeper/);
+    expect(say(game, '1')).toMatch(/kept it downstairs/);
+    expect(say(game, 'talk to dragon')).toMatch(/\.\.\.mutton\.\.\./);
     expect(say(game, 'give bone to dragon')).toMatch(/not carrying any bone/);
+  });
+
+  it('grumbles if you tell him to move, but still sleeps', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east', 'talk to dragon']);
+    expect(say(game, '2')).toMatch(/Nobody passes a hungry dragon/);
+    play(game, ['north', 'west', 'take boots', 'east', 'south']);
+    expect(say(game, 'east')).toMatch(/felt soles/);
+    expect(game.state.location).toBe('portcullis');
   });
 
   it('can be fed, and gives a scale', () => {
@@ -262,7 +274,7 @@ describe('the dragon', () => {
     expect(game.state.location).toBe('dragonCell');
     expect(say(game, 'look')).toMatch(/friendly eye/);
     expect(game.question).toMatch(/What do you say/);
-    expect(say(game, 'two')).toMatch(/keeper sent no one/);
+    expect(say(game, 'two')).toMatch(/what he thinks of the gardener/);
   });
 
   it('finishes the gift if the talk was cut short by a reload', () => {
@@ -323,7 +335,7 @@ describe('the dragon', () => {
     play(game, [...TO_ARMOURY, 'take staff', 'north', 'north', 'west', 'take boots', 'east']);
     play(game, ['south', 'east']);
     expect(game.state.location).toBe('portcullis');
-    expect(say(game, 'kill troll with staff')).toMatch(/never really got past it/);
+    expect(say(game, 'kill troll with staff')).toMatch(/never really got past him/);
     expect(game.state.over).toBe(true);
     expect(game.state.won).toBe(false);
   });
@@ -363,6 +375,92 @@ describe('the dragon', () => {
     expect(game.question).toBeNull();
   });
 
+  it('believes a lie about the keeper if you can back it up', () => {
+    const game = pastSkeleton();
+    play(game, FEED.slice(0, 6));
+    expect(say(game, '2')).toMatch(/So, tell me/);
+    const before = game.state.score;
+    expect(say(game, '2')).toMatch(/So he did send you/);
+    expect(game.state.score).toBe(before + 100);
+    expect(say(game, '1')).toMatch(/You now have a dragonscale/);
+  });
+
+  it('turns a bad liar away until the answer is right, and keeps its scale', () => {
+    const game = pastSkeleton();
+    play(game, FEED.slice(0, 6));
+    say(game, '2');
+    const before = game.state.score;
+    expect(say(game, '3')).toMatch(/Do you really consider me to be a fool/);
+    expect(say(game, 'east')).toMatch(/what the keeper thinks of the gardener/);
+    expect(game.state.location).toBe('dragonCell');
+    expect(say(game, 'kill dragon with bone')).toMatch(/First you lie to me/);
+    expect(say(game, 'talk to dragon')).toMatch(/Well\?/);
+    expect(say(game, '1')).toMatch(/fool/);
+    say(game, 'talk to dragon');
+    expect(say(game, '2')).toMatch(/You did not know it then/);
+    expect(game.state.score).toBe(before);
+    expect(game.state.things.scale).toBe('nowhere');
+    expect(say(game, 'talk to dragon')).toMatch(/I am no fool/);
+    expect(game.state.things.scale).toBe('nowhere');
+    say(game, 'east');
+    expect(game.state.location).toBe('portcullis');
+  });
+
+  it('sends you away to find a worthy weapon, then fights you fairly', () => {
+    const game = pastSkeleton();
+    play(game, [...TO_ARMOURY, 'north', 'north', 'take mutton', 'south', 'give mutton to dragon']);
+    say(game, '1');
+    expect(say(game, '3')).toMatch(/Come back with a worthy weapon/);
+    expect(say(game, 'east')).toMatch(/his tail lies across the passage/);
+    expect(game.state.location).toBe('dragonCell');
+    play(game, ['south', 'take sword', 'north']);
+    expect(say(game, 'talk to dragon')).toMatch(/You draw your sword/);
+    const before = game.state.score;
+    expect(say(game, '2')).toMatch(/Now you know what strength is for/);
+    expect(game.state.score).toBe(before + 150);
+    expect(game.state.things.sword).toBe('nowhere');
+    expect(game.state.things.scale).toBe('inventory');
+    expect(say(game, 'examine scale')).toMatch(/scorched black/);
+    say(game, 'east');
+    expect(game.state.location).toBe('portcullis');
+  });
+
+  it('dies awake if you strike when its guard is down', () => {
+    const game = pastSkeleton();
+    play(game, [...TO_ARMOURY, 'take spear', 'north', 'north', 'take mutton', 'south']);
+    play(game, ['give mutton to dragon', '1', '3']);
+    const text = say(game, '1');
+    expect(text).toMatch(/sees the blow coming/);
+    expect(text).not.toMatch(/did not even wake up/);
+    expect(game.state.killed).toContain('dragon');
+    expect(game.state.things.spear).toBe('nowhere');
+  });
+
+  it('a challenge can also be taken up with kill', () => {
+    const game = pastSkeleton();
+    play(game, [...TO_ARMOURY, 'north', 'north', 'take mutton', 'south', 'give mutton to dragon']);
+    play(game, ['1', '3', 'south', 'take staff', 'north']);
+    expect(say(game, 'kill dragon with staff')).toMatch(/Now you have something to fight with/);
+    expect(game.question).toMatch(/What do you do/);
+    expect(game.state.killed).toEqual([]);
+  });
+
+  it('only hears about the keeper from someone who saw the room', () => {
+    const unseen = pastSkeleton();
+    play(unseen, FEED.slice(0, 5));
+    say(unseen, 'feed dragon');
+    expect(unseen.view().suggestions).toEqual(['1', '2', '3']);
+
+    const game = pastSkeleton();
+    play(game, ['open door', 'east', 'north', 'take mutton', 'west', 'east', 'south']);
+    say(game, 'feed dragon');
+    expect(game.view().suggestions).toEqual(['1', '2', '3', '4']);
+    expect(say(game, '4')).toMatch(/I must stop waiting/);
+    say(game, '2');
+    const end = play(game, [...HELP, ...KIND_ROUTE.slice(FEED.length + HELP.length)]);
+    expect(end).toMatch(/There is a cup beside it/);
+  });
+
   it('bare hands with nothing carried', () => {
     const game = pastSkeleton();
     play(game, ['open door', 'east']);
@@ -374,10 +472,60 @@ describe('the troll', () => {
   it('blocks the garden and asks for something it cannot say', () => {
     const game = pastSkeleton();
     play(game, [...FEED, 'east']);
-    expect(say(game, 'north')).toMatch(/"Nub," it says behind its hand/);
+    expect(say(game, 'north')).toMatch(/"Nub," he says behind his hand/);
     expect(game.state.location).toBe('portcullis');
+    expect(say(game, 'talk to troll')).toMatch(/Ooga wug zug/);
+    expect(say(game, '1')).toMatch(/needs to see himself more clearly/);
     expect(say(game, 'talk to troll')).toMatch(/Ooga wug zug mog/);
+    expect(game.question).toBeNull();
     expect(say(game, 'give flower to troll')).toMatch(/not carrying any flower/);
+  });
+
+  it('knows what the troll means once you have read the note', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east', 'north', 'take mutton', 'west', 'examine note', 'east']);
+    play(game, ['south', 'give mutton to dragon', '1', '2', 'east']);
+    expect(say(game, 'talk to troll')).toMatch(/You remember the keeper's note\. ZUG is see/);
+  });
+
+  it('walks off to the gazebo if you call it a cretin, before it ever saw its face', () => {
+    const game = pastSkeleton();
+    play(game, [...FEED, 'east', 'talk to troll']);
+    const before = game.state.score;
+    expect(say(game, '2')).toMatch(/"Blug," he says, very quietly/);
+    expect(game.state.score).toBe(before - 100);
+    expect(game.state.things.troll).toBe('gazebo');
+    play(game, ['north', 'north']);
+    expect(say(game, 'take torch')).toMatch(/huge green hand/);
+    // the scale in your pocket can be held up from the conversation
+    expect(say(game, 'talk to troll')).toMatch(/His hand is over his mouth/);
+    expect(game.view().suggestions).toEqual(['1', '2', '3', '4']);
+    say(game, '3');
+    say(game, 'talk to troll');
+    expect(say(game, '1')).toMatch(/You say sorry/);
+    expect(game.state.things.troll).toBe('portcullis');
+    expect(game.state.flags.trollFriend).toBeFalsy();
+    expect(say(game, 'take torch')).toMatch(/You pick up the torch/);
+    // forgiven, it still has its voice to find
+    play(game, ['south', 'south']);
+    const look = say(game, 'show scale to troll');
+    expect(look).not.toMatch(/look again/);
+    expect(look).toMatch(/broken in half/);
+    play(game, ['1', '1']);
+    expect(game.state.flags.trollFriend).toBe(true);
+  });
+
+  it('looks at its face for the first time even while it sulks', () => {
+    const game = pastSkeleton();
+    play(game, [...FEED, 'east', 'talk to troll', '2', 'north', 'north', 'talk to troll']);
+    const look = say(game, '4');
+    expect(look).toMatch(/curiosity wins/);
+    expect(look).not.toMatch(/look again/);
+    say(game, '1');
+    expect(say(game, '1')).toMatch(/I AM TROLL/);
+    expect(game.state.flags.trollFriend).toBe(true);
+    expect(game.state.flags.trollForgave).toBe(true);
+    expect(game.state.things.troll).toBe('portcullis');
   });
 
   it('finds its voice when it sees its face', () => {
@@ -395,29 +543,80 @@ describe('the troll', () => {
     expect(game.state.location).toBe('garden');
   });
 
-  it('never says booga hoom if the cruel word is not taken back', () => {
-    const game = pastSkeleton();
-    play(game, [...FEED, 'east', 'show scale to troll', '3']);
-    const end = play(game, KIND_ROUTE.slice(FEED.length + HELP.length));
-    expect(end).toMatch(/keeps a hand over its mouth all evening/);
-    expect(end).not.toMatch(/Booga hoom/);
-    expect(end).toMatch(/whole, but with something left unsaid\./);
-    expect(end).not.toMatch(/scar/);
-    expect(game.state.won).toBe(true);
-  });
-
-  it('closes up at a cruel word, lets you by, and gives you another chance', () => {
+  it('sulks in the gazebo over the torch until you say sorry', () => {
     const game = pastSkeleton();
     play(game, [...FEED, 'east', 'show scale to troll']);
     const before = game.state.score;
     expect(say(game, '3')).toMatch(/face closes like a door/);
     expect(game.state.score).toBe(before - 100);
+    expect(game.state.things.troll).toBe('gazebo');
     say(game, 'north');
     expect(game.state.location).toBe('garden');
-    say(game, 'south');
+    expect(say(game, 'north')).toMatch(/gazing at the mountains, with his back to you/);
+    expect(say(game, 'take torch')).toMatch(/huge green hand comes down over it/);
+    expect(game.state.things.torch).toBe('gazebo');
+    expect(say(game, 'talk to troll')).toMatch(/I am sorry/);
+    expect(say(game, '2')).toMatch(/He does not move/);
+    say(game, 'talk to troll');
+    expect(say(game, '1')).toMatch(/You say sorry/);
+    expect(game.state.things.troll).toBe('portcullis');
+    // sorry mends it, but only its face can give it its voice back
+    expect(game.state.flags.trollFriend).toBeFalsy();
+    const end = play(game, ['take torch', 'south', 'south', 'answer fire', 'south', 'east']);
+    expect(end).toMatch(/Nobody ever showed him his own face/);
+    expect(end).not.toMatch(/lowers the hand/);
+    expect(end).not.toMatch(/Booga hoom/);
+    expect(end).toMatch(/still hides its face/);
+    expect(end).not.toMatch(/with a scar/);
+    expect(game.state.won).toBe(true);
+  });
+
+  it('comes home with its voice if you say sorry and then show it its face', () => {
+    const game = pastSkeleton();
+    play(game, [...FEED, 'east', 'show scale to troll', '3', 'north', 'north', 'talk to troll', '1']);
+    expect(game.state.flags.trollForgave).toBe(true);
+    play(game, ['take torch', 'south', 'south', 'show scale to troll', '1', '1']);
+    expect(game.state.flags.trollFriend).toBe(true);
+    const end = play(game, ['answer fire', 'south', 'east']);
+    expect(end).toMatch(/lowers the hand/);
+    expect(end).not.toMatch(/his own face/);
+    expect(end).toMatch(/whole, with a scar/);
+    expect(game.state.won).toBe(true);
+  });
+
+  it('can also be won back with its face, in the gazebo', () => {
+    const game = pastSkeleton();
+    play(game, [...FEED, 'east', 'show scale to troll', '3', 'north', 'north']);
     expect(say(game, 'show scale')).toMatch(/does not want to look again/);
     play(game, ['1', '1']);
     expect(game.state.flags.trollFriend).toBe(true);
+    expect(game.state.flags.trollForgave).toBe(true);
+    expect(game.state.things.troll).toBe('portcullis');
+  });
+
+  it('frees the torch if killed in the gazebo, and lies where it fell', () => {
+    const game = pastSkeleton();
+    play(game, [...TO_ARMOURY, 'take staff', 'north', 'north', 'take mutton', 'south']);
+    play(game, ['give mutton to dragon', '1', '2', 'east', 'show scale to troll', '3']);
+    play(game, ['north', 'north']);
+    const kill = say(game, 'kill troll with staff');
+    expect(kill).toMatch(/A shadow crosses the gazebo/);
+    expect(kill).not.toMatch(/garden freely/);
+    expect(say(game, 'look')).toMatch(/lies dead by the gazebo rail/);
+    expect(say(game, 'take torch')).not.toMatch(/green hand/);
+    expect(game.state.things.torch).toBe('inventory');
+  });
+
+  it('gives you a turnip if you laugh with it, and nobody wants it', () => {
+    const game = pastSkeleton();
+    play(game, [...FEED, 'east', 'show scale to troll']);
+    expect(say(game, '2')).toMatch(/Small one\. Not step on/);
+    expect(game.state.things.turnip).toBe('inventory');
+    say(game, '1');
+    expect(say(game, 'give turnip to troll')).toMatch(/For you/);
+    say(game, 'west');
+    expect(say(game, 'give turnip to dragon')).toMatch(/Is it mutton\?/);
+    expect(game.state.things.turnip).toBe('inventory');
   });
 
   it('keeps the hand mirror from the tower', () => {
@@ -431,8 +630,22 @@ describe('the troll', () => {
   it('is not weak to every weapon', () => {
     const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'take sword and knife', 'north', 'kill dragon with sword', 'east']);
-    expect(say(game, 'kill troll with knife')).toMatch(/live and let live/);
+    const text = say(game, 'kill troll with knife');
+    expect(text).toMatch(/into the stream/);
+    expect(game.state.things.knife).toBe('nowhere');
+    expect(game.state.location).toBe('portcullis');
     expect(say(game, 'kill troll with sword')).toMatch(/You do not possess this sword/);
+  });
+
+  it('clubs you into the stream, and your torch goes back where it came from', () => {
+    const game = pastSkeleton();
+    play(game, [...FEED, ...HELP, 'north', 'north', 'take torch', 'south', 'south']);
+    // a friend will not fight, so make it a stranger again for this
+    game.state.flags.trollFriend = false;
+    const before = game.state.score;
+    expect(say(game, 'punch troll')).toMatch(/hisses out/);
+    expect(game.state.things.torch).toBe('gazebo');
+    expect(game.state.score).toBe(before - 50);
   });
 
   it('takes your voice with it when it dies', () => {
@@ -475,7 +688,7 @@ describe('strength against voice', () => {
     expect(game.state.things.scale).toBe('nowhere');
     expect(game.state.over).toBe(false);
     say(game, 'west');
-    expect(say(game, 'look')).toMatch(/lies with its back to you/);
+    expect(say(game, 'look')).toMatch(/lies with his back to you/);
     const end = play(game, ['east', ...TORCH_AND_HOME, 'east']);
     expect(end).toMatch(/You chose your strength over your voice/);
     expect(game.state.won).toBe(true);
@@ -490,7 +703,7 @@ describe('strength against voice', () => {
     expect(read).toMatch(/the troll in the grass/);
     const before = game.state.score;
     const text = say(game, '1');
-    expect(text).toMatch(/"I am sorry," you say, and you hear it/);
+    expect(text).toMatch(/"I am sorry," you say, and you hear the words/);
     expect(text).toMatch(/The scroll burns away/);
     expect(game.state.score).toBe(before + 500);
     expect(game.state.killed).toEqual([]);
@@ -505,7 +718,10 @@ describe('strength against voice', () => {
 
   it('a potion of remembering gives back every memory', () => {
     const game = pastSkeleton();
-    play(game, FED_THEN_KILLED.map((c) => c.replace('staff', 'spear')));
+    play(
+      game,
+      FED_THEN_KILLED.map((c) => c.replace('staff', 'spear')),
+    );
     expect(say(game, 'mix potion')).toMatch(/would need a recipe/);
     play(game, ['north', 'take flower', 'north', 'east', 'take parchment']);
     expect(say(game, 'examine parchment')).toMatch(/TO CALL BACK A MEMORY/);
@@ -582,7 +798,7 @@ describe('strength against voice', () => {
   it('rolling the scroll up keeps it for later', () => {
     const game = pastSkeleton();
     play(game, [...KILLED_THEN_HELPED, 'north', 'east', 'take scroll', 'read scroll']);
-    expect(say(game, '2')).toMatch(/good at waiting/);
+    expect(say(game, '2')).toMatch(/tie the ribbon/);
     expect(game.state.things.scroll).toBe('inventory');
     expect(game.state.killed).toEqual(['dragon']);
   });
@@ -593,10 +809,10 @@ describe('strength against voice', () => {
     play(game, WALKTHROUGH.slice(1, 13));
     play(game, ['north', 'take flower', 'north', 'east', 'take scroll and parchment']);
     expect(say(game, 'mix potion')).toMatch(/Your hands shake/);
-    expect(say(game, 'read scroll')).toMatch(/Only one/);
+    expect(say(game, 'read scroll')).toMatch(/one of them/);
     const before = game.state.score;
     const text = say(game, '2');
-    expect(text).toMatch(/Some decisions you only get to revisit once/);
+    expect(text).toMatch(/The other one, unfortunately, stays where you left it/);
     // the revive itself, plus the refund for no longer having killed both
     expect(game.state.score).toBe(before + 1000);
     expect(text).not.toMatch(/sigh of relief/);
@@ -712,12 +928,12 @@ describe('locks, traps and other ways to end early', () => {
   });
 
   it('every game over leaves a bone in the crypt', () => {
-    expect(say(pastSkeleton(), 'look')).not.toMatch(/added/);
-    expect(say(pastSkeleton({ deaths: 1 }), 'look')).toMatch(/added a bone to the pile/);
+    expect(say(pastSkeleton(), 'look')).not.toMatch(/new bone/);
+    expect(say(pastSkeleton({ deaths: 1 }), 'look')).toMatch(/You count 1 new bone in the pile/);
     const game = pastSkeleton({ deaths: 2 });
-    expect(say(game, 'look')).toMatch(/You count 2 new ones/);
+    expect(say(game, 'look')).toMatch(/You count 2 new bones in the pile/);
     play(game, [...TO_ARMOURY, 'up', 'open box', 'restart']);
-    expect(say(game, 'look')).toMatch(/You count 3 new ones/);
+    expect(say(game, 'look')).toMatch(/You count 3 new bones in the pile/);
   });
 });
 
@@ -733,7 +949,16 @@ describe('score', () => {
     say(game, 'look at candle');
     expect(game.state.score).toBe(70);
     expect(game.view().score).toBe(70);
-    expect(say(game, 'score')).toMatch(/^Your score is 70, in 0 turns. Rank: Sleepwalker.$/m);
+    expect(say(game, 'score')).toMatch(
+      /^Your score is 70, in 0 turns. Rank: Clueless Sleepwalker.$/m,
+    );
+  });
+
+  it('shows the rank as a level for the status bar', () => {
+    expect(newGame().view().rank).toEqual({ name: 'Clueless Sleepwalker', level: 1, of: 5 });
+    expect(rankInfo(299)).toEqual({ name: 'Clueless Sleepwalker', level: 1, of: 5 });
+    expect(rankInfo(300)).toEqual({ name: 'Adventurous Wanderer', level: 2, of: 5 });
+    expect(rankInfo(2400)).toEqual({ name: 'The Oned', level: 5, of: 5 });
   });
 
   it('gives points for rooms, kindness and kills', () => {

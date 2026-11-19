@@ -10,6 +10,7 @@ import type {
   ExitDef,
   GameDef,
   ItemDef,
+  RankInfo,
   RoomDef,
   Text,
   ThingDef,
@@ -96,6 +97,7 @@ export interface GameSpec {
   readonly commands?: readonly CommandDef[];
   readonly synonyms?: Readonly<Record<string, readonly string[]>>;
   readonly hooks?: (bus: EventBus) => void;
+  readonly rank?: (score: number) => RankInfo;
 }
 
 export class GameDefinitionError extends Error {}
@@ -166,6 +168,7 @@ export function defineGame(spec: GameSpec): GameDef {
     commands: spec.commands ?? [],
     synonyms: spec.synonyms ?? {},
     ...(spec.hooks ? { hooks: spec.hooks } : {}),
+    ...(spec.rank ? { rank: spec.rank } : {}),
   });
 }
 

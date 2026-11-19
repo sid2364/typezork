@@ -114,7 +114,8 @@ export interface CreatureDef extends ThingCommon {
   readonly notWorthy?: string | ((w: World, weapon: ThingId) => string);
   /** Shown when the player attacks with bare hands (punch, kick, "with my fists", …). */
   readonly bareHanded?: Text;
-  // return a message to stop an attack before it starts, for a friend or a second chance
+  // return a message to stop an attack before it starts, for a friend or a second chance.
+  // an empty string stops it too, for a hook that has already said what happens instead
   readonly beforeAttack?: (w: World) => string | undefined;
   /** A fight with bare hands (fight x, punch x, kill x with fists). Replaces the usual unarmed response. */
   readonly brawl?: Effect;
@@ -122,6 +123,13 @@ export interface CreatureDef extends ThingCommon {
 }
 
 export type ThingDef = ItemDef | CreatureDef;
+
+/** Where a score stands on a game's ladder of ranks: level 1 is the lowest. */
+export interface RankInfo {
+  readonly name: string;
+  readonly level: number;
+  readonly of: number;
+}
 
 export interface GameDef {
   readonly id: string;
@@ -136,4 +144,6 @@ export interface GameDef {
   readonly synonyms: Readonly<Record<string, readonly string[]>>;
   /** Subscribe to engine events (quests, scoring, …). */
   readonly hooks?: (bus: EventBus) => void;
+  /** The rank a score earns, for front-ends to show. */
+  readonly rank?: (score: number) => RankInfo;
 }

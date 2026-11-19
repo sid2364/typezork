@@ -6,7 +6,7 @@ import type {
   ParsedCommand,
   ResolveOptions,
 } from './commands/types';
-import type { GameDef } from './definitions';
+import type { GameDef, RankInfo } from './definitions';
 import { parseDirection, type Direction } from './direction';
 import { EventBus } from './events';
 import { mapView, type MapView } from './map';
@@ -40,6 +40,8 @@ export interface GameView {
   readonly inventory: readonly { readonly id: ThingId; readonly name: string }[];
   readonly turns: number;
   readonly score: number;
+  /** The rank the score earns, if the game has ranks. */
+  readonly rank: RankInfo | null;
   readonly over: boolean;
   readonly won: boolean;
   /** The question the game is waiting on, if any. */
@@ -209,6 +211,7 @@ export class Game {
       inventory: w.inventory().map((id) => ({ id, name: w.thing(id).name })),
       turns: w.state.turns,
       score: w.state.score,
+      rank: this.def.rank?.(w.state.score) ?? null,
       over: w.state.over,
       won: w.state.won,
       question: this.question,

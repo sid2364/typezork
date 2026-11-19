@@ -150,7 +150,10 @@ function afterTurn(): void {
   $('#status-score').textContent = String(view.score);
   $('#status-exits').textContent = view.exits.map((e) => e.dir).join(', ') || 'none';
   $('#status-inventory').textContent = view.inventory.map((i) => i.name).join(', ') || 'nothing';
-  $('#bar-status').textContent = `${view.room.name} · turn ${view.turns} · score ${view.score}`;
+  $('#status-level').textContent = view.rank ? String(view.rank.level) : '–';
+  const rank = view.rank ? ` · ${view.rank.name}` : '';
+  $('#bar-status').textContent =
+    `${view.room.name} · turn ${view.turns} · score ${view.score}${rank}`;
   document.title = `${view.room.name} — Zork`;
   help.render(view);
   renderMinimap(minimap, def, view, { here: $('#map-here'), count: $('#map-count') });

@@ -346,7 +346,7 @@ export const attackCommand: CommandDef = {
       return;
     }
     const refusal = creature.beforeAttack?.(w);
-    if (refusal) {
+    if (refusal !== undefined) {
       w.say(refusal);
       return;
     }

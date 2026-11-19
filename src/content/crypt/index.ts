@@ -3,7 +3,7 @@ import { commands } from './commands';
 import { creatures } from './creatures';
 import { items } from './items';
 import { rooms } from './rooms';
-import { hooks } from './story';
+import { hooks, rankInfo } from './story';
 
 /** The original pyzork map: wake in a crypt, find your way home. */
 export const crypt = defineGame({
@@ -19,5 +19,6 @@ export const crypt = defineGame({
   things: [...items, ...creatures],
   commands,
   hooks,
+  rank: rankInfo,
   synonyms: { attack: ['spar', 'box', 'wrestle'] },
 });

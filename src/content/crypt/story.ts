@@ -2,6 +2,7 @@
 // and how it all ends. everything here reads flags and the killed list
 // so it survives save, load and undo
 import type { EventBus } from '../../engine/events';
+import type { RankInfo } from '../../engine/definitions';
 import type { World } from '../../engine/world';
 
 // ---- who is who ----------------------------------------------------------------
@@ -50,6 +51,34 @@ export const dragonFriend = (w: World): boolean =>
 // the dragon is alive and asleep and has never met you properly
 export const dragonAsleep = (w: World): boolean => !w.isDead('dragon') && !w.flag('dragonFriend');
 
+// fed, but it blocks the way: you lied about the keeper and could not back it up, or you
+// said you came to fight and had nothing to fight with
+export const dragonDoubts = (w: World): boolean =>
+  !w.isDead('dragon') && Boolean(w.flag('dragonDoubt'));
+
+export const dragonBlocks = (w: World): boolean =>
+  !w.isDead('dragon') && Boolean(w.flag('dragonChallenged') || w.flag('dragonDoubt'));
+
+export const dragonBlockedText = (w: World): string =>
+  dragonDoubts(w)
+    ? 'The dragon is awake, and his tail lies across the passage. He is waiting for you to ' +
+      'tell him what the keeper thinks of the gardener.'
+    : 'The dragon is awake, and his tail lies across the passage. He is waiting for you to ' +
+      'come back with a worthy weapon.';
+
+// the swords, spears and staves the dragon will cross claws with
+export function worthyWeapon(w: World): string | undefined {
+  const dragon = w.thing('dragon');
+  return dragon.kind === 'creature' ? dragon.weakTo.find((id) => w.has(id)) : undefined;
+}
+
+// said something cruel to the troll and has not taken it back, so it sulks in the gazebo
+export const trollSulks = (w: World): boolean =>
+  !w.isDead('troll') &&
+  Boolean(w.flag('trollHurt')) &&
+  !w.flag('trollFriend') &&
+  !w.flag('trollForgave');
+
 export const trollFriend = (w: World): boolean =>
   !w.isDead('troll') && Boolean(w.flag('trollFriend'));
 
@@ -82,6 +111,10 @@ export const POINTS = {
   trap: -150,
   screen: 50,
   home: 200,
+  deceive: 100,
+  duel: 150,
+  keeperNews: 100,
+  clubbed: -50,
 } as const;
 
 // things that give back a piece of memory when you look at them closely
@@ -110,14 +143,20 @@ export function rememberAll(w: World): number {
 }
 
 const RANKS: readonly (readonly [number, string])[] = [
-  [1700, 'One Who Remembers'],
-  [1300, 'Pathfinder'],
-  [900, 'Seeker'],
-  [500, 'Wanderer'],
-  [-Infinity, 'Sleepwalker'],
+  [2400, 'The Oned'],
+  [1400, 'Fearless Wayfinder'],
+  [800, 'Curious Seeker'],
+  [300, 'Adventurous Wanderer'],
+  [-Infinity, 'Clueless Sleepwalker'],
 ];
 
 export const rank = (score: number): string => RANKS.find(([min]) => score >= min)![1];
+
+// the same rank as a level, counted from the bottom of the ladder
+export function rankInfo(score: number): RankInfo {
+  const i = RANKS.findIndex(([min]) => score >= min);
+  return { name: RANKS[i]![1], level: RANKS.length - i, of: RANKS.length };
+}
 
 export const scoreLine = (w: World): string =>
   `Your score is ${w.state.score}, in ${w.state.turns} turns. Rank: ${rank(w.state.score)}.`;
@@ -136,6 +175,7 @@ export function hooks(bus: EventBus): void {
 
   bus.on('examine', ({ thing, first }, w) => {
     // a close look at the skeleton, or at its hands on the door, shows what it wants
+    if (thing === 'note') w.setFlag('readNote');
     if (thing === 'skeleton' || (thing === 'door' && !skeletonBeaten(w))) {
       w.setFlag('skeletonClue');
     }
@@ -157,6 +197,15 @@ export function hooks(bus: EventBus): void {
   });
 
   // the duck is not to be taken: the first grab costs points, after that it only warns
+  // a troll you were cruel to sits between you and the torch
+  bus.on('beforeTake', ({ thing }, w) => {
+    if (thing !== 'torch' || !trollSulks(w) || w.locationOf('troll') !== w.here) return;
+    return (
+      'You reach past the troll for the torch. A huge green hand comes down over it, without ' +
+      'the troll even turning round. "Nub," he says to the mountains.'
+    );
+  });
+
   bus.on('beforeTake', ({ thing }, w) => {
     if (thing !== 'duck') return;
     if (w.flag('duckTrap')) {
@@ -189,14 +238,14 @@ export function hooks(bus: EventBus): void {
     }
     if (w.has('mutton')) {
       return (
-        "You take one soft step. The dragon's nose moves. It sniffs, in its sleep, in the " +
-        'exact direction of the mutton in your arms. One more step and it will wake up. You ' +
-        'stop. Maybe waking it up is not the worst idea, if you have something to give it.'
+        "You take one soft step. The dragon's nose moves. He sniffs, in his sleep, in the " +
+        'exact direction of the mutton in your arms. One more step and he will wake up. You ' +
+        'stop. Maybe waking him up is not the worst idea, if you have something to give him.'
       );
     }
     w.say(
-      'You hold your breath and walk past the dragon on felt soles. Its tail twitches once. ' +
-        'You do not breathe again until you are through. Behind you, it goes on sleeping, and ' +
+      'You hold your breath and walk past the dragon on felt soles. His tail twitches once. ' +
+        'You do not breathe again until you are through. Behind you, he goes on sleeping, and ' +
         'goes on being hungry.',
     );
     w.setFlag('dragonSneaked');
@@ -213,9 +262,14 @@ function killedDragon(w: World, weapon: string): void {
   const name = w.thing(weapon).name;
   w.addScore(POINTS.kill);
   w.say(
-    'It did not even wake up. It was thinner than it looked, and it lay with its head turned ' +
-      'toward the door, as if it still waited for someone. Its stomach makes one last hollow ' +
-      'sound. You find that you are not as proud of this as you expected.',
+    w.flag('dragonKilledAwake')
+      ? 'He sees the blow coming and does not move. He had lowered his guard because you had ' +
+          'fed him, and he does not raise it now. He lies down slowly, with his head turned ' +
+          'toward the door, as if he still waited for someone. You find that you are not as ' +
+          'proud of this as you expected.'
+      : 'He did not even wake up. He was thinner than he looked, and he lay with his head ' +
+          'turned toward the door, as if he still waited for someone. His stomach makes one ' +
+          'last hollow sound. You find that you are not as proud of this as you expected.',
   );
   w.say(
     `Your ${name} is stuck fast in the dragon. You pull until your arms shake. They go on ` +
@@ -231,8 +285,8 @@ function killedTroll(w: World): void {
     w.lose(
       'The troll falls, and the sound of it rolls through the archway and into the castle. ' +
         'In there, something stops snoring. You have just enough time to remember the dragon ' +
-        'you tiptoed past, and to understand that you never really got past it. It arrives all ' +
-        'at once. It is not interested in a conversation.',
+        'you tiptoed past, and to understand that you never really got past him. He arrives all ' +
+        'at once. He is not interested in a conversation.',
     );
     return;
   }
@@ -243,21 +297,22 @@ function killedTroll(w: World): void {
   );
   if (dragonFriend(w)) {
     w.say(
-      'A shadow crosses the garden. The dragon lands badly, like something that has not flown ' +
-        'in years, and looks at the troll for a long time. It does not roar. It holds out one ' +
+      `A shadow crosses the ${w.here === 'gazebo' ? 'gazebo' : 'garden'}. The dragon lands ` +
+        'badly, like something that has not flown ' +
+        'in years, and looks at the troll for a long time. He does not roar. He holds out one ' +
         'claw' +
         (w.locationOf('scale') === 'nowhere'
           ? ', and then lets it fall.'
           : ', and waits until the scale is in it. You give it back because there is ' +
             'nothing else to do.') +
-        ' "He grew the turnips," the dragon says, "and he never once ate the mutton." It walks ' +
+        ' "He grew the turnips," the dragon says, "and he never once ate the mutton." He walks ' +
         'back into the castle and does not look at you.',
     );
     w.move('scale', 'nowhere');
     w.setFlag('dragonEstranged');
   }
   if (w.isDead('dragon')) killedBoth(w);
-  w.say('It seems you can now walk about in the garden freely.');
+  if (w.here === 'portcullis') w.say('It seems you can now walk about in the garden freely.');
 }
 
 function killedBoth(w: World): void {
@@ -278,14 +333,13 @@ export function ending(w: World): void {
 
   if (dDead && tDead) {
     w.say(
-      'Two places by the fire are empty. Nobody sits in them, and nobody explains them. They ' +
-        'speak to you, and you understand every word. You open your mouth to answer, and ' +
-        'nothing comes out. A child runs up and holds out her arms. Yours do not lift. They ' +
-        'shake a little, the way they did over the dragon, and stay at your sides.',
+      'Two places by the fire are empty. People ' +
+        'speak to you, and you understand every word. Yet, when you open your mouth to answer, ' +
+        'nothing comes out. A child runs up and holds out her arms. Yours do not lift, they lack the strength.',
     );
-    w.say('You are home. There is not enough of you left to live in it.');
+    w.say('You are home but you are not whole.');
     w.say(
-      'You did not pass the test. But you are the one who set it, and a candle can be lit again.',
+      'You did not pass the test.',
       'lose',
     );
     w.say(scoreLine(w));
@@ -317,6 +371,18 @@ export function ending(w: World): void {
         'neck. He looks at you for a long moment. Then he comes over anyway. That "anyway" is ' +
         'the best thing anyone gives you all day.',
     );
+  } else if (w.flag('dragonDueled')) {
+    w.say(
+      'At the back stands a very tall one with a scorched scale on a string around his neck. ' +
+        'He shows it to everyone, and tells them how you came at him with a blade and then ' +
+        'put it down. He tells it twice. The second time, the blade is bigger.',
+    );
+  } else if (w.flag('dragonFooled')) {
+    w.say(
+      'At the back stands a very tall one with smoke in his breath. He does not mention the ' +
+        'keeper all evening, and neither do you. Once, he catches your eye, and very nearly ' +
+        'smiles.',
+    );
   } else if (w.flag('dragonFriend')) {
     w.say(
       'At the back stands a very tall one with smoke in his laugh. He lifts you off the ' +
@@ -325,8 +391,15 @@ export function ending(w: World): void {
   } else {
     w.say(
       'Everyone is here except one. At night, something large breathes at the edge of the ' +
-        'forest. It does not come closer and it does not go away. It is yours, and you have ' +
-        'not met it yet.',
+        'forest. It does not come closer.',
+    );
+  }
+
+  // he heard it from you that the keeper was not coming back
+  if (!dDead && w.flag('keeperTold')) {
+    w.say(
+      'Someone has made a bed by the fire. There is a cup beside it. ' +
+        'The tall one sits next to it all night, keeping watch.',
     );
   }
 
@@ -342,17 +415,28 @@ export function ending(w: World): void {
       'One of them has a broken tooth, and is a little shy of you. But when you say you are ' +
         'sorry, out loud, in the voice you got back, the answer is a nod, and a place to sit.',
     );
+  } else if (w.flag('trollForgave') && w.flag('trollFriend')) {
+    w.say(
+      'One of them has a broken tooth, and keeps a hand near his mouth. When you speak to him, ' +
+        'he lowers the hand. He does not cover the tooth again all evening.',
+    );
+  } else if (w.flag('trollForgave')) {
+    // forgiven, but never shown his face, so he never found his voice
+    w.say(
+      'One of them has a broken tooth, and sits beside you. But his hand stays over his mouth ' +
+        'all evening. Nobody ever showed him his own face.',
+    );
   } else if (w.flag('trollHurt') && !w.flag('trollFriend')) {
     // the cruel word was never taken back
     w.say(
-      'One of them has a broken tooth, and keeps a hand over its mouth all evening. It sits at ' +
+      'One of them has a broken tooth, and keeps a hand over his mouth all evening. He sits at ' +
         'the edge of the firelight, close enough to hear, too far to talk. You know what you ' +
         'said. Your voice is your own, and you have not yet used it to say anything else.',
     );
   } else {
     w.say(
       'One of them has a broken tooth, and starts to cover it with a hand, then remembers, ' +
-        'and takes the hand away. "Booga hoom," it says, loud enough for the whole forest. ' +
+        'and takes the hand away. "Booga hoom," he says, loud enough for the whole forest. ' +
         'You are home. You say it back, and your voice is your own, and it carries.',
     );
   }
@@ -404,11 +488,20 @@ function verdict(w: World): string {
       'castle, and still hungry.'
     );
   }
+  // said sorry, but the troll never saw his face
+  if (w.flag('trollForgave') && !w.flag('trollFriend')) {
+    return 'You passed the test. You came home whole, but part of you still hides its face.';
+  }
   // the cruel word to the troll was never taken back
   if (w.flag('trollHurt') && !w.flag('trollFriend')) {
     return 'You passed the test. You came home whole, but with something left unsaid.';
   }
-  if (w.flag('dragonRevived') || w.flag('trollRevived') || w.flag('dragonEstranged')) {
+  if (
+    w.flag('dragonRevived') ||
+    w.flag('trollRevived') ||
+    w.flag('dragonEstranged') ||
+    w.flag('trollForgave')
+  ) {
     return (
       'You passed the test. You came home whole, with a scar. The scar is the part you are ' +
       'proudest of.'

@@ -3,15 +3,24 @@ import type { CommandContext, CommandDef } from '../../engine/commands/types';
 import type { ThingId } from '../../engine/types';
 import type { World } from '../../engine/world';
 import {
+  apologiseToTroll,
+  challengeDragon,
   feedDragon,
   fetchForSkeleton,
   giveScale,
+  keeperNewsPending,
+  keeperProof,
+  tellKeeper,
   revisitDecisions,
   showMirror,
   talkToSkeleton,
+  talkToSleepingDragon,
+  talkToTroll,
 } from './dialogue';
 import {
   dragonAsleep,
+  dragonBlocks,
+  dragonDoubts,
   dragonFriend,
   MUTE,
   mute,
@@ -23,7 +32,9 @@ import {
   skeletonFetched,
   skeletonTalked,
   trollFriend,
+  trollSulks,
   weak,
+  worthyWeapon,
 } from './story';
 
 type Joke = string | ((w: World) => string);
@@ -142,16 +153,22 @@ function giveToDragon(w: World, thing: ThingId): void {
     );
   } else if (thing === 'mutton') {
     feedDragon(w);
+  } else if (thing === 'turnip') {
+    w.say(
+      dragonAsleep(w)
+        ? 'You hold the turnip under the nose of the dragon. He does not stir.'
+        : 'The dragon sniffs the turnip. "Is it mutton?" he asks. It is not.',
+    );
   } else if (dragonFriend(w)) {
-    w.say(`The dragon looks at the ${name} politely. "Is it mutton?" it asks. It is not mutton.`);
+    w.say(`The dragon looks at the ${name} politely. "Is it mutton?" he asks. It is not mutton.`);
   } else if (thing === 'bone') {
     w.say(
-      'You hold the bone under the nose of the dragon. It sniffs in its sleep, and its whole ' +
-        'face falls. There is no meat on it. The dragon is not a dog, but it does know what ' +
+      'You hold the bone under the nose of the dragon. He sniffs in his sleep, and his whole ' +
+        'face falls. There is no meat on it. The dragon is not a dog, but he does know what ' +
         'dinner is.',
     );
   } else {
-    w.say(`The dragon sleeps on. Whatever it dreams of, it is not the ${name}.`);
+    w.say(`The dragon sleeps on. Whatever he dreams of, it is not the ${name}.`);
   }
 }
 
@@ -159,20 +176,22 @@ function giveToTroll(w: World, thing: ThingId): void {
   const name = w.thing(thing).name;
   if (w.isDead('troll')) {
     w.say(`The troll is past caring about the ${name}. You made sure of that.`);
+  } else if (thing === 'turnip') {
+    w.say('The troll pushes it back to you. "You," he says. "For you."');
   } else if (trollFriend(w)) {
     w.say(`The troll looks at the ${name} and says its name out loud, slowly, with great pride.`);
   } else if (thing === 'mirror' || thing === 'scale') {
     showMirror(w, thing);
   } else if (thing === 'flower') {
-    w.say('You present the troll with a flower. It sniffs it, sneezes, and looks at you sadly.');
+    w.say('You present the troll with a flower. He sniffs it, sneezes, and looks at you sadly.');
   } else if (thing === 'bone' || thing === 'mutton') {
     w.say(
-      `You offer the troll the ${name}. It looks deeply offended. Trolls are vegetarian, apparently.`,
+      `You offer the troll the ${name}. He looks deeply offended. Trolls are vegetarian, apparently.`,
     );
   } else {
     w.say(
-      `The troll looks at the ${name}. "Nub," it says behind its hand. It makes a small ` +
-        'square in the air with two fingers, and points at its own face.',
+      `The troll looks at the ${name}. "Nub," he says behind his hand. He makes a small ` +
+        'square in the air with two fingers, and points at his own face.',
     );
   }
 }
@@ -263,22 +282,38 @@ function talkTo(w: World, target: ThingId): void {
   } else if (target === 'dragon') {
     if (w.isDead('dragon')) {
       w.say('The dragon does not answer. It is the kind of silence that you made yourself.');
+    } else if (dragonAsleep(w) && !w.flag('dragonAsked')) {
+      talkToSleepingDragon(w);
     } else if (dragonAsleep(w)) {
       w.say(
-        '"Hello?" you say. The dragon does not wake. "...keeper?..." it mumbles in its sleep. ' +
-          'Then its stomach answers for it: a long, hollow sound. "...mutton..." says the ' +
+        '"Hello?" you say. The dragon does not wake. "...keeper?..." he mumbles in his sleep. ' +
+          'Then his stomach answers for him: a long, hollow sound. "...mutton..." says the ' +
           'dragon, and sighs a little smoke.',
       );
-    } else if (!w.flag('scaleGiven')) {
+    } else if (dragonDoubts(w)) {
+      keeperProof(w);
+    } else if (dragonBlocks(w)) {
+      if (worthyWeapon(w)) {
+        w.say('"Ah," says the dragon, and gets up. "Now you have something to fight with."');
+        challengeDragon(w);
+      } else {
+        w.say('"Come back with a worthy weapon," says the dragon. His tail does not move.');
+      }
+    } else if (!w.flag('scaleGiven') && !w.flag('dragonFooled')) {
       w.say('"Ah," says the dragon. "Where were we? I was about to give you something."');
       giveScale(w);
+    } else if (keeperNewsPending(w) && !w.flag('dragonEstranged')) {
+      w.say('You tell the dragon about the room at the bottom of the stairs.');
+      tellKeeper(w);
     } else if (w.flag('dragonEstranged')) {
       w.say(
-        'The dragon turns its back to you. "You feed me," it says to the wall. "Then you do ' +
-          'that. Which one is you?"',
+        'The dragon turns his back to you. "You feed me," he says to the wall. "Then you do ' +
+          'that. Which one is really you?"',
       );
     } else if (w.flag('dragonRevived')) {
       w.say('"I am still deciding about you," says the dragon. "But you may sit, while I decide."');
+    } else if (w.flag('dragonFooled')) {
+      w.say('"I am no fool," says the dragon, without opening his eyes. "Carry on."');
     } else {
       w.say('"Still here," says the dragon. "Still waiting. It is easier with company."');
     }
@@ -286,13 +321,17 @@ function talkTo(w: World, target: ThingId): void {
     if (w.isDead('troll')) {
       w.say('The troll does not answer.');
     } else if (w.flag('trollRevived')) {
-      w.say('"Hello," says the troll, carefully. It does not come closer.');
+      w.say('"Hello," says the troll, carefully. He does not come closer.');
+    } else if (trollSulks(w)) {
+      apologiseToTroll(w);
     } else if (trollFriend(w)) {
-      w.say('"HELLO," says the troll, with all of its mouth. It is still very proud of the word.');
+      w.say('"HELLO," says the troll, with all of his mouth. He is still very proud of the word.');
+    } else if (!w.flag('trollAsked') && !w.flag('trollHurt')) {
+      talkToTroll(w);
     } else {
       w.say(
         '"Ooga wug zug mog," the troll says hiding his face behind one huge hand.' +
-          ' "Grak nub." It points at the hand over its mouth, and looks away.',
+          ' "Grak nub." He points at the hand over his mouth, and looks away.',
       );
     }
   } else if (target === 'duck') {

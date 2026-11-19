@@ -1,22 +1,12 @@
 import { door, flag, guarded, room } from '../../dsl';
-import type { World } from '../../engine/world';
-import { dragonAsleep, ending, trollFriend } from './story';
-
-// every game over leaves one more bone in the crypt
-const newBones = (w: World): string =>
-  w.deaths === 0
-    ? ''
-    : w.deaths === 1
-      ? ' Someone has added a bone to the pile since you were last here. You decide not to think about who.'
-      : ` Someone has added to the bones since you were last here. You count ${w.deaths} new ones. You decide not to think about who.`;
+import { dragonAsleep, dragonBlockedText, dragonBlocks, ending, trollFriend } from './story';
 
 export const rooms = [
   room('start', {
     name: 'Crypt',
-    description: (w) =>
+    description:
       'You find yourself in a dark empty crypt. There is an eerie feel to this place, and you do ' +
-      'not feel comfortable at all. You need to get home. There is a door to the east.' +
-      newBones(w),
+      'not feel comfortable at all. You need to get home. There is a door to the east.',
     exits: { east: door('door', 'dragonCell') },
     pos: [0, 0],
   }),
@@ -30,11 +20,15 @@ export const rooms = [
       north: 'dungeon',
       south: door('gate', 'weaponsRoom'),
       // dead or fed or you wear the felt boots, the sneak itself is a hook in story.ts
+      // fed but challenged to a fight you could not take up, he blocks the way awake
       east: guarded(
         'portcullis',
-        (w) => !dragonAsleep(w) || w.has('boots'),
-        "The dragon's bulk fills the passage to the east. You won't get past it while it lives. " +
-          'Not with feet as loud as yours, at least.',
+        (w) => (!dragonAsleep(w) && !dragonBlocks(w)) || (dragonAsleep(w) && w.has('boots')),
+        (w) =>
+          dragonBlocks(w)
+            ? dragonBlockedText(w)
+            : "The dragon's bulk fills the passage to the east. You won't get past him while he " +
+              'lives. Not with feet as loud as yours, at least.',
       ),
     },
   }),
@@ -89,8 +83,8 @@ export const rooms = [
       north: guarded(
         'garden',
         (w) => w.isDead('troll') || trollFriend(w) || Boolean(w.flag('trollHurt')),
-        'The troll steps in front of you. "Nub," it says behind its hand, and shakes its ' +
-          'head. It does not look angry. It looks like it is waiting for something.',
+        'The troll steps in front of you. "Nub," he says behind his hand, and shakes his ' +
+          'head. He does not look angry. He looks like he is waiting for something.',
       ),
       // The stream only parts once its riddle is answered (see the answer command).
       south: guarded(
