@@ -48,6 +48,10 @@ function tutorialHint(w: World): void {
 export const dragonFriend = (w: World): boolean =>
   !w.isDead('dragon') && Boolean(w.flag('dragonFriend'));
 
+// beaten fairly in the duel: he bowed to you and follows you, but gave you no scale
+export const dragonTamed = (w: World): boolean =>
+  !w.isDead('dragon') && Boolean(w.flag('dragonTamed'));
+
 // the dragon is alive and asleep and has never met you properly
 export const dragonAsleep = (w: World): boolean => !w.isDead('dragon') && !w.flag('dragonFriend');
 
@@ -105,7 +109,6 @@ export const POINTS = {
   feed: 250,
   help: 250,
   kill: 250,
-  killBoth: -500,
   revive: 500,
   riddle: 150,
   trap: -150,
@@ -113,6 +116,7 @@ export const POINTS = {
   home: 200,
   deceive: 100,
   duel: 150,
+  tame: 100,
   keeperNews: 100,
   clubbed: -50,
 } as const;
@@ -142,7 +146,9 @@ export function rememberAll(w: World): number {
   return missing.length;
 }
 
-const RANKS: readonly (readonly [number, string])[] = [
+type Ladder = readonly (readonly [number, string])[];
+
+const RANKS: Ladder = [
   [2400, 'The One'],
   [1400, 'Fearless Wayfinder'],
   [800, 'Seeker'],
@@ -150,16 +156,29 @@ const RANKS: readonly (readonly [number, string])[] = [
   [-Infinity, 'Sleepwalker'],
 ];
 
-export const rank = (score: number): string => RANKS.find(([min]) => score >= min)![1];
+// with both of them dead the castle needs a keeper, and the ranks follow the darker road
+const KEEPER_RANKS: Ladder = [
+  [1600, 'The Keeper'],
+  [1000, 'Dragonbane'],
+  [600, 'Slayer'],
+  [300, 'Brute'],
+  [-Infinity, 'Butcher'],
+];
 
-// the same rank as a level, counted from the bottom of the ladder
-export function rankInfo(score: number): RankInfo {
-  const i = RANKS.findIndex(([min]) => score >= min);
-  return { name: RANKS[i]![1], level: RANKS.length - i, of: RANKS.length };
+export const bothDead = (w: World): boolean => w.isDead('dragon') && w.isDead('troll');
+
+const ladder = (w?: World): Ladder => (w && bothDead(w) ? KEEPER_RANKS : RANKS);
+
+// the rank as a level, counted from the bottom of the ladder
+export function rankInfo(score: number, w?: World): RankInfo {
+  const ranks = ladder(w);
+  const i = ranks.findIndex(([min]) => score >= min);
+  return { name: ranks[i]![1], level: ranks.length - i, of: ranks.length };
 }
 
 export const scoreLine = (w: World): string =>
-  `Your score is ${w.state.score}, in ${w.state.turns} turns. Rank: ${rank(w.state.score)}.`;
+  `Your score is ${w.state.score}, in ${w.state.turns} turns. ` +
+  `Rank: ${rankInfo(w.state.score, w).name}.`;
 
 // ---- hooks ---------------------------------------------------------------------
 
@@ -261,15 +280,11 @@ export function hooks(bus: EventBus): void {
 function killedDragon(w: World, weapon: string): void {
   const name = w.thing(weapon).name;
   w.addScore(POINTS.kill);
+  // only a sleeping dragon can be killed: beaten awake in the duel, he is tamed instead
   w.say(
-    w.flag('dragonKilledAwake')
-      ? 'He sees the blow coming and does not move. He had lowered his guard because you had ' +
-          'fed him, and he does not raise it now. He lies down slowly, with his head turned ' +
-          'toward the door, as if he still waited for someone. You find that you are not as ' +
-          'proud of this as you expected.'
-      : 'He did not even wake up. He was thinner than he looked, and he lay with his head ' +
-          'turned toward the door, as if he still waited for someone. His stomach makes one ' +
-          'last hollow sound. You find that you are not as proud of this as you expected.',
+    'He did not even wake up. He was thinner than he looked, and he lay with his head ' +
+      'turned toward the door, as if he still waited for someone. His stomach makes one ' +
+      'last hollow sound. You find that you are not as proud of this as you expected.',
   );
   w.say(
     `Your ${name} is stuck fast in the dragon. You pull until your arms shake. They go on ` +
@@ -315,11 +330,12 @@ function killedTroll(w: World): void {
   if (w.here === 'portcullis') w.say('It seems you can now walk about in the garden freely.');
 }
 
+// the second of them falls, and the castle is left without a keeper
 function killedBoth(w: World): void {
-  w.addScore(POINTS.killBoth);
   w.say(
-    'That is both of them. The castle is very quiet ' +
-      'now, and so are you. Your arms shake and your mouth is empty.',
+    'So both have fallen, the old worm in his cell and the gardener in the grass. A great ' +
+      'stillness settles upon the castle, and upon you also. Your arms tremble, and no word ' +
+      'will come to your lips. None now remain to keep this house.',
   );
 }
 
@@ -328,21 +344,42 @@ function killedBoth(w: World): void {
 // runs when the player reaches the forest, the room text has already been shown
 export function ending(w: World): void {
   w.addScore(POINTS.home);
+  if (bothDead(w)) keeperEnding(w);
+  else homeEnding(w);
+  w.say(scoreLine(w));
+  if (w.flag('sawScreen')) w.say('Somewhere, a computer stops humming.');
+  w.win();
+}
+
+// the darker road: with the dragon and the troll both gone, you go back to keep the castle
+function keeperEnding(w: World): void {
+  w.say(
+    'You look upon the faces one by one, and you know them all, as you have always known ' +
+      'them. Two are missing from among them. The others keep silent beneath the ' +
+      'trees, and wait to see what you will do.',
+  );
+  remember(w);
+  w.say(
+    'None bids you go. Yet it comes to you, as their tongue came to you, that the castle must ' +
+      'have a keeper, and that the task has fallen to you. So you turn back. You cross the ' +
+      "river once more, and the garden lets you pass. In the keeper's quarters the bed is made " +
+      'and the cup stands upon the table, and the coat behind the door fits you well. You open ' +
+      'the ledger where the entries end, and beneath them, in a careful hand, you write a ' +
+      'single word: Waiting.',
+  );
+  w.say(
+    'Long ago the keeper went away in the middle of an ordinary day, and the dragon waited ' +
+      'for him until the end. Now you keep the castle in his stead, and the great bowl stands ' +
+      'empty by the door, and no step comes up the stair. The waiting is yours now, and it has ' +
+      'no end.',
+  );
+  w.say('So you passed the test by the darker road, and took up the long watch of the castle.');
+  w.say('Bravo! You beat the game, by the darker road.', 'win');
+}
+
+function homeEnding(w: World): void {
   const dDead = w.isDead('dragon');
   const tDead = w.isDead('troll');
-
-  if (dDead && tDead) {
-    w.say(
-      'Two places by the fire are empty. People ' +
-        'speak to you, and you understand every word. Yet, when you open your mouth to answer, ' +
-        'nothing comes out. A child runs up and holds out her arms. Yours do not lift, they lack the strength.',
-    );
-    w.say('You are home but you are not whole.');
-    w.say('You did not pass the test.', 'lose');
-    w.say(scoreLine(w));
-    w.state.over = true;
-    return;
-  }
 
   w.say(
     'You look at the faces, one after another. You know them. You have always known them. ' +
@@ -379,6 +416,12 @@ export function ending(w: World): void {
       'At the back stands a very tall one with smoke in his breath. He does not mention the ' +
         'keeper all evening, and neither do you. Once, he catches your eye, and very nearly ' +
         'smiles.',
+    );
+  } else if (dragonTamed(w)) {
+    w.say(
+      'At the back stands a very tall one with a long scar upon his neck. When you lift your ' +
+        'hand he comes, and when you lower it he lies down at your feet, and all evening he ' +
+        'keeps the cold from your back.',
     );
   } else if (w.flag('dragonFriend')) {
     w.say(
@@ -438,7 +481,13 @@ export function ending(w: World): void {
     );
   }
 
-  // the more you looked at the more you remember
+  remember(w);
+  w.say(verdict(w));
+  w.say('Bravo! You beat the game!', 'win');
+}
+
+// the more you looked at the more you remember
+function remember(w: World): void {
   const found = fragments(w);
   if (found >= 3) {
     w.say(
@@ -458,12 +507,6 @@ export function ending(w: World): void {
         'back to you. Or you will have to go back for it, and look closer.',
     );
   }
-
-  w.say(verdict(w));
-  w.say('Bravo! You beat the game!', 'win');
-  w.say(scoreLine(w));
-  if (w.flag('sawScreen')) w.say('Somewhere, a computer stops humming.');
-  w.win();
 }
 
 function verdict(w: World): string {
@@ -497,6 +540,7 @@ function verdict(w: World): string {
     w.flag('dragonRevived') ||
     w.flag('trollRevived') ||
     w.flag('dragonEstranged') ||
+    w.flag('dragonTamed') ||
     w.flag('trollForgave')
   ) {
     return (

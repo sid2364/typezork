@@ -1,5 +1,12 @@
 import { door, flag, guarded, room } from '../../dsl';
-import { dragonAsleep, dragonBlockedText, dragonBlocks, ending, trollFriend } from './story';
+import {
+  bothDead,
+  dragonAsleep,
+  dragonBlockedText,
+  dragonBlocks,
+  ending,
+  trollFriend,
+} from './story';
 
 export const rooms = [
   room('start', {
@@ -144,11 +151,16 @@ export const rooms = [
 
   room('end', {
     name: 'Forest',
-    description:
-      'You cross the river and find yourself in a huge forest. It looks vaguely familiar. ' +
-      'Suddenly a group of tribesmen come out and greet you. Oddly enough, you understand their ' +
-      'tongue, and they treat you as one of their own, not feeling threatened by you at all. It ' +
-      'hits you then; you have reached home.',
+    description: (w) =>
+      bothDead(w)
+        ? 'You cross the river and come under the eaves of a great forest. Its paths seem ' +
+          'known to you, as a dream is known in waking. Out of the trees come folk of the wood ' +
+          'to greet you, and they halt. Long they look upon your empty hands and your silent ' +
+          'mouth. Then they draw back, and stand among the trunks.'
+        : 'You cross the river and find yourself in a huge forest. It looks vaguely familiar. ' +
+          'Suddenly a group of tribesmen come out and greet you. Oddly enough, you understand ' +
+          'their tongue, and they treat you as one of their own, not feeling threatened by you ' +
+          'at all. It hits you then; you have reached home.',
     onEnter: [ending],
   }),
 ];

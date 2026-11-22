@@ -18,6 +18,7 @@ import type {
 import { DIRECTIONS, opposite, parseDirection, type Direction } from '../engine/direction';
 import type { EventBus } from '../engine/events';
 import type { RoomId, ThingId } from '../engine/types';
+import type { World } from '../engine/world';
 
 export * from '../engine/conditions';
 export * from '../engine/effects';
@@ -97,7 +98,7 @@ export interface GameSpec {
   readonly commands?: readonly CommandDef[];
   readonly synonyms?: Readonly<Record<string, readonly string[]>>;
   readonly hooks?: (bus: EventBus) => void;
-  readonly rank?: (score: number) => RankInfo;
+  readonly rank?: (score: number, w: World) => RankInfo;
 }
 
 export class GameDefinitionError extends Error {}

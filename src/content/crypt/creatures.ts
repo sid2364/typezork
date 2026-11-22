@@ -6,6 +6,7 @@ import {
   dragonBlocks,
   dragonDoubts,
   dragonFriend,
+  dragonTamed,
   POINTS,
   skeletonBeaten,
   skeletonClue,
@@ -108,18 +109,22 @@ export const creatures = [
           : w.flag('dragonRevived')
             ? 'The dragon lies awake and watches you. He is deciding about you, and he is in no ' +
               'hurry. The passage east is open.'
-            : dragonFriend(w)
-              ? 'The dragon lies with his chin on his claws and watches you with one sleepy, ' +
-                'friendly eye. His tail no longer blocks the passage east.'
-              : 'There is a giant dragon lying asleep in front of you. He seems to be guarding a ' +
-                'passageway headed east.',
+            : dragonTamed(w)
+              ? 'The dragon lies across the cell with a long scar upon his neck. He lifts his ' +
+                'head when you come in, and waits for your word. The passage east is open.'
+              : dragonFriend(w)
+                ? 'The dragon lies with his chin on his claws and watches you with one sleepy, ' +
+                  'friendly eye. His tail no longer blocks the passage east.'
+                : 'There is a giant dragon lying asleep in front of you. He seems to be guarding a ' +
+                  'passageway headed east.',
     deadDescription:
       'You see the giant dragon you had slain with his entrails strewn across the stone floor. ' +
       'There is a passage that leads you east.',
     examine: (w) =>
       dragonFriend(w)
         ? 'Up close, the dragon is mostly ribs and patience. He is a better colour since he ate. ' +
-          'His scales are polished as bright as mirrors, every one.'
+          'His scales are polished as bright as mirrors, every one.' +
+          (dragonTamed(w) ? ' A long scar runs down his neck, where your blow fell.' : '')
         : 'The dragon is enormous, scaly and very much asleep. A thin curl of smoke drifts from ' +
           "one nostril. He guards the passage east as if he's being paid to. He is also thinner " +
           'than a dragon should be. His stomach makes a long, hollow sound, and he mumbles ' +
@@ -139,9 +144,11 @@ export const creatures = [
       }
       return w.flag('dragonRevived')
         ? 'No. Not again.'
-        : dragonFriend(w)
-          ? 'The dragon trusts you now. You look at the weapon in your hand, and put it away.'
-          : undefined;
+        : dragonTamed(w)
+          ? 'He bowed his head to you once. You put the weapon away.'
+          : dragonFriend(w)
+            ? 'The dragon trusts you now. You look at the weapon in your hand, and put it away.'
+            : undefined;
     },
     refuseTake: 'You cannot be serious.',
     alreadyDead: 'The dragon is already dead. Why must you be such a brute?',

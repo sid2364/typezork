@@ -211,7 +211,7 @@ export class Game {
       inventory: w.inventory().map((id) => ({ id, name: w.thing(id).name })),
       turns: w.state.turns,
       score: w.state.score,
-      rank: this.def.rank?.(w.state.score) ?? null,
+      rank: this.def.rank?.(w.state.score, w) ?? null,
       over: w.state.over,
       won: w.state.won,
       question: this.question,

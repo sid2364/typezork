@@ -336,12 +336,8 @@ function dragonDuel(w: World, weapon: string): void {
     w,
     [
       {
-        label: `Strike while his guard is down.`,
-        run: () => {
-          w.setFlag('dragonKilledAwake');
-          w.kill('dragon');
-          w.bus.emit('kill', { thing: 'dragon', weapon }, w);
-        },
+        label: 'Strike at his open neck.',
+        run: () => tameDragon(w),
       },
       {
         label: `Lower your ${name}.`,
@@ -360,6 +356,19 @@ function dragonDuel(w: World, weapon: string): void {
       },
     ],
     'What do you do?',
+  );
+}
+
+// beaten fairly and awake, he bows to you: a friend who serves, but he gives you no scale
+function tameDragon(w: World): void {
+  w.setFlag('dragonTamed');
+  w.award('tame', POINTS.tame);
+  w.say(
+    'Your blow falls upon his neck, and the scales part, and dark blood runs down upon the ' +
+      'stone. He does not fall. Slowly he bows his great head before you, until his jaw rests ' +
+      'upon the floor. "So," he says, and the word is like stones grinding in a deep place. ' +
+      '"You have the mastery. I will go where you go." He draws his tail out of the passage ' +
+      'east, and lies down, and watches you with his old eyes.',
   );
 }
 
@@ -640,11 +649,7 @@ export function revisitDecisions(w: World): void {
     revive(w);
     w.move('scroll', 'nowhere');
     w.say('The scroll burns away in your hands without any heat.');
-    if (dragon && troll) {
-      // it is no longer both of them, so the penalty for killing both goes away
-      w.addScore(-POINTS.killBoth);
-      w.say('The other one, unfortunately, stays where you left it.');
-    }
+    if (dragon && troll) w.say('The other one, unfortunately, stays where you left it.');
   };
   choose(
     w,

@@ -144,6 +144,6 @@ export interface GameDef {
   readonly synonyms: Readonly<Record<string, readonly string[]>>;
   /** Subscribe to engine events (quests, scoring, …). */
   readonly hooks?: (bus: EventBus) => void;
-  /** The rank a score earns, for front-ends to show. */
-  readonly rank?: (score: number) => RankInfo;
+  /** The rank a score earns (the world can pick the ladder), for front-ends to show. */
+  readonly rank?: (score: number, w: World) => RankInfo;
 }

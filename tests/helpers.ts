@@ -48,7 +48,7 @@ export function memoryStorage(): SaveStorage & { slots: Map<string, string> } {
   };
 }
 
-// the old way through, kill everything, it still reaches the forest but it fails the test
+// the old way through, kill everything, it wins by the darker road: you become the keeper
 export const WALKTHROUGH = [
   'open door',
   'east',

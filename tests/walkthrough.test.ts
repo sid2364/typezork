@@ -61,16 +61,20 @@ describe('the kind way through', () => {
 });
 
 describe('the old way through', () => {
-  it('still reaches the forest, but fails the test', () => {
+  it('reaches the forest and wins by the darker road, as the new keeper', () => {
     const game = pastSkeleton();
     const text = play(game, WALKTHROUGH);
     expect(game.state.location).toBe('end');
     expect(game.state.over).toBe(true);
-    expect(game.state.won).toBe(false);
-    expect(text).toContain('It hits you then; you have reached home.');
-    expect(text).toContain('Two places by the fire are empty.');
-    expect(text).toContain('You did not pass the test.');
-    expect(text).not.toContain('Bravo');
+    expect(game.state.won).toBe(true);
+    expect(text).toMatch(/come under the eaves of a great forest/);
+    expect(text).not.toContain('you have reached home');
+    expect(text).toMatch(/Two are missing from among them/);
+    expect(text).toMatch(/you write a single word: Waiting/);
+    expect(text).toMatch(/The waiting is yours now, and it has no end/);
+    expect(text).toContain('Bravo! You beat the game, by the darker road.');
+    expect(text).not.toMatch(/did not pass/);
+    expect(game.view().rank).toEqual({ name: 'Dragonbane', level: 4, of: 5 });
   });
 
   it('also works as a single chained line', () => {
@@ -88,12 +92,14 @@ describe('the old way through', () => {
     expect(game.state.over).toBe(false);
   });
 
-  it('killing both costs far more than the kills gave', () => {
+  it('killing both only adds the kill, and turns the ranks to the darker road', () => {
     const game = pastSkeleton();
     play(game, WALKTHROUGH.slice(0, 12));
     const before = game.state.score;
-    expect(say(game, 'kill troll with staff')).toMatch(/That is both of them/);
-    expect(game.state.score).toBe(before + 250 - 500);
+    expect(game.view().rank?.name).toBe('Wanderer');
+    expect(say(game, 'kill troll with staff')).toMatch(/None now remain to keep this house/);
+    expect(game.state.score).toBe(before + 250);
+    expect(game.view().rank?.name).toBe('Brute');
   });
 });
 
@@ -425,15 +431,34 @@ describe('the dragon', () => {
     expect(game.state.location).toBe('portcullis');
   });
 
-  it('dies awake if you strike when its guard is down', () => {
+  it('is tamed if you strike in the duel, and gives you no scale', () => {
     const game = pastSkeleton();
     play(game, [...TO_ARMOURY, 'take spear', 'north', 'north', 'take mutton', 'south']);
     play(game, ['give mutton to dragon', '1', '3']);
+    const before = game.state.score;
     const text = say(game, '1');
-    expect(text).toMatch(/sees the blow coming/);
+    expect(text).toMatch(/You have the mastery/);
     expect(text).not.toMatch(/did not even wake up/);
-    expect(game.state.killed).toContain('dragon');
-    expect(game.state.things.spear).toBe('nowhere');
+    expect(game.state.killed).toEqual([]);
+    expect(game.state.score).toBe(before + 100);
+    expect(game.state.things.spear).toBe('inventory');
+    expect(game.state.things.scale).not.toBe('inventory');
+    expect(say(game, 'look')).toMatch(/long scar upon his neck/);
+    expect(say(game, 'kill dragon with spear')).toMatch(/bowed his head to you once/);
+    say(game, 'east');
+    expect(game.state.location).toBe('portcullis');
+  });
+
+  it('a tamed dragon comes home with a scar', () => {
+    const game = pastSkeleton();
+    // no scale from a tamed dragon, so the troll sees his face in the tower mirror
+    play(game, [...TO_ARMOURY, 'take spear', 'up', 'take mirror', 'down', 'north', 'north']);
+    play(game, ['take mutton', 'south', 'give mutton to dragon', '1', '3', '1']);
+    play(game, ['east', 'show mirror to troll', '1', '3']);
+    const text = play(game, KIND_ROUTE.slice(FEED.length + HELP.length));
+    expect(game.state.won).toBe(true);
+    expect(text).toMatch(/keeps the cold from your back/);
+    expect(text).toMatch(/You came home whole, with a scar/);
   });
 
   it('a challenge can also be taken up with kill', () => {
@@ -822,8 +847,9 @@ describe('strength against voice', () => {
     const before = game.state.score;
     const text = say(game, '2');
     expect(text).toMatch(/The other one, unfortunately, stays where you left it/);
-    // the revive itself, plus the refund for no longer having killed both
-    expect(game.state.score).toBe(before + 1000);
+    // only the revive itself, and the ranks come back from the darker road
+    expect(game.state.score).toBe(before + 500);
+    expect(game.view().rank?.name).toBe('Seeker');
     expect(text).not.toMatch(/sigh of relief/);
     expect(game.state.killed).toEqual(['dragon']);
     expect(game.state.things.scroll).toBe('nowhere');
@@ -966,6 +992,13 @@ describe('score', () => {
     expect(rankInfo(299)).toEqual({ name: 'Sleepwalker', level: 1, of: 5 });
     expect(rankInfo(300)).toEqual({ name: 'Wanderer', level: 2, of: 5 });
     expect(rankInfo(2400)).toEqual({ name: 'The One', level: 5, of: 5 });
+  });
+
+  it('has its own ladder once both the dragon and the troll are dead', () => {
+    const game = pastSkeleton();
+    play(game, WALKTHROUGH.slice(0, 13));
+    expect(game.view().rank).toEqual({ name: 'Brute', level: 2, of: 5 });
+    expect(say(game, 'score')).toMatch(/Rank: Brute\.$/m);
   });
 
   it('gives points for rooms, kindness and kills', () => {
