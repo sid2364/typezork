@@ -1,6 +1,14 @@
 // the two conversations of the game, and the things that follow from them
 import type { World } from '../../engine/world';
-import { POINTS, skeletonClue, trollSulks, worthyWeapon } from './story';
+import {
+  clubbed,
+  mute,
+  POINTS,
+  skeletonClue,
+  trollGrieves,
+  trollSulks,
+  worthyWeapon,
+} from './story';
 
 interface Option {
   readonly label: string;
@@ -410,6 +418,16 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
       '"Grak nub," he says, very quietly. "Ooga blug." You do not need the words. He thinks ' +
         'he is ugly.',
     );
+  } else if (trollGrieves(w)) {
+    w.say(
+      `You kneel and hold up the ${name}. For a long while the troll will not lower his hands. ` +
+        'Then he looks. For a long moment he only looks. One of his front teeth is broken in ' +
+        'half.',
+    );
+    w.say(
+      '"Grak nub," he says, very quietly. "Ooga blug. Him say... hum." You do not need the ' +
+        'words. He thinks he is ugly, and the only one who ever told him otherwise is gone.',
+    );
   } else {
     w.say(
       `You hold up the ${name}. The troll stops swinging his club. He comes closer, one slow ` +
@@ -619,6 +637,164 @@ export function talkToTroll(w: World): void {
   ]);
 }
 
+// ---- the grieving troll ----------------------------------------------------------
+
+// with the dragon dead, the troll asks who did it. the truth is the only way to his mirror
+export function talkToGrievingTroll(w: World): void {
+  if (w.flag('trollToldTruth')) {
+    w.say('The troll does not lift his face from his hands. "Him sleep," he says. "Long sleep."');
+    return;
+  }
+  w.say(
+    'The troll does not hide his mouth now. He looks at you a long while with his red eyes. ' +
+      '"Him sleep," he says. "Long sleep. Who?"',
+  );
+  const weapon = worthyWeapon(w, 'troll');
+  choose(w, [
+    {
+      label: '"I did. He was asleep."',
+      run: () => {
+        w.setFlag('trollToldTruth');
+        w.award('trollTruth', POINTS.kindWord);
+        w.say(
+          'The troll looks at you for a long time. The club comes down slowly, until its end ' +
+            'rests in the grass. "Me grow turnips," he says. "Him keep warm. Hum." He sits down ' +
+            'heavily by the path, and covers his face with both hands.',
+        );
+      },
+    },
+    {
+      label: '"I do not know."',
+      run: () =>
+        w.say('"Nub," says the troll. He looks at your hands for a long while. "You know."'),
+    },
+    ...(weapon
+      ? [{ label: `Raise your ${w.thing(weapon).name}.`, run: () => trollFight(w, weapon) }]
+      : []),
+  ]);
+}
+
+// any attack on the grieving troll: a fair fight with a worthy weapon, a lost one without
+export function attackGrievingTroll(w: World): void {
+  const weapon = worthyWeapon(w, 'troll');
+  if (weapon) {
+    trollFight(w, weapon);
+    return;
+  }
+  w.say('He hardly looks at what you hold. The club comes round before you can lift it.');
+  loseTrollFight(w);
+}
+
+// two exchanges, and a wrong answer in either loses the fight
+function trollFight(w: World, weapon: string): void {
+  const name = w.thing(weapon).name;
+  const lost = (text: string) => () => {
+    w.say(text);
+    loseTrollFight(w, weapon);
+  };
+  w.say(
+    `You raise your ${name}. The troll sees it, and something goes out of his face, and ` +
+      'something worse comes into it. His hands tighten upon the club. He swings it idly no ' +
+      'longer. "Blug," he says. "You blug. Him sleep. Him SLEEP." And he comes at you across ' +
+      'the grass.',
+  );
+  choose(
+    w,
+    [
+      {
+        label: `Stand your ground and raise your ${name}.`,
+        run: lost(`The club is longer than your ${name}, and the troll is longer than the club.`),
+      },
+      {
+        label: 'Step in, under the swing.',
+        run: () => {
+          w.say(
+            'The club goes over your head with a sound like a door slamming in the wind. Then ' +
+              'you are inside his reach, where a club is of no use to anyone, and you drive ' +
+              `your ${name} into his side. He goes down on one knee in the grass.`,
+          );
+          trollRises(w, weapon);
+        },
+      },
+      {
+        label: '"He would have eaten me."',
+        run: lost('"Him NUB eat!" roars the troll. "Him eat mutton!"'),
+      },
+    ],
+    'What do you do?',
+  );
+}
+
+function trollRises(w: World, weapon: string): void {
+  const name = w.thing(weapon).name;
+  const lost = (text: string) => () => {
+    w.say(text);
+    loseTrollFight(w, weapon);
+  };
+  w.say(
+    'He looks past you, west, through the archway toward the cell where his old friend lies. ' +
+      '"Hoom," he says, very low. Then he rises, and the club goes up over his head in both ' +
+      'hands, and comes down at you from on high.',
+  );
+  gloss(w, 'HOOM is home.');
+  choose(
+    w,
+    [
+      {
+        label: '"I am sorry."',
+        run: lost('"Late," says the troll. "Too late." The club does not slow.'),
+      },
+      {
+        label: 'Throw a fistful of mud in his face.',
+        run: lost(
+          'The mud strikes him full in the eyes, and he does not so much as blink. He is a ' +
+            'troll, and his whole mind is upon you.',
+        ),
+      },
+      {
+        label: 'Dodge, and strike.',
+        run: () => {
+          w.say(
+            'You throw yourself aside. The club comes down where you stood and sinks deep into ' +
+              `the earth, and while he heaves at it, your ${name} finds him.`,
+          );
+          w.setFlag('trollFought');
+          w.kill('troll');
+          w.bus.emit('kill', { thing: 'troll', weapon }, w);
+        },
+      },
+    ],
+    'What do you do?',
+  );
+}
+
+// the first lost fight puts you in the stream, the second one is the end of you
+function loseTrollFight(w: World, weapon?: string): void {
+  const losses = Number(w.flag('trollFightsLost') ?? 0) + 1;
+  w.setFlag('trollFightsLost', losses);
+  if (losses >= 2) {
+    w.lose(
+      'This time the club does not stop. The last thing you see is the troll going in through ' +
+        'the archway, very slowly, to sit beside his friend.',
+    );
+    return;
+  }
+  if (w.here !== 'portcullis') {
+    w.say(clubbed(w, weapon));
+    return;
+  }
+  // the mechanics of a clubbing, told the way a grieving troll would do it
+  clubbed(w, weapon);
+  const lost = weapon ? w.thing(weapon).name : undefined;
+  w.say(
+    'The club catches you full in the chest, and you fly backwards over the bank and into the ' +
+      'stream.' +
+      (lost ? ` Your ${lost} goes one way and you go the other. Only you come back.` : '') +
+      ' You crawl out on the bank, soaked and aching, and the troll stands in the archway ' +
+      'again, and waits for you.',
+  );
+}
+
 // ---- second chances ------------------------------------------------------------
 
 // the scroll, read anywhere: look back at who you killed and call one of them back
@@ -626,7 +802,7 @@ export function revisitDecisions(w: World): void {
   const dragon = w.isDead('dragon');
   const troll = w.isDead('troll');
   w.say(
-    troll
+    mute(w)
       ? 'You open your mouth to read, and nothing comes out. Then the words lift off the page ' +
           'on their own, one at a time, and say themselves in a voice that is almost yours. A voice from the great beyond.'
       : 'You unroll the scroll and read the three lines aloud. Your voice shakes on the first, ' +
@@ -687,6 +863,7 @@ export function reviveDragon(w: World): void {
 }
 
 export function reviveTroll(w: World): void {
+  const wasMute = mute(w);
   w.revive('troll');
   w.setFlag('trollFriend');
   w.setFlag('trollRevived');
@@ -699,7 +876,11 @@ export function reviveTroll(w: World): void {
   w.say(
     'Then a sneeze, a big sneeze. The troll sits up. "Nub," he says, very small, behind the hand. You hear it, from where you stand.',
   );
-  w.say('Something moves in your throat. "I am sorry," you say, and you hear the words.');
+  w.say(
+    wasMute
+      ? 'Something moves in your throat. "I am sorry," you say, and you hear the words.'
+      : '"I am sorry," you say. He hears it, and nods, once.',
+  );
   if (!w.isDead('dragon')) {
     w.say('Far off, inside the castle, something large heaves an exhausted sigh of relief.');
   }

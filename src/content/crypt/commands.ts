@@ -14,6 +14,7 @@ import {
   revisitDecisions,
   showMirror,
   talkToSkeleton,
+  talkToGrievingTroll,
   talkToSleepingDragon,
   talkToTroll,
 } from './dialogue';
@@ -32,6 +33,7 @@ import {
   skeletonFetched,
   skeletonTalked,
   trollFriend,
+  trollGrieves,
   trollSulks,
   weak,
   worthyWeapon,
@@ -180,6 +182,9 @@ function giveToTroll(w: World, thing: ThingId): void {
     w.say('The troll pushes it back to you. "You," he says. "For you."');
   } else if (trollFriend(w)) {
     w.say(`The troll looks at the ${name} and says its name out loud, slowly, with great pride.`);
+  } else if (trollGrieves(w) && !w.flag('trollToldTruth')) {
+    // he will look at nothing you hold up until you tell him who killed his friend
+    w.say(`The troll knocks the ${name} aside. "Who?" he says.`);
   } else if (thing === 'mirror' || thing === 'scale') {
     showMirror(w, thing);
   } else if (thing === 'flower') {
@@ -320,6 +325,8 @@ function talkTo(w: World, target: ThingId): void {
   } else if (target === 'troll') {
     if (w.isDead('troll')) {
       w.say('The troll does not answer.');
+    } else if (trollGrieves(w)) {
+      talkToGrievingTroll(w);
     } else if (w.flag('trollRevived')) {
       w.say('"Hello," says the troll, carefully. He does not come closer.');
     } else if (trollSulks(w)) {

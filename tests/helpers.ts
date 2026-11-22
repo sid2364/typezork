@@ -63,6 +63,9 @@ export const WALKTHROUGH = [
   'kill dragon with spear',
   'east',
   'kill troll with staff',
+  // with the dragon dead the troll fights back: step in under the swing, then dodge and strike
+  '2',
+  '3',
   'north',
   'north',
   'take torch',

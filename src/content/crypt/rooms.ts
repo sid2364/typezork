@@ -6,6 +6,7 @@ import {
   dragonBlocks,
   ending,
   trollFriend,
+  trollGrieves,
 } from './story';
 
 export const rooms = [
@@ -90,8 +91,12 @@ export const rooms = [
       north: guarded(
         'garden',
         (w) => w.isDead('troll') || trollFriend(w) || Boolean(w.flag('trollHurt')),
-        'The troll steps in front of you. "Nub," he says behind his hand, and shakes his ' +
-          'head. He does not look angry. He looks like he is waiting for something.',
+        (w) =>
+          trollGrieves(w)
+            ? 'The troll steps in front of you and lifts his club. "Nub," he says. ' +
+              '"Him sleep. You blug."'
+            : 'The troll steps in front of you. "Nub," he says behind his hand, and shakes his ' +
+              'head. He does not look angry. He looks like he is waiting for something.',
       ),
       // The stream only parts once its riddle is answered (see the answer command).
       south: guarded(
@@ -155,8 +160,8 @@ export const rooms = [
       bothDead(w)
         ? 'You cross the river and come under the eaves of a great forest. Its paths seem ' +
           'known to you, as a dream is known in waking. Out of the trees come folk of the wood ' +
-          'to greet you, and they halt. Long they look upon your empty hands and your silent ' +
-          'mouth. Then they draw back, and stand among the trunks.'
+          'to greet you, and they halt. Long they look upon you, and upon your trembling hands. ' +
+          'Then they draw back, and stand among the trunks.'
         : 'You cross the river and find yourself in a huge forest. It looks vaguely familiar. ' +
           'Suddenly a group of tribesmen come out and greet you. Oddly enough, you understand ' +
           'their tongue, and they treat you as one of their own, not feeling threatened by you ' +

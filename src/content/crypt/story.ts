@@ -70,10 +70,10 @@ export const dragonBlockedText = (w: World): string =>
     : 'The dragon is awake, and his tail lies across the passage. He is waiting for you to ' +
       'come back with a worthy weapon.';
 
-// the swords, spears and staves the dragon will cross claws with
-export function worthyWeapon(w: World): string | undefined {
-  const dragon = w.thing('dragon');
-  return dragon.kind === 'creature' ? dragon.weakTo.find((id) => w.has(id)) : undefined;
+// a weapon you carry that is fit to fight the dragon (or the troll) with
+export function worthyWeapon(w: World, who = 'dragon'): string | undefined {
+  const creature = w.thing(who);
+  return creature.kind === 'creature' ? creature.weakTo.find((id) => w.has(id)) : undefined;
 }
 
 // said something cruel to the troll and has not taken it back, so it sulks in the gazebo
@@ -86,8 +86,12 @@ export const trollSulks = (w: World): boolean =>
 export const trollFriend = (w: World): boolean =>
   !w.isDead('troll') && Boolean(w.flag('trollFriend'));
 
-// kill the troll and you lose your voice
-export const mute = (w: World): boolean => w.isDead('troll');
+// the dragon is dead, and the troll mourns his friend and stands against you
+export const trollGrieves = (w: World): boolean =>
+  !w.isDead('troll') && w.isDead('dragon') && !w.flag('trollFriend');
+
+// kill the troll in one blow and you lose your voice. beat him in a fair fight and you keep it
+export const mute = (w: World): boolean => w.isDead('troll') && !w.flag('trollFought');
 
 // kill the dragon and you lose your strength
 export const weak = (w: World): boolean => w.isDead('dragon');
@@ -96,6 +100,34 @@ export const MUTE = 'You open your mouth. Nothing comes out.';
 
 // weapons that scrape and clank when you try to be quiet
 const NOISY = ['sword', 'hammer', 'knife'];
+
+// the troll's club, for anyone who brings the wrong thing to a fight with it
+export function clubbed(w: World, weapon?: string): string {
+  w.award('clubbed', POINTS.clubbed);
+  if (w.here === 'gazebo') {
+    w.state.location = 'garden';
+    return (
+      'The troll does not even turn round. The club comes back over his shoulder, quite ' +
+      'gently for a club, and you go down the gazebo steps in one go, and land in the flowers. ' +
+      'Small ones. You hope he did not see.'
+    );
+  }
+  const lost = weapon ? w.thing(weapon).name : undefined;
+  if (weapon) w.move(weapon, 'nowhere');
+  const torch = w.has('torch');
+  if (torch) w.move('torch', 'gazebo');
+  return (
+    'The troll swings his club, not even very hard. You fly backwards over the bank and into ' +
+    'the stream, which is much colder than it looked.' +
+    (lost ? ` Your ${lost} goes one way and you go the other. Only you come back.` : '') +
+    (torch
+      ? ' The torch hisses out in your hand and is gone. Far to the north, a red glow comes ' +
+        'back to the edge of the gazebo, as if nothing happened.'
+      : '') +
+    ' You crawl out on the bank, soaked, and the troll is back to swinging his club as if ' +
+    'nothing happened.'
+  );
+}
 
 // ---- score ---------------------------------------------------------------------
 
@@ -306,10 +338,17 @@ function killedTroll(w: World): void {
     return;
   }
   w.addScore(POINTS.kill);
-  w.say(
-    'You open your mouth to say something over the body: a joke, a word, anything. Nothing ' +
-      "comes out. You try again. Your voice is gone. It went wherever the troll's went.",
-  );
+  if (w.flag('trollFought')) {
+    w.say(
+      'He lies down in the grass with his face toward the archway, as if he meant to go home ' +
+        'that way. Your voice is still your own, yet you find no word to say over him.',
+    );
+  } else {
+    w.say(
+      'You open your mouth to say something over the body: a joke, a word, anything. Nothing ' +
+        "comes out. You try again. Your voice is gone. It went wherever the troll's went.",
+    );
+  }
   if (dragonFriend(w)) {
     w.say(
       `A shadow crosses the ${w.here === 'gazebo' ? 'gazebo' : 'garden'}. The dragon lands ` +
@@ -334,8 +373,8 @@ function killedTroll(w: World): void {
 function killedBoth(w: World): void {
   w.say(
     'So both have fallen, the old worm in his cell and the gardener in the grass. A great ' +
-      'stillness settles upon the castle, and upon you also. Your arms tremble, and no word ' +
-      'will come to your lips. None now remain to keep this house.',
+      'stillness settles upon the castle, and upon you also. Your arms tremble. None now ' +
+      'remain to keep this house.',
   );
 }
 

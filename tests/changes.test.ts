@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { crypt } from '../src/content/crypt';
 import { Game } from '../src/engine';
-import { newGame, play, say, WALKTHROUGH, pastSkeleton } from './helpers';
+import { FEED, newGame, play, say, WALKTHROUGH, pastSkeleton } from './helpers';
 
 describe('intro and restart markers', () => {
   it('pauses between the intro and the first room', () => {
@@ -52,7 +52,7 @@ describe('go back', () => {
 
   it('respects guards on the way back', () => {
     const game = pastSkeleton();
-    play(game, WALKTHROUGH.slice(0, 13)); // at the portcullis, no torch
+    play(game, WALKTHROUGH.slice(0, 15)); // at the portcullis, no torch
     play(game, ['north', 'go back']);
     expect(game.state.location).toBe('portcullis');
   });
@@ -82,7 +82,8 @@ describe('bare hands', () => {
 
   it('the troll has its own jokes', () => {
     const game = pastSkeleton();
-    play(game, WALKTHROUGH.slice(0, 12));
+    // with the dragon fed, the troll is still the easy-going sort
+    play(game, [...FEED, 'east']);
     expect(say(game, 'kick troll')).toMatch(/giggles/);
   });
 });

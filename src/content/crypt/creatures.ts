@@ -1,49 +1,21 @@
 import { creature } from '../../dsl';
-import type { World } from '../../engine/world';
-import { brawlSkeleton, challengeDragon } from './dialogue';
+import { attackGrievingTroll, brawlSkeleton, challengeDragon } from './dialogue';
 import {
+  clubbed,
   dragonBlockedText,
   dragonBlocks,
   dragonDoubts,
   dragonFriend,
   dragonTamed,
-  POINTS,
   skeletonBeaten,
   skeletonClue,
   skeletonFetched,
   skeletonTalked,
   trollFriend,
+  trollGrieves,
   trollSulks,
   worthyWeapon,
 } from './story';
-
-// the troll's club, for anyone who brings the wrong thing to a fight with it
-function clubbed(w: World, weapon?: string): string {
-  w.award('clubbed', POINTS.clubbed);
-  if (w.here === 'gazebo') {
-    w.state.location = 'garden';
-    return (
-      'The troll does not even turn round. The club comes back over his shoulder, quite ' +
-      'gently for a club, and you go down the gazebo steps in one go, and land in the flowers. ' +
-      'Small ones. You hope he did not see.'
-    );
-  }
-  const lost = weapon ? w.thing(weapon).name : undefined;
-  if (weapon) w.move(weapon, 'nowhere');
-  const torch = w.has('torch');
-  if (torch) w.move('torch', 'gazebo');
-  return (
-    'The troll swings his club, not even very hard. You fly backwards over the bank and into ' +
-    'the stream, which is much colder than it looked.' +
-    (lost ? ` Your ${lost} goes one way and you go the other. Only you come back.` : '') +
-    (torch
-      ? ' The torch hisses out in your hand and is gone. Far to the north, a red glow comes ' +
-        'back to the edge of the gazebo, as if nothing happened.'
-      : '') +
-    ' You crawl out on the bank, soaked, and the troll is back to swinging his club as if ' +
-    'nothing happened.'
-  );
-}
 
 export const creatures = [
   // holds the crypt door until you talk to it, look at it and spar with it
@@ -188,31 +160,45 @@ export const creatures = [
       trollSulks(w) && w.locationOf('troll') === 'gazebo'
         ? 'The troll sits at the edge of the gazebo, gazing at the mountains, with his back to ' +
           'you. The torch is on the far side of him.'
-        : w.flag('trollRevived')
-          ? 'The troll sits a little way off the garden path and watches you carefully. His hand ' +
-            'is not over his mouth.'
-          : trollFriend(w)
-            ? 'The troll sits by the garden path and practises words out loud. "Garden. Club. ' +
-              'Tooth." He waves when he sees you.'
-            : 'A troll is wandering in the garden outside. He swings his massive club in the air ' +
-              'every now and then.',
+        : trollGrieves(w)
+          ? w.flag('trollToldTruth')
+            ? 'The troll sits in the grass by the path with both hands over his face.'
+            : 'The troll stands in the archway with his club in both hands. His eyes are red. ' +
+              'He looks at you, and then past you, west, where his friend lies.'
+          : w.flag('trollRevived')
+            ? 'The troll sits a little way off the garden path and watches you carefully. His hand ' +
+              'is not over his mouth.'
+            : trollFriend(w)
+              ? 'The troll sits by the garden path and practises words out loud. "Garden. Club. ' +
+                'Tooth." He waves when he sees you.'
+              : 'A troll is wandering in the garden outside. He swings his massive club in the air ' +
+                'every now and then.',
     deadDescription: (w) =>
-      w.locationOf('troll') === 'gazebo'
-        ? 'The troll lies dead by the gazebo rail, still facing the mountains.'
-        : 'The troll lies dead on the grass. His tongue sticks out of his mouth making for an ' +
-          'extremely unpleasant sight. You see a huge open space with a garden to the north.',
+      w.flag('trollFought')
+        ? 'The troll lies in the grass with his face toward the archway. Beyond him, a garden ' +
+          'opens to the north.'
+        : w.locationOf('troll') === 'gazebo'
+          ? 'The troll lies dead by the gazebo rail, still facing the mountains.'
+          : 'The troll lies dead on the grass. His tongue sticks out of his mouth making for an ' +
+            'extremely unpleasant sight. You see a huge open space with a garden to the north.',
     examine: (w) =>
-      'The troll is large, green and smells like a wet sock. He swings his club absent-mindedly, ' +
-      'like someone twirling a pen in a meeting.' +
-      (trollFriend(w)
-        ? ' One of his front teeth is broken in half. He does not hide it.'
-        : ' He keeps one huge hand over his mouth, even when he talks.'),
+      'The troll is large, green and smells like a wet sock.' +
+      (trollGrieves(w)
+        ? ' His eyes are red, and his knuckles are white upon the club. He does not hide his ' +
+          'mouth now. One of his front teeth is broken in half.'
+        : ' He swings his club absent-mindedly, like someone twirling a pen in a meeting.' +
+          (trollFriend(w)
+            ? ' One of his front teeth is broken in half. He does not hide it.'
+            : ' He keeps one huge hand over his mouth, even when he talks.')),
+    // with his friend dead, the troll will not go down in one blow
     beforeAttack: (w) =>
-      w.flag('trollRevived')
-        ? 'No. Not again.'
-        : trollFriend(w)
-          ? 'The troll waves at you with the club. You lower your weapon and wave back.'
-          : undefined,
+      trollGrieves(w)
+        ? (attackGrievingTroll(w), '')
+        : w.flag('trollRevived')
+          ? 'No. Not again.'
+          : trollFriend(w)
+            ? 'The troll waves at you with the club. You lower your weapon and wave back.'
+            : undefined,
     refuseTake: 'How were you even planning on doing that? And more importantly, why?',
     alreadyDead: 'The troll lies dead in front of you. How much more do you want to kill him?',
     bareHanded: (w) =>
