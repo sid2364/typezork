@@ -309,7 +309,7 @@ export const items = [
       (w.flag('scaleCracked')
         ? ' A crack runs across it now. Your face is on both sides of the crack.'
         : w.flag('scaleScorched')
-          ? ' One edge is scorched black, where the dragon breathed on your blade. It is still ' +
+          ? ' One edge is scorched black, where the dragon breathed on your weapon. It is still ' +
             'warm. Your face looks back at you through the soot, a little braver.'
           : ' You look for a long time. It is a little like being introduced to someone.'),
   }),

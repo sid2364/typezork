@@ -63,7 +63,7 @@ export const rooms = [
     description:
       'You enter a room full of weapons. You see swords, knives, spears, staves, and hammers ' +
       'displayed all around you. Large windows illuminate the room with the daylight outside. A ' +
-      "narrow door to the north seems to lead back toward the dragon's lair. A tight spiral " +
+      "steel gate to the north leads back toward the dragon's lair. A tight spiral " +
       'stair in the corner climbs up.',
     exits: { north: 'dragonCell', up: 'tower' },
   }),
@@ -158,14 +158,13 @@ export const rooms = [
     name: 'Forest',
     description: (w) =>
       bothDead(w)
-        ? 'You cross the river and come under the eaves of a great forest. Its paths seem ' +
-          'known to you, as a dream is known in waking. Out of the trees come folk of the wood ' +
-          'to greet you, and they halt. Long they look upon you, and upon your trembling hands. ' +
-          'Then they draw back, and stand among the trunks.'
-        : 'You cross the river and find yourself in a huge forest. It looks vaguely familiar. ' +
-          'Suddenly a group of tribesmen come out and greet you. Oddly enough, you understand ' +
-          'their tongue, and they treat you as one of their own, not feeling threatened by you ' +
-          'at all. It hits you then; you have reached home.',
+        ? 'You cross the river and come under the eaves of a great forest, and its paths are ' +
+          'known to you, as a dream is known in waking. Folk of the wood come out to greet you, ' +
+          'and halt, and look long upon your trembling hands. Then they draw back among the ' +
+          'trunks.'
+        : 'You cross the river into a huge forest that looks oddly familiar. A band of ' +
+          'tribesmen comes out of the trees to greet you. You understand their tongue, and they ' +
+          'treat you as one of their own. It hits you then: you have reached home.',
     onEnter: [ending],
   }),
 ];

@@ -270,7 +270,7 @@ export function keeperProof(w: World): void {
     w.say(
       '"That is what he always said," says the dragon. "You know it now. You did not know it ' +
         'then." He pulls his tail off the passage headed east, and lays his head down with ' +
-        'his back to you. You see a scale under his chin glimmer in the torchlight.',
+        'his back to you.',
     );
   };
   choose(w, [
@@ -355,9 +355,9 @@ function dragonDuel(w: World, weapon: string): void {
           w.setFlag('scaleScorched');
           w.award('duel', POINTS.duel);
           w.say(
-            `You lower the ${name}. The dragon breathes on it, gently, and it runs off your ` +
-              'hand like water and hisses on the stone. "Good," he says. "Now you know what ' +
-              'strength is for."',
+            `You lower the ${name}. The dragon breathes on it, gently, and it is ash and ` +
+              'cinders in your hand before you feel the heat. "Good," he says. "Now you know ' +
+              'what strength is for."',
           );
           giveScale(w);
         },
@@ -387,8 +387,10 @@ export function giveScale(w: World): void {
       'stone like a dropped coin. "A dragonscale," he says, "to aid you in your journey."',
   );
   w.say(
-    'He pulls his tail off the passage headed east and lays his head back down. "If the keeper ' +
-      'comes," he says, already half asleep, "say that I waited."',
+    'He pulls his tail off the passage headed east and lays his head back down. ' +
+      (w.flag('keeperTold')
+        ? '"Go on, then," he says, already half asleep. "One of us should go somewhere."'
+        : '"If the keeper comes," he says, already half asleep, "say that I waited."'),
   );
   w.say('You now have a dragonscale.');
   w.move('scale', 'inventory');
@@ -443,6 +445,7 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
         'he is ugly.',
     );
   }
+  const grieving = trollGrieves(w);
   choose(w, [
     {
       label: '"It is only a tooth. The rest of you is still here."',
@@ -456,24 +459,29 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
         trollFindsVoice(w, glass);
       },
     },
-    {
-      label: '"It makes you look... funny?"',
-      run: () => {
-        w.say(
-          `The troll makes a silly face in the ${name}. His broken tooth is visible. He laughs, ` +
-            'with his whole mouth, for the first time in what must be years.',
-        );
-        if (w.locationOf('turnip') === 'nowhere') {
-          w.move('turnip', 'inventory');
-          w.markMoved('turnip');
-          w.say(
-            'Still laughing, he digs in a pocket and pushes a small, muddy turnip into your ' +
-              'hands. "From garden," he says. "Small one. Not step on."',
-          );
-        }
-        trollFindsVoice(w, glass);
-      },
-    },
+    // a troll who is mourning his friend is in no mood to laugh
+    ...(grieving
+      ? []
+      : [
+          {
+            label: '"It makes you look... funny?"',
+            run: () => {
+              w.say(
+                `The troll makes a silly face in the ${name}. His broken tooth is visible. He laughs, ` +
+                  'with his whole mouth, for the first time in what must be years.',
+              );
+              if (w.locationOf('turnip') === 'nowhere') {
+                w.move('turnip', 'inventory');
+                w.markMoved('turnip');
+                w.say(
+                  'Still laughing, he digs in a pocket and pushes a small, muddy turnip into your ' +
+                    'hands. "From garden," he says. "Small one. Not step on."',
+                );
+              }
+              trollFindsVoice(w, glass);
+            },
+          },
+        ]),
     {
       label: '"Yes. It is quite horrendous."',
       run: () =>
@@ -857,7 +865,7 @@ export function reviveDragon(w: World): void {
   );
   w.say(
     'Something falls out of the air and rings on the ground at your feet. It is a dragonscale, ' +
-      'cracked across the middle. Far off, the dragon begins to settle into a slumber again.',
+      'cracked across the middle.',
   );
   w.say('You now have a dragonscale. Your arms have stopped shaking.');
 }

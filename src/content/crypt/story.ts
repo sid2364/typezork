@@ -99,7 +99,7 @@ export const weak = (w: World): boolean => w.isDead('dragon');
 export const MUTE = 'You open your mouth. Nothing comes out.';
 
 // weapons that scrape and clank when you try to be quiet
-const NOISY = ['sword', 'hammer', 'knife'];
+const NOISY = ['sword', 'spear', 'hammer', 'knife'];
 
 // the troll's club, for anyone who brings the wrong thing to a fight with it
 export function clubbed(w: World, weapon?: string): string {
@@ -324,6 +324,12 @@ function killedDragon(w: World, weapon: string): void {
   );
   w.move(weapon, 'nowhere');
   w.say('The passageway leading to the east opens up.');
+  if (trollFriend(w)) {
+    w.say(
+      'Out past the archway, the troll stops practising his words. For a long time you hear ' +
+        'nothing from him at all.',
+    );
+  }
   if (w.isDead('troll')) killedBoth(w);
 }
 
@@ -352,15 +358,13 @@ function killedTroll(w: World): void {
   if (dragonFriend(w)) {
     w.say(
       `A shadow crosses the ${w.here === 'gazebo' ? 'gazebo' : 'garden'}. The dragon lands ` +
-        'badly, like something that has not flown ' +
-        'in years, and looks at the troll for a long time. He does not roar. He holds out one ' +
-        'claw' +
+        'badly, like something that has not flown in years, and looks at the troll for a long ' +
+        'time.' +
         (w.locationOf('scale') === 'nowhere'
-          ? ', and then lets it fall.'
-          : ', and waits until the scale is in it. You give it back because there is ' +
-            'nothing else to do.') +
-        ' "He grew the turnips," the dragon says, "and he never once ate the mutton." He walks ' +
-        'back into the castle and does not look at you.',
+          ? ' He holds out one claw, and then lets it fall.'
+          : ' He holds out one claw for the scale. You give it back because there is nothing ' +
+            'else to do.') +
+        ' "He grew the turnips," he says, and goes back into the castle without a look at you.',
     );
     w.move('scale', 'nowhere');
     w.setFlag('dragonEstranged');
@@ -392,27 +396,18 @@ export function ending(w: World): void {
 
 // the darker road: with the dragon and the troll both gone, you go back to keep the castle
 function keeperEnding(w: World): void {
-  w.say(
-    'You look upon the faces one by one, and you know them all, as you have always known ' +
-      'them. Two are missing from among them. The others keep silent beneath the ' +
-      'trees, and wait to see what you will do.',
-  );
+  w.say('You look upon the faces, and you know them all. Two are missing from among them.');
   remember(w);
   w.say(
-    'None bids you go. Yet it comes to you, as their tongue came to you, that the castle must ' +
-      'have a keeper, and that the task has fallen to you. So you turn back. You cross the ' +
-      "river once more, and the garden lets you pass. In the keeper's quarters the bed is made " +
-      'and the cup stands upon the table, and the coat behind the door fits you well. You open ' +
-      'the ledger where the entries end, and beneath them, in a careful hand, you write a ' +
-      'single word: Waiting.',
+    'None bids you go, yet you know that the castle must have a keeper. So you turn back, and ' +
+      "cross the river, and go in under the portcullis and down the stair. In the keeper's " +
+      'quarters the coat behind the door fits you well. You open the ledger where the entries ' +
+      'end, and beneath them you write a single word: Waiting.',
   );
   w.say(
-    'Long ago the keeper went away in the middle of an ordinary day, and the dragon waited ' +
-      'for him until the end. Now you keep the castle in his stead, and the great bowl stands ' +
-      'empty by the door, and no step comes up the stair. The waiting is yours now, and it has ' +
-      'no end.',
+    'The great bowl stands empty by the door, and no step comes down the stair. The waiting is ' +
+      'yours now, and it has no end.',
   );
-  w.say('So you passed the test by the darker road, and took up the long watch of the castle.');
   w.say('Bravo! You beat the game, by the darker road.', 'win');
 }
 
@@ -420,103 +415,99 @@ function homeEnding(w: World): void {
   const dDead = w.isDead('dragon');
   const tDead = w.isDead('troll');
 
-  w.say(
-    'You look at the faces, one after another. You know them. You have always known them. ' +
-      'Every face here is a face of yours.',
-  );
+  w.say('You look at the faces, and you know them all. Every face here is a face of yours.');
 
   // the strength
   if (dDead) {
     w.say(
-      'There is an empty place by the fire. Nobody sits in it, and nobody explains it. A ' +
-        'child runs up and holds out her arms. Yours do not lift. They shake a little, the ' +
-        'way they did over the dragon, and stay at your sides. You tell her why. You have the ' +
-        'words for it, at least.',
+      'There is an empty place by the fire. A child runs up and holds out her arms, and yours ' +
+        'will not lift. They shake, the way they did over the dragon.',
     );
   } else if (w.flag('dragonEstranged')) {
     w.say(
       'A very tall one, with smoke in his breath, sits on the far side of the fire and keeps ' +
-        'the fire between you. He does not leave. He does not come closer.',
+        'the fire between you.',
     );
   } else if (w.flag('dragonRevived')) {
     w.say(
-      'A very tall one stands a little apart, with a cracked scale on a string around his ' +
-        'neck. He looks at you for a long moment. Then he comes over anyway. That "anyway" is ' +
-        'the best thing anyone gives you all day.',
+      'A very tall one stands apart, with a cracked scale on a string around his neck. He ' +
+        'looks at you a long while, and then he comes over anyway.',
     );
   } else if (w.flag('dragonDueled')) {
     w.say(
-      'At the back stands a very tall one with a scorched scale on a string around his neck. ' +
-        'He shows it to everyone, and tells them how you came at him with a blade and then ' +
-        'put it down. He tells it twice. The second time, the blade is bigger.',
+      'A very tall one wears a scorched scale on a string around his neck. He tells everyone ' +
+        'how you came at him armed and laid your weapon down. By the second telling, the ' +
+        'weapon is bigger.',
     );
   } else if (w.flag('dragonFooled')) {
     w.say(
-      'At the back stands a very tall one with smoke in his breath. He does not mention the ' +
-        'keeper all evening, and neither do you. Once, he catches your eye, and very nearly ' +
-        'smiles.',
+      'A very tall one with smoke in his breath does not mention the keeper all evening, and ' +
+        'neither do you. Once, he catches your eye, and very nearly smiles.',
     );
   } else if (dragonTamed(w)) {
     w.say(
-      'At the back stands a very tall one with a long scar upon his neck. When you lift your ' +
-        'hand he comes, and when you lower it he lies down at your feet, and all evening he ' +
-        'keeps the cold from your back.',
+      'A very tall one with a long scar upon his neck lies down at your feet, and all evening ' +
+        'he keeps the cold from your back.',
     );
   } else if (w.flag('dragonFriend')) {
     w.say(
-      'At the back stands a very tall one with smoke in his laugh. He lifts you off the ' +
-        'ground with one arm, to show that he can, and to show that you are worth lifting.',
+      'A very tall one with smoke in his laugh lifts you off the ground with one arm, to show ' +
+        'that he can, and to show that you are worth lifting.',
     );
   } else {
     w.say(
-      'Everyone is here except one. At night, something large breathes at the edge of the ' +
-        'forest. It does not come closer.',
+      'Everyone is here except one. Now and then the fire gutters, as if something far off ' +
+        'had turned over in its sleep.',
     );
   }
 
   // he heard it from you that the keeper was not coming back
   if (!dDead && w.flag('keeperTold')) {
     w.say(
-      'Someone has made a bed by the fire. There is a cup beside it. ' +
-        'The tall one sits next to it all night, keeping watch.',
+      'Someone has made a bed by the fire, with a cup beside it. The tall one looks at it a ' +
+        'long while, and then comes and sits with the rest of you.',
     );
   }
 
   // the voice
-  if (tDead) {
+  if (tDead && mute(w)) {
     w.say(
-      'There is an empty place by the fire. They speak to you, and you understand every ' +
-        'word. You open your mouth to answer. Nothing comes out. They wait, kindly, for a ' +
-        'long time. Then they stop waiting.',
+      'There is an empty place by the fire. They speak to you, and you open your mouth to ' +
+        'answer, and nothing comes out. They wait kindly for a long time, and then they stop ' +
+        'waiting.',
+    );
+  } else if (tDead) {
+    // beaten in a fair fight: the voice is yours, and so is what you did with it
+    w.say(
+      'There is an empty place by the fire. They ask you who used to sit there. You have the ' +
+        'voice to tell them, and you look into the fire a long time before you do.',
     );
   } else if (w.flag('trollRevived')) {
     w.say(
-      'One of them has a broken tooth, and is a little shy of you. But when you say you are ' +
-        'sorry, out loud, in the voice you got back, the answer is a nod, and a place to sit.',
+      'One of them has a broken tooth, and is a little shy of you. When you say you are sorry, ' +
+        'out loud, he nods, and makes a place for you.',
     );
   } else if (w.flag('trollForgave') && w.flag('trollFriend')) {
     w.say(
       'One of them has a broken tooth, and keeps a hand near his mouth. When you speak to him, ' +
-        'he lowers the hand. He does not cover the tooth again all evening.',
+        'he lowers the hand, and does not cover the tooth again all evening.',
     );
   } else if (w.flag('trollForgave')) {
     // forgiven, but never shown his face, so he never found his voice
     w.say(
-      'One of them has a broken tooth, and sits beside you. But his hand stays over his mouth ' +
-        'all evening. Nobody ever showed him his own face.',
+      'One of them has a broken tooth, and sits beside you with his hand over his mouth. ' +
+        'Nobody ever showed him his own face.',
     );
   } else if (w.flag('trollHurt') && !w.flag('trollFriend')) {
     // the cruel word was never taken back
     w.say(
-      'One of them has a broken tooth, and keeps a hand over his mouth all evening. He sits at ' +
-        'the edge of the firelight, close enough to hear, too far to talk. You know what you ' +
-        'said. Your voice is your own, and you have not yet used it to say anything else.',
+      'One of them has a broken tooth, and sits at the edge of the firelight all evening with ' +
+        'a hand over his mouth. You know what you said, and you have not unsaid it.',
     );
   } else {
     w.say(
-      'One of them has a broken tooth, and starts to cover it with a hand, then remembers, ' +
-        'and takes the hand away. "Booga hoom," he says, loud enough for the whole forest. ' +
-        'You are home. You say it back, and your voice is your own, and it carries.',
+      'One of them has a broken tooth. He starts to cover it, remembers, and takes the hand ' +
+        'away. "Booga hoom," he says, loud enough for the whole forest, and you say it back.',
     );
   }
 
@@ -529,10 +520,13 @@ function homeEnding(w: World): void {
 function remember(w: World): void {
   const found = fragments(w);
   if (found >= 3) {
+    // the potion has just told you about the candle and the bolt
     w.say(
-      'And then you remember, the way you remember a word. The candle, and your own hands ' +
-        'lighting it. The bolt, and your own hand closing it. Nobody put you in the crypt. ' +
-        'You went in to find out who would come out.',
+      (w.flag('potionDrunk')
+        ? ''
+        : 'And then you remember, the way you remember a word. The candle, and your own hands ' +
+          'lighting it. The bolt, and your own hand drawing it. ') +
+        'You shut yourself in the crypt, to find out who would come out.',
     );
     if (found >= 4) {
       w.say(
@@ -549,10 +543,16 @@ function remember(w: World): void {
 }
 
 function verdict(w: World): string {
-  if (w.isDead('troll')) {
+  if (mute(w)) {
     return (
       'You passed the test, in conflict with yourself. You chose your strength over your ' +
       'voice. One day you will want to talk about it.'
+    );
+  }
+  if (w.isDead('troll')) {
+    return (
+      'You passed the test, by a hard road. You kept your voice and your strength, and one ' +
+      'day you will want to tell someone what they cost.'
     );
   }
   if (w.isDead('dragon')) {

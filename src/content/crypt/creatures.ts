@@ -46,7 +46,7 @@ export const creatures = [
         return 'The skeleton does not even look up. "We will never speak of this," it says.';
       }
       if (skeletonBeaten(w)) {
-        return 'The skeleton holds up a bony hand in defeat. "Once was enough. My ribs are still ringing."';
+        return 'The skeleton holds up a bony hand in defeat. "Once was enough. My jaw is still ringing."';
       }
       if (!skeletonTalked(w)) {
         return (
@@ -94,8 +94,9 @@ export const creatures = [
       'There is a passage that leads you east.',
     examine: (w) =>
       dragonFriend(w)
-        ? 'Up close, the dragon is mostly ribs and patience. He is a better colour since he ate. ' +
-          'His scales are polished as bright as mirrors, every one.' +
+        ? 'Up close, the dragon is mostly ribs and patience.' +
+          (w.flag('dragonRevived') ? '' : ' He is a better colour since he ate.') +
+          ' His scales are polished as bright as mirrors, every one.' +
           (dragonTamed(w) ? ' A long scar runs down his neck, where your blow fell.' : '')
         : 'The dragon is enormous, scaly and very much asleep. A thin curl of smoke drifts from ' +
           "one nostril. He guards the passage east as if he's being paid to. He is also thinner " +
@@ -166,13 +167,16 @@ export const creatures = [
             : 'The troll stands in the archway with his club in both hands. His eyes are red. ' +
               'He looks at you, and then past you, west, where his friend lies.'
           : w.flag('trollRevived')
-            ? 'The troll sits a little way off the garden path and watches you carefully. His hand ' +
-              'is not over his mouth.'
-            : trollFriend(w)
-              ? 'The troll sits by the garden path and practises words out loud. "Garden. Club. ' +
-                'Tooth." He waves when he sees you.'
-              : 'A troll is wandering in the garden outside. He swings his massive club in the air ' +
-                'every now and then.',
+            ? `The troll sits a little way off ${w.locationOf('troll') === 'gazebo' ? 'by the gazebo rail' : 'the garden path'} ` +
+              'and watches you carefully. His hand is not over his mouth.'
+            : trollFriend(w) && w.isDead('dragon')
+              ? 'The troll sits by the garden path with his club across his knees, and looks ' +
+                'west through the archway. He is not practising any words today.'
+              : trollFriend(w)
+                ? 'The troll sits by the garden path and practises words out loud. "Garden. Club. ' +
+                  'Tooth." He waves when he sees you.'
+                : 'A troll is wandering in the garden outside. He swings his massive club in the air ' +
+                  'every now and then.',
     deadDescription: (w) =>
       w.flag('trollFought')
         ? 'The troll lies in the grass with his face toward the archway. Beyond him, a garden ' +

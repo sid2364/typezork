@@ -319,6 +319,8 @@ function talkTo(w: World, target: ThingId): void {
       w.say('"I am still deciding about you," says the dragon. "But you may sit, while I decide."');
     } else if (w.flag('dragonFooled')) {
       w.say('"I am no fool," says the dragon, without opening his eyes. "Carry on."');
+    } else if (w.flag('keeperTold')) {
+      w.say('"Still here," says the dragon. "I have nobody to wait for. It is a strange feeling."');
     } else {
       w.say('"Still here," says the dragon. "Still waiting. It is easier with company."');
     }
@@ -331,6 +333,8 @@ function talkTo(w: World, target: ThingId): void {
       w.say('"Hello," says the troll, carefully. He does not come closer.');
     } else if (trollSulks(w)) {
       apologiseToTroll(w);
+    } else if (trollFriend(w) && w.isDead('dragon')) {
+      w.say('The troll looks west, through the archway. "Him sleep," he says. "Long sleep."');
     } else if (trollFriend(w)) {
       w.say('"HELLO," says the troll, with all of his mouth. He is still very proud of the word.');
     } else if (!w.flag('trollAsked') && !w.flag('trollHurt')) {
@@ -493,7 +497,7 @@ const drinkCommand: CommandDef = {
     w.say(
       'It comes back the way a word comes back. A candle, and your own hands lighting it. A ' +
         'door, and your own hand drawing the bolt. Runes on a wall that you can read, because ' +
-        'you wrote them. Dark water, and a reflection you did not know. And a face in a glass, ' +
+        'you wrote them. Clear water, and a reflection you did not know. And a face in a glass, ' +
         'with lines painted under its eyes. You remember it all at once. This was a rite of ' +
         'passage, a test you set yourself, to see what sort of person you have become.',
     );
