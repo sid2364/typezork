@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-22T23:04:44.478Z",
+        "reason": "Claude triage: static scan of index.html can't see styles.css (imported from src/ui/main.ts); rendered title h1 is clamp(1.6rem,6vw,3.2rem). Same finding verified false positive in the 2026-11-22 audit."
+      }
+    ]
+  }
+}

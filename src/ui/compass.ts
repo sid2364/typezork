@@ -108,7 +108,8 @@ function build(svg: SVGSVGElement, onGo: (dir: Direction) => void): CompassParts
     text.setAttribute('x', lx!);
     text.setAttribute('y', ly!);
     text.textContent = label;
-    g.append(text);
+    // An invisible disc around the label widens the tap target beyond the slim point.
+    g.append(el('circle', { cx: lx!, cy: ly!, r: 20, class: 'compass__hit' }), text);
     clickable(g, dir, onGo);
     points.set(dir, g);
     (main ? layers.main : layers.diagonal).append(g);

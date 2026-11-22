@@ -1,3 +1,76 @@
+/* ---- fonts ------------------------------------------------------------------ */
+
+/* IBM Plex Mono, self-hosted so every OS sees the same terminal. Regular, italic (hints) and bold
+   (room titles, the brand, compass letters); the latin-ext files only load if a page needs them. */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-400-italic-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-400-italic-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-700-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-700-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* ---- theme ------------------------------------------------------------------ */
 
 .app {
@@ -13,6 +86,17 @@
   --option: #b6ffc9;
   --hint: #9ab8ff;
   --glow: 0 0 6px rgb(61 255 116 / 45%);
+  /* how far earlier turns fade: the dimmest text colour must stay above 4.5:1 */
+  --old-opacity: 0.7;
+  /* Type roles: labels (tracked caps over sections), meta (hints, captions, buttons), ui (panel
+     text, chips), body (the story), lead (the ending line). */
+  --text-label: 0.75rem;
+  --text-meta: 0.8rem;
+  --text-ui: 0.85rem;
+  --text-body: 0.9375rem;
+  --text-lead: 1.15rem;
+  /* exponential ease-out: moments arrive at once and settle slowly, like phosphor decaying */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --font: 'IBM Plex Mono', 'SF Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
@@ -29,6 +113,7 @@
   --option: #ffe2a8;
   --hint: #ffc4e1;
   --glow: 0 0 6px rgb(255 176 0 / 45%);
+  --old-opacity: 0.78;
 }
 
 /* ---- base ------------------------------------------------------------------- */
@@ -41,6 +126,7 @@
 
 html,
 body {
+  color-scheme: dark;
   height: 100%;
   margin: 0;
   background: #000;
@@ -49,7 +135,10 @@ body {
 .app {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(220px, 290px);
+  /* Side panels give way on tablets so the story column keeps its measure. */
+  grid-template-columns:
+    minmax(200px, min(300px, 24vw)) minmax(0, 1fr)
+    minmax(200px, min(290px, 24vw));
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     'bar bar bar'
@@ -58,7 +147,7 @@ body {
   height: 100dvh;
   background: var(--faint);
   color: var(--fg);
-  font: 15px/1.55 var(--font);
+  font: var(--text-body)/1.55 var(--font);
   text-shadow: var(--glow);
   overflow: hidden;
 }
@@ -80,6 +169,12 @@ input {
   font: inherit;
   color: inherit;
   text-shadow: inherit;
+}
+
+::selection {
+  background: var(--fg);
+  color: var(--bg);
+  text-shadow: none;
 }
 
 :focus-visible {
@@ -105,11 +200,11 @@ input {
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 
-.btn:hover,
-.btn:focus-visible {
+.btn:focus-visible,
+.btn:active {
   background: var(--fg);
   color: var(--bg);
   text-shadow: none;
@@ -132,7 +227,8 @@ input {
   text-align: left;
 }
 
-.link:hover {
+.link:focus-visible,
+.link:active {
   color: var(--fg-strong);
   text-decoration: underline;
 }
@@ -143,11 +239,11 @@ input {
   border-radius: 2px;
   background: transparent;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--text-ui);
 }
 
-.chip:hover,
-.chip:focus-visible {
+.chip:focus-visible,
+.chip:active {
   border-color: var(--fg);
   background: var(--faint);
 }
@@ -159,11 +255,14 @@ input {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.35rem 0.9rem;
+  padding: max(0.35rem, env(safe-area-inset-top)) max(0.9rem, env(safe-area-inset-right)) 0.35rem
+    max(0.9rem, env(safe-area-inset-left));
   background: var(--panel);
 }
 
 .brand {
+  margin: 0;
+  font-size: inherit;
   font-weight: 700;
   letter-spacing: 0.3em;
   color: var(--fg-strong);
@@ -172,7 +271,7 @@ input {
 .bar__status {
   flex: 1;
   color: var(--dim);
-  font-size: 0.85rem;
+  font-size: var(--text-ui);
   text-align: right;
   white-space: nowrap;
   overflow: hidden;
@@ -190,11 +289,12 @@ input {
   background: var(--panel);
   padding: 0.9rem;
   overflow-y: auto;
-  font-size: 0.85rem;
+  font-size: var(--text-ui);
 }
 
 .panel--left {
   grid-area: left;
+  padding-left: max(0.9rem, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -203,11 +303,12 @@ input {
 
 .panel--right {
   grid-area: right;
+  padding-right: max(0.9rem, env(safe-area-inset-right));
 }
 
 .panel__title {
   margin: 0 0 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   font-weight: 400;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -234,11 +335,62 @@ input {
   overflow-wrap: anywhere;
 }
 
+/* Points arrive quietly in the story, so the figure flares and the change rises off it. It sits
+   at its static place after the number, out of the flow, so nothing shifts. */
+.status__delta {
+  position: absolute;
+  margin-left: 0.6em;
+  color: var(--accent);
+  font-size: var(--text-meta);
+  animation: delta-rise 1.6s var(--ease-out) forwards;
+}
+
+.status__delta--down {
+  color: var(--error);
+}
+
+@keyframes delta-rise {
+  60% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.7em);
+  }
+}
+
+/* Anything that just changed lights up like fresh phosphor and fades back to its own colour. */
+.flare {
+  animation: flare 1.2s var(--ease-out);
+}
+
+@keyframes flare {
+  from {
+    color: var(--accent);
+    text-shadow:
+      0 0 4px var(--accent),
+      0 0 14px var(--accent);
+  }
+}
+
+/* The bar clips its text for the ellipsis, which would cut a halo into a box: it only tints. */
+.bar__status.flare {
+  animation-name: flare-tint;
+}
+
+@keyframes flare-tint {
+  from {
+    color: var(--accent);
+  }
+}
+
 /* ---- compass rose ---- */
 
 .compass__svg {
   display: block;
-  width: min(100%, 160px, 22dvh);
+  width: clamp(160px, 24dvh, 180px); /* never below 160px, so labels stay at 12px or more */
+  max-width: 100%;
   margin: 0 auto;
   overflow: visible;
 }
@@ -262,7 +414,15 @@ input {
 
 .compass__label {
   fill: var(--dim);
-  font: 700 15px var(--font);
+  font: 700 19px var(--font); /* viewBox units: 19 of 250 is about 13px at 180px wide */
+}
+
+.compass__hit {
+  fill: transparent;
+}
+
+.compass__point:not(.compass__point--open) .compass__hit {
+  pointer-events: none;
 }
 
 .compass__hub {
@@ -297,8 +457,22 @@ input {
 
 .compass__point--open:hover,
 .compass__point--open:focus-visible {
-  outline: none;
   filter: drop-shadow(0 0 4px var(--fg));
+}
+
+/* Focus switches the point to the accent colour, so it reads even where SVG outlines don't draw. */
+.compass__point--open:focus {
+  outline: none;
+}
+
+.compass__point--open:focus-visible .compass__plain,
+.compass__point--open:focus-visible .compass__shade,
+.compass__point--open:focus-visible .compass__hatch {
+  stroke: var(--accent);
+}
+
+.compass__point--open:focus-visible .compass__label {
+  fill: var(--accent);
 }
 
 .minimap__title {
@@ -343,7 +517,7 @@ input {
   justify-content: space-between;
   gap: 1rem;
   margin: 0.5rem 0 0;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   color: var(--dim);
 }
 
@@ -353,7 +527,7 @@ input {
 }
 
 .map-world {
-  transition: transform 0.35s ease;
+  transition: transform 0.35s var(--ease-out);
 }
 
 .map-grid-cell {
@@ -380,6 +554,43 @@ input {
   fill: var(--fg);
   stroke: var(--fg-strong);
   filter: drop-shadow(0 0 3px var(--fg)) drop-shadow(0 0 8px var(--fg));
+}
+
+/* A newly found room traces its outline in, and the radar pings it once. */
+.map-cell--new {
+  stroke-dasharray: 100;
+  animation: map-trace 0.8s var(--ease-out) both;
+}
+
+@keyframes map-trace {
+  from {
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+  }
+}
+
+.map-ping {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+  stroke: var(--fg-strong);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+  animation: map-ping 1.1s var(--ease-out) 0.2s;
+}
+
+@keyframes map-ping {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
 }
 
 .map-stub {
@@ -423,12 +634,13 @@ input {
 .help__tip {
   margin-top: 1.2rem;
   color: var(--dim);
-  font-size: 0.78rem;
+  font-size: var(--text-meta);
 }
 
 /* ---- screen ----------------------------------------------------------------- */
 
 .screen {
+  position: relative;
   grid-area: screen;
   display: flex;
   flex-direction: column;
@@ -448,10 +660,24 @@ input {
 }
 
 .line {
+  text-wrap: pretty;
   margin: 0 0 0.45rem;
   transition: opacity 0.4s ease;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+
+/* The line being typed carries a solid block cursor, drawn as a box because the font subset has
+   no block glyphs. It takes the line's own colour and leaves when the line is done. */
+.line--typing::after {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 1.15em;
+  margin-left: 0.1em;
+  vertical-align: -0.2em;
+  background: currentColor;
+  opacity: 0.85;
 }
 
 .line-gap {
@@ -465,13 +691,19 @@ input {
   letter-spacing: 0.05em;
 }
 
-.line--old {
-  opacity: 0.55;
+.line--old:not(.line--echo) {
+  opacity: var(--old-opacity);
 }
 
+/* Earlier commands are already dim, so they stay at --dim (4.6:1) instead of fading further;
+   the latest one is lifted to --fg so the current turn still stands out. */
 .line--echo {
   margin-top: 0.9rem;
   color: var(--dim);
+}
+
+.line--echo:not(.line--old) {
+  color: var(--fg);
 }
 
 .line--error {
@@ -501,7 +733,47 @@ input {
   margin-top: 1rem;
   color: var(--accent);
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: var(--text-lead);
+}
+
+/* A death burns in white-hot and cools to its warning colour. */
+.line--lose.line--typed {
+  animation: burn 1.4s var(--ease-out);
+}
+
+@keyframes burn {
+  from {
+    color: var(--fg-strong);
+    text-shadow:
+      0 0 6px var(--error),
+      0 0 18px var(--error);
+  }
+}
+
+/* The ending blooms: its glow swells, then settles. */
+.line--win.line--typed {
+  animation: bloom 2.6s ease-out;
+}
+
+@keyframes bloom {
+  35% {
+    text-shadow:
+      0 0 8px var(--accent),
+      0 0 24px var(--accent),
+      0 0 48px var(--fg);
+  }
+}
+
+/* As the last words of a death land, the tube browns out once: a single dip, well under the
+   three-flashes-a-second limit. */
+.screen.is-dying {
+  animation: brownout 0.45s ease-in-out;
+}
+
+@keyframes brownout {
+  30% {
+    opacity: 0.5;
+  }
 }
 
 .screen__again {
@@ -512,13 +784,14 @@ input {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.6rem clamp(1rem, 4vw, 3rem) 0.9rem;
+  padding: 0.6rem clamp(1rem, 4vw, 3rem) max(0.9rem, env(safe-area-inset-bottom));
   border-top: 1px solid var(--faint);
 }
 
 .prompt__caret {
   color: var(--fg-strong);
-  animation: blink 1.1s steps(1) infinite;
+  /* blinks for a few seconds after each turn (restarted in main.ts), then holds steady */
+  animation: blink 1.1s steps(1) 5;
 }
 
 .prompt__input {
@@ -528,7 +801,7 @@ input {
   border: 0;
   background: transparent;
   caret-color: var(--fg);
-  font-size: 16px; /* stops iOS zooming on focus */
+  font-size: max(16px, 1rem); /* 16px floor stops iOS zooming on focus */
 }
 
 .prompt__input:focus {
@@ -540,9 +813,10 @@ input {
   opacity: 1;
 }
 
+/* Every blink is finite (WCAG 2.2.2): it calls attention, then the text stays lit to be read. */
 @keyframes blink {
   50% {
-    opacity: 0.25;
+    opacity: 0.4;
   }
 }
 
@@ -556,6 +830,57 @@ input {
   place-items: center;
   background: var(--bg);
   text-align: center;
+}
+
+/* Leaving the title switches it off like an old tube: the picture squeezes to a glowing line,
+   the line shrinks to a dot, and the game is already live behind the glass. */
+.title-screen.is-leaving {
+  pointer-events: none;
+  animation: crt-off 0.45s forwards;
+}
+
+.title-screen.is-leaving::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--fg-strong);
+  animation: crt-glow 0.45s linear forwards;
+}
+
+@keyframes crt-off {
+  from {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+  }
+
+  55% {
+    transform: scale(1, 0.006);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  85% {
+    transform: scale(0.08, 0.006);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0, 0.006);
+    opacity: 0;
+  }
+}
+
+/* Only once the picture has collapsed does it brighten into a phosphor line; lit any earlier,
+   the whole screen would flash. */
+@keyframes crt-glow {
+  from,
+  55% {
+    opacity: 0;
+  }
+
+  62%,
+  to {
+    opacity: 1;
+  }
 }
 
 .title-screen[hidden] {
@@ -590,7 +915,7 @@ input {
   right: 0;
   margin: 0;
   color: var(--dim);
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   letter-spacing: 0.05em;
 }
 
@@ -609,13 +934,13 @@ input {
 
 .title-screen__credit a:hover,
 .title-screen__credit a:focus-visible {
-  outline: none;
   color: var(--fg-strong);
   border-bottom-color: var(--fg);
   text-shadow: var(--glow);
 }
 
 .title-screen__sub {
+  text-wrap: balance;
   margin: 1.5rem 0;
 }
 
@@ -627,10 +952,10 @@ input {
   background: none;
   color: var(--dim);
   cursor: pointer;
-  animation: blink 1.6s steps(1) infinite;
+  animation: blink 1.6s steps(1) 3;
 }
 
-.line--continue:hover {
+.line--continue:active {
   color: var(--fg);
 }
 
@@ -643,14 +968,14 @@ input {
 .title-screen__hint {
   margin-top: 2rem;
   color: var(--dim);
-  font-size: 0.8rem;
-  animation: blink 1.6s steps(1) infinite;
+  font-size: var(--text-meta);
+  animation: blink 1.6s steps(1) 3;
 }
 
 .title-screen__notice {
   margin-top: 1.5rem;
   color: var(--dim);
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 
 /* ---- settings --------------------------------------------------------------- */
@@ -660,12 +985,31 @@ input {
   border: 1px solid var(--dim);
   background: var(--panel);
   color: var(--fg);
-  font: 14px/1.5 var(--font);
+  font: var(--text-ui)/1.5 var(--font);
   text-shadow: var(--glow);
 }
 
 .settings::backdrop {
   background: rgb(0 0 0 / 70%);
+}
+
+/* The dialog warms in, and closes at once. Browsers without @starting-style just show it. */
+.settings,
+.settings::backdrop {
+  transition:
+    opacity 0.18s var(--ease-out),
+    transform 0.18s var(--ease-out);
+}
+
+@starting-style {
+  .settings[open] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  .settings[open]::backdrop {
+    opacity: 0;
+  }
 }
 
 .settings fieldset {
@@ -685,7 +1029,7 @@ input {
 .settings__note {
   margin: 0 0 0.5rem;
   color: var(--dim);
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 
 .btn--danger {
@@ -693,8 +1037,8 @@ input {
   color: var(--error);
 }
 
-.btn--danger:hover,
-.btn--danger:focus-visible {
+.btn--danger:focus-visible,
+.btn--danger:active {
   background: var(--error);
   color: var(--bg);
 }
@@ -705,15 +1049,46 @@ input {
   margin-top: 1rem;
 }
 
+/* ---- hover ------------------------------------------------------------------ */
+
+/* Only for pointers that really hover: on touch screens a tapped button would otherwise stay lit. */
+@media (hover: hover) {
+  .btn:hover {
+    background: var(--fg);
+    color: var(--bg);
+    text-shadow: none;
+  }
+
+  .btn--danger:hover {
+    background: var(--error);
+  }
+
+  .link:hover {
+    color: var(--fg-strong);
+    text-decoration: underline;
+  }
+
+  .chip:hover {
+    border-color: var(--fg);
+    background: var(--faint);
+  }
+
+  .line--continue:hover {
+    color: var(--fg);
+  }
+}
+
 /* ---- small screens ---------------------------------------------------------- */
 
-@media (max-width: 900px) {
+/* Phones, portrait tablets, and phones turned on their side (too short for three columns). */
+@media (max-width: 900px), (max-height: 520px) and (pointer: coarse) {
   .app {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       'bar'
       'screen';
-    font-size: 14px;
+    --text-body: 1rem;
+    font-size: var(--text-body);
   }
 
   .btn--mobile {
@@ -722,7 +1097,8 @@ input {
 
   .bar {
     gap: 0.5rem;
-    padding: 0.35rem 0.6rem;
+    padding-right: max(0.6rem, env(safe-area-inset-right));
+    padding-left: max(0.6rem, env(safe-area-inset-left));
     flex-wrap: wrap;
   }
 
@@ -738,9 +1114,10 @@ input {
     z-index: 30;
     width: min(85vw, 320px);
     border: 1px solid var(--dim);
+    /* closing is quicker than opening */
     transition:
-      transform 0.2s ease,
-      visibility 0.2s;
+      transform 0.15s var(--ease-out),
+      visibility 0.15s;
     visibility: hidden;
   }
 
@@ -757,10 +1134,71 @@ input {
     transform: translateX(105%);
   }
 
+  .panel--left {
+    padding-left: max(0.9rem, env(safe-area-inset-left));
+  }
+
   .app[data-open='left'] .panel--left,
   .app[data-open='right'] .panel--right {
     transform: none;
     visibility: visible;
+    transition-duration: 0.22s;
+  }
+
+  /* Dims the story behind an open drawer; a tap on it closes the drawer (main.ts). */
+  .screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 55%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s var(--ease-out);
+  }
+
+  .app[data-open] .screen::after {
+    opacity: 1;
+    pointer-events: auto;
+    transition-duration: 0.22s;
+  }
+
+  .screen__scroll,
+  .prompt {
+    padding-left: max(clamp(1rem, 4vw, 3rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1rem, 4vw, 3rem), env(safe-area-inset-right));
+  }
+}
+
+/* Landscape phones have width to spare but little height: keep the status beside the buttons. */
+@media (max-height: 520px) and (pointer: coarse) {
+  .bar {
+    flex-wrap: nowrap;
+  }
+
+  .bar__status {
+    order: 0;
+    flex-basis: auto;
+    text-align: right;
+  }
+}
+
+/* Fingers need bigger targets than a cursor. */
+@media (pointer: coarse) {
+  .btn,
+  .chip {
+    min-height: 2.75rem;
+  }
+
+  .chip {
+    padding-inline: 0.75rem;
+  }
+
+  .help__list .link {
+    padding-block: 0.45rem;
+  }
+
+  .settings label {
+    padding-block: 0.4rem;
   }
 }
 
@@ -778,7 +1216,58 @@ input {
   }
 
   .panel,
-  .map-world {
+  .map-world,
+  .screen::after {
     transition: none;
+  }
+
+  /* the title fades away, and the dialog fades without growing */
+  .title-screen.is-leaving {
+    animation: fade-out 0.15s ease forwards;
+  }
+
+  .title-screen.is-leaving::after {
+    display: none;
+  }
+
+  .settings {
+    transition-property: opacity;
+  }
+
+  /* the change still shows, and fades in place without rising */
+  .status__delta {
+    animation-name: delta-fade;
+  }
+
+  .map-cell--new,
+  .map-ping,
+  .line--lose.line--typed,
+  .line--win.line--typed,
+  .screen.is-dying {
+    animation: none;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes delta-fade {
+  60% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* High-contrast modes repaint backgrounds, so the typing cursor uses the text colour directly. */
+@media (forced-colors: active) {
+  .line--typing::after {
+    forced-color-adjust: none;
+    background: CanvasText;
   }
 }

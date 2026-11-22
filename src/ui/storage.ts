@@ -26,6 +26,18 @@ function remove(key: string): void {
   }
 }
 
+/** Whether this browser lets us keep anything (private modes and strict settings may not). */
+export function storageAvailable(): boolean {
+  const probe = `${PREFIX}:probe`;
+  try {
+    localStorage.setItem(probe, '1');
+    localStorage.removeItem(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Save slots for the SAVE / LOAD commands. */
 export function localSaves(gameId: string): SaveStorage {
   return {

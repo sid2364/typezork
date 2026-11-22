@@ -21,6 +21,9 @@ function el<K extends keyof SVGElementTagNameMap>(
   return node;
 }
 
+/** Rooms already drawn on each map, so a newly found one can be marked as it appears. */
+const seen = new WeakMap<SVGSVGElement, Set<string>>();
+
 /** The persistent group that holds the rooms, so moving between rooms can animate. */
 const worlds = new WeakMap<SVGSVGElement, SVGGElement>();
 
@@ -53,14 +56,20 @@ function worldGroup(svg: SVGSVGElement): SVGGElement {
  * A round, radar-like grid map centred on the player: each explored room is a
  * square, corridors join neighbouring squares, and chevrons mark exits that
  * haven't been taken. The edges fade and blur away (see .minimap__lens).
+ * Returns whether a newly found room was pinged.
  */
 export function renderMinimap(
   svg: SVGSVGElement,
   def: GameDef,
   view: GameView,
   caption?: { here: Element; count: Element },
-): void {
+  /** Ping rooms found since the last render. Off when a save is resumed or loaded. */
+  reveal = false,
+): boolean {
   const world = worldGroup(svg);
+  const known = seen.get(svg);
+  // rooms found since the last render; their pings are drawn last, over everything
+  const pings: SVGElement[] = [];
   const layout = computeLayout(def);
   const { rooms, edges, stubs } = view.map;
   const centre = (id: string): [number, number] => {
@@ -102,7 +111,14 @@ export function renderMinimap(
     title.textContent = room.name;
     cell.append(title);
     children.push(cell);
+    if (reveal && known && !known.has(room.id)) {
+      // a new room traces itself in, with one radar ping
+      cell.classList.add('map-cell--new');
+      cell.setAttribute('pathLength', '100'); // so the trace's dash length is the whole outline
+      pings.push(el('circle', { cx: x, cy: y, r: SIZE / 2, class: 'map-ping' }));
+    }
   }
+  seen.set(svg, new Set(rooms.map((r) => r.id)));
 
   for (const { from, dir } of stubs) {
     const [x, y] = centre(from);
@@ -131,7 +147,7 @@ export function renderMinimap(
     );
   }
 
-  world.replaceChildren(...children);
+  world.replaceChildren(...children, ...pings);
 
   const current = rooms.find((r) => r.current);
   const [cx, cy] = current ? centre(current.id) : [0, 0];
@@ -147,4 +163,5 @@ export function renderMinimap(
     `Map of explored locations: ${rooms.map((r) => r.name).join(', ')}. ` +
       `You are in ${current?.name ?? 'an unknown place'}.`,
   );
+  return pings.length > 0;
 }

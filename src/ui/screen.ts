@@ -9,7 +9,9 @@ interface QueueItem {
 /**
  * The scrollback "screen". Lines are typed out a character at a time; the
  * whole queue can be skipped. A separate aria-live region receives every line
- * in full straight away, so screen readers never wait on the animation.
+ * in full straight away, so screen readers never wait on the animation. The
+ * typed lines are hidden from assistive tech to avoid reading them twice, but
+ * controls added with append() (Continue, Play again) stay reachable.
  */
 export class Screen {
   private queue: QueueItem[] = [];
@@ -36,6 +38,7 @@ export class Screen {
       if (l.style === 'echo') this.dimOlder();
       const el = document.createElement('p');
       el.className = `line line--${l.style}`;
+      el.setAttribute('aria-hidden', 'true');
       if (l.style === 'title') this.scroll.appendChild(spacer());
       this.scroll.appendChild(el);
       this.announce(l.text);
@@ -43,6 +46,7 @@ export class Screen {
         // Flush anything still typing first so lines never appear out of order.
         if (l.style === 'echo') this.skip();
         el.textContent = l.text;
+        el.classList.add('line--typed');
       } else {
         this.queue.push({ el, text: l.text, typed: 0 });
       }
@@ -71,7 +75,10 @@ export class Screen {
 
   /** Finish typing everything immediately. */
   skip(): void {
-    for (const item of this.queue) item.el.textContent = item.text;
+    for (const item of this.queue) {
+      item.el.textContent = item.text;
+      done(item.el);
+    }
     this.queue = [];
     if (this.frame) cancelAnimationFrame(this.frame);
     this.frame = 0;
@@ -94,11 +101,14 @@ export class Screen {
     const stick = this.nearEnd();
     while (budget > 0 && this.queue.length) {
       const item = this.queue[0]!;
+      // the line being typed carries a block cursor at its end
+      item.el.classList.add('line--typing');
       const n = Math.min(budget, item.text.length - item.typed);
       item.typed += n;
       budget -= n;
       item.el.textContent = item.text.slice(0, item.typed);
       if (item.typed >= item.text.length) {
+        done(item.el);
         this.queue.shift();
         budget = Math.max(0, budget - 6); // a short beat between lines
       }
@@ -130,7 +140,8 @@ export class Screen {
     this.scroll.scrollTop = this.scroll.scrollHeight;
   }
 
-  private announce(text: string): void {
+  /** Tell screen readers something that isn't printed as a line (e.g. "Press Enter to continue"). */
+  announce(text: string): void {
     const p = document.createElement('p');
     p.textContent = text;
     this.live.appendChild(p);
@@ -139,8 +150,15 @@ export class Screen {
   }
 }
 
+/** A line has finished typing: the cursor leaves it, and lines that glow on arrival can start. */
+function done(el: HTMLElement): void {
+  el.classList.remove('line--typing');
+  el.classList.add('line--typed');
+}
+
 function spacer(): HTMLElement {
   const el = document.createElement('div');
   el.className = 'line-gap';
+  el.setAttribute('aria-hidden', 'true');
   return el;
 }

@@ -14,6 +14,7 @@ import {
   localSaves,
   purgeStaleSaves,
   saveSettings,
+  storageAvailable,
   type Settings,
   type Speed,
 } from './storage';
@@ -38,8 +39,12 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const SPEEDS: Record<Speed, number> = { slow: 35, normal: 110, fast: 400, instant: Infinity };
 const settings: Settings = loadSettings();
 
+const themeColor = $<HTMLMetaElement>('meta[name="theme-color"]');
+
 function applySettings(): void {
   app.dataset.theme = settings.theme;
+  // the phone's browser bar takes the screen colour of the chosen theme
+  themeColor.content = getComputedStyle(app).getPropertyValue('--bg').trim();
   app.dataset.scanlines = settings.scanlines ? 'on' : 'off';
   const form = settingsDialog.querySelector('form')!;
   (form.elements.namedItem('scanlines') as HTMLInputElement).checked = settings.scanlines;
@@ -78,16 +83,33 @@ const screen = new Screen($('#scroll'), $('#live'), () =>
   reducedMotion.matches ? Infinity : SPEEDS[settings.speed],
 );
 
+// Without storage (some private modes block it) SAVE says so instead of claiming success.
+const canSave = storageAvailable();
+
+/** Set when a command took a turn or examined something (looking closely pays, but takes no turn).
+    UNDO, LOAD and RESTART do neither, so the state they bring back never lights up. */
+let tookTurn = false;
+
 // every game over is remembered so the crypt can show it
-const newGame = (): Game =>
-  new Game(def, {
-    storage: localSaves(def.id),
+function newGame(): Game {
+  const g = new Game(def, {
+    storage: canSave ? localSaves(def.id) : undefined,
     deaths: deaths.load(def.id),
     onDeath: (total) => deaths.save(def.id, total),
   });
+  const played = (): void => {
+    tookTurn = true;
+  };
+  g.bus.on('turn', played);
+  g.bus.on('examine', played);
+  return g;
+}
 
 let game = newGame();
 let endShown = false;
+/** Score and rank level shown before this turn, to light up whatever changed. */
+let lastScore = 0;
+let lastLevel = 0;
 
 const prompt = new PromptInput($('#prompt'), $('#command'), (text) => run(text));
 
@@ -104,9 +126,45 @@ const help = new HelpPanel(
   },
 );
 
+const caret = $<HTMLElement>('.prompt__caret');
+
 function run(text: string): void {
+  tookTurn = false;
   show(game.submit(text));
-  afterTurn();
+  afterTurn(tookTurn);
+  // the > blinks for a few seconds after each turn, then holds steady; a finished animation is
+  // gone from getAnimations(), so start it over by resetting the style
+  caret.style.animation = 'none';
+  void caret.offsetWidth;
+  caret.style.animation = '';
+}
+
+/** Light an element up like fresh phosphor; it fades back on its own. */
+function flare(node: Element, className = 'flare'): void {
+  node.classList.remove(className);
+  void (node as HTMLElement).offsetWidth; // restart the animation if it is still running
+  node.classList.add(className);
+  const end = (e: Event): void => {
+    if (e.target !== node) return; // a child's animation ending bubbles up too
+    node.classList.remove(className);
+    node.removeEventListener('animationend', end);
+  };
+  node.addEventListener('animationend', end);
+}
+
+/** Points arrive quietly in the story, so the panel and the bar say so. */
+function markScore(score: number): void {
+  const change = score - lastScore;
+  const signed = change > 0 ? `+${change}` : `−${-change}`;
+  const delta = document.createElement('span');
+  delta.className = change > 0 ? 'status__delta' : 'status__delta status__delta--down';
+  delta.textContent = signed;
+  delta.setAttribute('aria-hidden', 'true');
+  delta.addEventListener('animationend', () => delta.remove(), { once: true });
+  $('#status-score').append(delta);
+  flare($('#status-score'));
+  flare($('#bar-status'));
+  screen.announce(`Score ${signed}, now ${score}.`);
 }
 
 /** Lines held back after a 'pause' marker until the player presses Enter. */
@@ -133,12 +191,14 @@ function show(lines: readonly OutputLine[]): void {
   hint.type = 'button';
   hint.className = 'line line--continue';
   hint.textContent = 'Press Enter to continue ↵';
+  hint.setAttribute('aria-label', 'Continue');
   hint.addEventListener('click', (e) => {
     e.stopPropagation();
     proceed();
   });
   continueHint = hint;
   screen.append(hint);
+  screen.announce('Press Enter to continue.');
 }
 
 function proceed(): void {
@@ -151,7 +211,8 @@ function proceed(): void {
   prompt.focus();
 }
 
-function afterTurn(): void {
+/** Refresh every panel. `played` is true when a turn was just taken, so changes can light up. */
+function afterTurn(played = false): void {
   autosave.save(def.id, game.serialize());
   const view = game.view();
   $('#status-room').textContent = view.room.name;
@@ -160,12 +221,24 @@ function afterTurn(): void {
   $('#status-exits').textContent = view.exits.map((e) => e.dir).join(', ') || 'none';
   $('#status-inventory').textContent = view.inventory.map((i) => i.name).join(', ') || 'nothing';
   $('#status-level').textContent = view.rank ? String(view.rank.level) : '–';
+  const level = view.rank?.level ?? 0;
+  if (played && view.score !== lastScore) markScore(view.score);
+  if (played && level !== lastLevel) flare($('#status-level'));
+  lastScore = view.score;
+  lastLevel = level;
   const rank = view.rank ? ` · ${view.rank.name}` : '';
   $('#bar-status').textContent =
     `${view.room.name} · turn ${view.turns} · score ${view.score}${rank}`;
   document.title = `${view.room.name} — Zork`;
   help.render(view);
-  renderMinimap(minimap, def, view, { here: $('#map-here'), count: $('#map-count') });
+  const found = renderMinimap(
+    minimap,
+    def,
+    view,
+    { here: $('#map-here'), count: $('#map-count') },
+    played,
+  );
+  if (found) flare($('#map-count'));
   renderCompass(
     compass,
     view.exits.map((e) => e.dir),
@@ -178,6 +251,8 @@ function afterTurn(): void {
 
   if (view.over && !endShown) {
     endShown = true;
+    // as the last words of a death land, the tube browns out once
+    if (!view.won && played) screen.whenIdle(() => flare($('#screen'), 'is-dying'));
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn btn--big screen__again';
@@ -195,8 +270,30 @@ function afterTurn(): void {
   }
 }
 
+/** The title screen is showing and hasn't started to leave. */
+const titleUp = (): boolean => !titleScreen.hidden && !titleScreen.classList.contains('is-leaving');
+
+/** The title switches off like an old tube (see .is-leaving); the game is live underneath at once. */
+function leaveTitle(): void {
+  titleScreen.inert = true;
+  titleScreen.classList.add('is-leaving');
+  const gone = (): void => {
+    titleScreen.hidden = true;
+    titleScreen.classList.remove('is-leaving');
+    titleScreen.inert = false;
+  };
+  titleScreen.addEventListener('animationend', (e) => {
+    // children (the blinking hint) and the glow layer (::after) end animations of their own
+    if (e.target === titleScreen && !e.pseudoElement) gone();
+  });
+  // in case the animation never runs (a background tab, say)
+  setTimeout(gone, 1000);
+}
+
 function begin(resume: boolean): void {
-  titleScreen.hidden = true;
+  if (!titleUp()) return;
+  leaveTitle();
+  setGameInert(false);
   screen.clear();
   game = newGame();
   const saved = resume ? autosave.load(def.id) : null;
@@ -218,6 +315,13 @@ function begin(resume: boolean): void {
 
 // ---- title screen ------------------------------------------------------------
 
+// While the title screen is up, the game behind it can't take focus or be read.
+const gameRegions = ['.bar', '#left', '#screen', '#right'].map((s) => $<HTMLElement>(s));
+function setGameInert(on: boolean): void {
+  for (const region of gameRegions) region.inert = on;
+}
+setGameInert(!titleScreen.hidden);
+
 // Saves from an older version of the game can't be continued: clear them out.
 if (purgeStaleSaves(def.id, (data) => isCompatibleSave(def, data)) > 0) {
   $<HTMLParagraphElement>('#save-notice').hidden = false;
@@ -233,7 +337,7 @@ $('#new-button').addEventListener('click', () => begin(false));
 
 document.addEventListener('keydown', (e) => {
   if (settingsDialog.open) return;
-  if (!titleScreen.hidden) {
+  if (titleUp()) {
     // A focused button or link handles Enter itself; otherwise focus was lost
     // (a click on the background, a tab that loaded unfocused), so start here.
     const target = e.target as HTMLElement;
@@ -270,6 +374,11 @@ function isControl(node: HTMLElement): boolean {
 }
 
 $('#screen').addEventListener('click', () => {
+  // On phones a tap on the dimmed story closes an open drawer, and does nothing else.
+  if (app.dataset.open) {
+    closePanels();
+    return;
+  }
   screen.skip();
   // Don't steal focus while the player is selecting text to copy.
   if (!window.getSelection()?.toString()) prompt.focus();

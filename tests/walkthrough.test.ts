@@ -75,6 +75,8 @@ describe('the old way through', () => {
     expect(text).toContain('Bravo! You beat the game, by the darker road.');
     expect(text).not.toMatch(/did not pass/);
     expect(game.view().rank).toEqual({ name: 'Dragonbane', level: 4, of: 5 });
+    // the final move counts, so the ending agrees with the turn counter
+    expect(text).toContain(`in ${game.state.turns} turns.`);
   });
 
   it('also works as a single chained line', () => {

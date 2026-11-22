@@ -208,8 +208,8 @@ export function rankInfo(score: number, w?: World): RankInfo {
   return { name: ranks[i]![1], level: ranks.length - i, of: ranks.length };
 }
 
-export const scoreLine = (w: World): string =>
-  `Your score is ${w.state.score}, in ${w.state.turns} turns. ` +
+export const scoreLine = (w: World, turns = w.state.turns): string =>
+  `Your score is ${w.state.score}, in ${turns} turns. ` +
   `Rank: ${rankInfo(w.state.score, w).name}.`;
 
 // ---- hooks ---------------------------------------------------------------------
@@ -389,7 +389,8 @@ export function ending(w: World): void {
   w.addScore(POINTS.home);
   if (bothDead(w)) keeperEnding(w);
   else homeEnding(w);
-  w.say(scoreLine(w));
+  // the move into the forest is still being taken, and only counts once it ends
+  w.say(scoreLine(w, w.state.turns + 1));
   if (w.flag('sawScreen')) w.say('Somewhere, a computer stops humming.');
   w.win();
 }
