@@ -89,6 +89,8 @@ export const twoWay = (from: RoomId, dir: Direction, to: RoomId): Connection => 
 export interface GameSpec {
   readonly id: string;
   readonly title: string;
+  /** Bump when a content change makes old saves unsafe (default 1). */
+  readonly version?: number;
   readonly intro?: readonly string[];
   readonly start: RoomId;
   readonly rooms: readonly RoomDef[];
@@ -162,6 +164,7 @@ export function defineGame(spec: GameSpec): GameDef {
   return deepFreeze({
     id: spec.id,
     title: spec.title,
+    version: spec.version ?? 1,
     intro: spec.intro ?? [],
     start: spec.start,
     rooms,

@@ -177,6 +177,13 @@ describe('game-specific commands', () => {
     expect(say(game, 'sniff rose')).toBe('The rose smells lovely.');
     expect(say(game, 'pocket rose')).toBe('Taken.');
   });
+
+  it('treats saying hello to someone as talking to them', () => {
+    const talked = say(newGame(), 'talk to skeleton');
+    expect(say(newGame(), 'hello skeleton')).toBe(talked);
+    expect(say(newGame(), 'hi skeleton')).toBe(talked);
+    expect(say(newGame(), 'hello dragon')).toBe(say(newGame(), 'talk to dragon'));
+  });
 });
 
 describe('events', () => {

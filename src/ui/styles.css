@@ -647,6 +647,12 @@ input {
   animation: blink 1.6s steps(1) infinite;
 }
 
+.title-screen__notice {
+  margin-top: 1.5rem;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
 /* ---- settings --------------------------------------------------------------- */
 
 .settings {
@@ -674,6 +680,23 @@ input {
 
 .settings input {
   accent-color: var(--fg);
+}
+
+.settings__note {
+  margin: 0 0 0.5rem;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
+.btn--danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.btn--danger:hover,
+.btn--danger:focus-visible {
+  background: var(--error);
+  color: var(--bg);
 }
 
 .settings__buttons {

@@ -1,6 +1,6 @@
 import './styles.css';
 import { crypt } from '../content/crypt';
-import { Game, type GameDef, type OutputLine } from '../engine';
+import { Game, isCompatibleSave, type GameDef, type OutputLine } from '../engine';
 import { HelpPanel } from './helpPanel';
 import { PromptInput } from './input';
 import { renderCompass } from './compass';
@@ -8,9 +8,11 @@ import { renderMinimap } from './minimap';
 import { Screen } from './screen';
 import {
   autosave,
+  clearAllData,
   deaths,
   loadSettings,
   localSaves,
+  purgeStaleSaves,
   saveSettings,
   type Settings,
   type Speed,
@@ -61,6 +63,13 @@ $('#settings-button').addEventListener('click', () => settingsDialog.showModal()
 $('#restart-button').addEventListener('click', () => {
   settingsDialog.close();
   run('restart');
+});
+$('#wipe-button').addEventListener('click', () => {
+  if (!confirm('Delete all saved data? Your progress, saved games and settings will be gone.'))
+    return;
+  clearAllData();
+  // start over from a clean page so nothing still in memory gets saved again
+  location.reload();
 });
 
 // ---- game --------------------------------------------------------------------
@@ -208,6 +217,11 @@ function begin(resume: boolean): void {
 }
 
 // ---- title screen ------------------------------------------------------------
+
+// Saves from an older version of the game can't be continued: clear them out.
+if (purgeStaleSaves(def.id, (data) => isCompatibleSave(def, data)) > 0) {
+  $<HTMLParagraphElement>('#save-notice').hidden = false;
+}
 
 const continueButton = $<HTMLButtonElement>('#continue-button');
 continueButton.hidden = autosave.load(def.id) === null;

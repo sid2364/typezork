@@ -2,11 +2,11 @@
  * Terminal front-end: `npm run cli`. Works interactively or with piped input:
  *   printf 'open door\ne\n' | npm run cli --silent
  */
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { crypt } from './content/crypt';
-import { Game, type OutputLine, type SaveStorage } from './engine';
+import { Game, isCompatibleSave, type OutputLine, type SaveStorage } from './engine';
 
 const SAVE_DIR = join(process.cwd(), '.saves');
 
@@ -21,6 +21,21 @@ const fileStorage: SaveStorage = {
   },
 };
 const safe = (slot: string) => slot.replace(/[^a-z0-9-]/gi, '_');
+
+/** Delete saves from an older version of the game. Returns how many were removed. */
+function purgeStaleSaves(): number {
+  if (!existsSync(SAVE_DIR)) return 0;
+  let removed = 0;
+  for (const name of readdirSync(SAVE_DIR)) {
+    if (!name.endsWith('.json')) continue;
+    const file = join(SAVE_DIR, name);
+    if (!isCompatibleSave(crypt, readFileSync(file, 'utf8'))) {
+      rmSync(file);
+      removed++;
+    }
+  }
+  return removed;
+}
 
 const tty = process.stdout.isTTY;
 const width = Math.min(process.stdout.columns || 80, 100);
@@ -88,6 +103,9 @@ const game = new Game(crypt, {
     writeFileSync(DEATHS_FILE, String(total));
   },
 });
+if (purgeStaleSaves() > 0) {
+  process.stdout.write('Old saves from an earlier version of the game were removed.\n');
+}
 print(game.start());
 
 const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: tty });

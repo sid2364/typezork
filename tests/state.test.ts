@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { crypt } from '../src/content/crypt';
 import { Game } from '../src/engine';
-import { deserialize, initialState, SaveError, serialize } from '../src/engine/state';
+import {
+  deserialize,
+  initialState,
+  isCompatibleSave,
+  SaveError,
+  serialize,
+} from '../src/engine/state';
 import { memoryStorage, newGame, play, say, WALKTHROUGH, pastSkeleton } from './helpers';
 
 describe('state', () => {
@@ -25,6 +31,25 @@ describe('state', () => {
     expect(() => deserialize(crypt, '{"format":"other"}')).toThrow(SaveError);
     const other = serialize({ ...crypt, id: 'other' }, initialState(crypt));
     expect(() => deserialize(crypt, other)).toThrow(/another game/);
+  });
+
+  it('rejects saves from an older version of the game', () => {
+    const old = serialize({ ...crypt, version: crypt.version - 1 }, initialState(crypt));
+    expect(() => deserialize(crypt, old)).toThrow(/older version/);
+    // saves from before content versions existed carry none
+    const unversioned = JSON.parse(serialize(crypt, initialState(crypt))) as Record<
+      string,
+      unknown
+    >;
+    delete unversioned.gameVersion;
+    expect(() => deserialize(crypt, JSON.stringify(unversioned))).toThrow(/older version/);
+  });
+
+  it('isCompatibleSave', () => {
+    expect(isCompatibleSave(crypt, serialize(crypt, initialState(crypt)))).toBe(true);
+    const old = serialize({ ...crypt, version: crypt.version - 1 }, initialState(crypt));
+    expect(isCompatibleSave(crypt, old)).toBe(false);
+    expect(isCompatibleSave(crypt, 'nope')).toBe(false);
   });
 });
 

@@ -122,6 +122,9 @@
             <button type="button" class="btn btn--big" id="continue-button" hidden>Continue</button>
             <button type="button" class="btn btn--big" id="new-button">New game</button>
           </div>
+          <p class="title-screen__notice" id="save-notice" hidden>
+            Note: The path has changed since you last played. You need to begin afresh.
+          </p>
           <p class="title-screen__hint">Press Enter to begin</p>
         </div>
         <p class="title-screen__credit">
@@ -148,6 +151,15 @@
           <label class="settings__check"
             ><input type="checkbox" name="scanlines" /> Scanlines</label
           >
+          <fieldset>
+            <legend>Saved data</legend>
+            <p class="settings__note">
+              Removes your progress, saved games, settings and death count from this device.
+            </p>
+            <button type="button" class="btn btn--danger" id="wipe-button">
+              Delete all saved data
+            </button>
+          </fieldset>
           <div class="settings__buttons">
             <button type="button" class="btn" id="restart-button">Restart game</button>
             <button class="btn" value="close">Close</button>

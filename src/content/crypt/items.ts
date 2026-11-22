@@ -140,8 +140,7 @@ export const items = [
     portable: true,
     description: 'A pair of felt boots stands by the bed, side by side, as if waiting.',
     examine:
-      'Thick felt soles, as soft as moss. The keeper wore them to walk past something without ' +
-      'waking it. They will make your feet quiet. They can do nothing about the rest of you.',
+      'Thick felt soles, as soft as moss. The boots are warm, and smell faintly of the forest.',
     takeMessage:
       'You pull the boots on. They fit. Your steps make no sound at all, which is a strange ' +
       'thing to hear.',
@@ -304,7 +303,7 @@ export const items = [
     location: 'nowhere',
     portable: true,
     examine: (w) =>
-      'A dragonscale the size of your palm, polished as bright as a mirror. It shows you a ' +
+      'A dragonscale the size of your palm, polished as bright as a silver mirror. It shows you a ' +
       'face with two painted lines under each eye.' +
       (w.flag('scaleCracked')
         ? ' A crack runs across it now. Your face is on both sides of the crack.'

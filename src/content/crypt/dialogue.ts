@@ -147,7 +147,7 @@ export function talkToSleepingDragon(w: World): void {
       run: () => {
         w.say(
           'Both eyes open. "Did he?" says the dragon. "The keeper never came to me without my ' +
-            'mutton. He kept it downstairs, in the cold."',
+            'supper. He kept it downstairs, in the cold."',
         );
         w.say(
           'His stomach makes a long, hollow sound. The eyes close again, and in a moment he ' +

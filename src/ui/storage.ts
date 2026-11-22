@@ -40,6 +40,43 @@ export const autosave = {
   clear: (gameId: string) => remove(`${PREFIX}:${gameId}:autosave`),
 };
 
+/**
+ * Delete this game's saves (autosave and named slots) that fail isValid, e.g. ones
+ * from an older version of the game. Returns how many were removed.
+ */
+export function purgeStaleSaves(gameId: string, isValid: (data: string) => boolean): number {
+  const autosaveKey = `${PREFIX}:${gameId}:autosave`;
+  const slotPrefix = `${PREFIX}:${gameId}:slot:`;
+  const stale: string[] = [];
+  try {
+    // Collect first: removing while walking would shift the key indexes.
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key === null || (key !== autosaveKey && !key.startsWith(slotPrefix))) continue;
+      const data = localStorage.getItem(key);
+      if (data !== null && !isValid(data)) stale.push(key);
+    }
+  } catch {
+    return 0; // storage disabled
+  }
+  stale.forEach(remove);
+  return stale.length;
+}
+
+/** Delete everything this site keeps on the device: saves, settings and the death count. */
+export function clearAllData(): void {
+  const keys: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(`${PREFIX}:`)) keys.push(key);
+    }
+  } catch {
+    return; // storage disabled: nothing was kept
+  }
+  keys.forEach(remove);
+}
+
 // how many times the player has lost this game on this device
 export const deaths = {
   load: (gameId: string): number => Number(get(`${PREFIX}:${gameId}:deaths`)) || 0,

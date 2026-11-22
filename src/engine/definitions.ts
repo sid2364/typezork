@@ -134,6 +134,8 @@ export interface RankInfo {
 export interface GameDef {
   readonly id: string;
   readonly title: string;
+  /** Content version. Bump it when a change makes old saves unsafe; they are then refused. */
+  readonly version: number;
   readonly intro: readonly string[];
   readonly start: RoomId;
   readonly rooms: Readonly<Record<RoomId, RoomDef>>;

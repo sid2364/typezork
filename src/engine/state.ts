@@ -64,7 +64,13 @@ export function initialState(def: GameDef): GameState {
 }
 
 export function serialize(def: GameDef, state: GameState): string {
-  return JSON.stringify({ format: SAVE_FORMAT, version: SAVE_VERSION, game: def.id, state });
+  return JSON.stringify({
+    format: SAVE_FORMAT,
+    version: SAVE_VERSION,
+    game: def.id,
+    gameVersion: def.version,
+    state,
+  });
 }
 
 export class SaveError extends Error {}
@@ -79,6 +85,10 @@ export function deserialize(def: GameDef, text: string): GameState {
   if (!isRecord(data) || data.format !== SAVE_FORMAT) throw new SaveError('That is not a save.');
   if (data.version !== SAVE_VERSION) throw new SaveError('That save is from another version.');
   if (data.game !== def.id) throw new SaveError('That save belongs to another game.');
+  // Saves from before content versions existed have none: treat them as version 0.
+  if ((data.gameVersion ?? 0) !== def.version) {
+    throw new SaveError('That save is from an older version of the game.');
+  }
   const state = data.state;
   if (!isRecord(state) || typeof state.location !== 'string' || !(state.location in def.rooms)) {
     throw new SaveError('The save data is corrupt.');
@@ -88,6 +98,16 @@ export function deserialize(def: GameDef, text: string): GameState {
   const merged = { ...fresh, ...(state as Partial<GameState>) } as GameState;
   merged.things = { ...fresh.things, ...merged.things };
   return merged;
+}
+
+/** Whether a save can be loaded into this version of the game. */
+export function isCompatibleSave(def: GameDef, text: string): boolean {
+  try {
+    deserialize(def, text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isRecord(x: unknown): x is Record<string, unknown> {

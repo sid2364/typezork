@@ -364,9 +364,13 @@ function talkTo(w: World, target: ThingId): void {
   }
 }
 
+// "hello dragon" is talking to the dragon; a bare hello with nobody about is just a hello
+const GREETINGS = ['hello', 'hi', 'hey'];
+const HELLO = "Hello to you too. The walls don't answer, but they look friendly enough.";
+
 const talkCommand: CommandDef = {
   id: 'talk',
-  verbs: ['talk', 'speak', 'chat', 'greet'],
+  verbs: ['talk', 'speak', 'chat', 'greet', ...GREETINGS],
   help: { usage: 'talk to troll', summary: 'Talk to someone.' },
   run(ctx) {
     const { w, cmd } = ctx;
@@ -375,7 +379,8 @@ const talkCommand: CommandDef = {
     if (words.length === 0) {
       const creatures = w.thingsAt(w.here).filter((id) => w.thing(id).kind === 'creature');
       if (creatures.length !== 1) {
-        w.say('Talk to whom?', 'error');
+        if (GREETINGS.includes(cmd.verb)) w.say(mute(w) ? MUTE : HELLO);
+        else w.say('Talk to whom?', 'error');
         return;
       }
       target = creatures[0];
@@ -588,11 +593,6 @@ export const commands: CommandDef[] = [
     'shout',
     ['shout', 'yell', 'scream'],
     'Your voice echoes back at you, sounding slightly mocking.',
-  ),
-  spoken(
-    'hello',
-    ['hello', 'hi', 'hey'],
-    "Hello to you too. The walls don't answer, but they look friendly enough.",
   ),
   spoken(
     'swear',
