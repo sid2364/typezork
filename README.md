@@ -1,6 +1,6 @@
 # typezork
 
-Yet another version of the classic text game Zork, with a customisable map. Child of
+The classic text game Zork. Child of
 [sid2364/pyzork](https://github.com/sid2364/pyzork), rewritten in TypeScript as a small, data-driven
 engine with a retro web UI.
 
@@ -14,18 +14,6 @@ Dragon's Cell
 You see a staircase leading into the darkness in the north and a steel gate to the south.
 There is a giant dragon lying asleep in front of you. It seems to be guarding a passageway headed east.
 ```
-
-## The story
-
-You wake in a crypt and you need to get home. A hungry dragon and a troll that nobody understands
-stand in your way. You can feed, help, sneak past or kill them, and each choice has a price:
-
-- Kill the dragon and you lose your strength (and your weapon). Kill the troll and you lose your
-  voice. Kill both and the story ends by a darker road.
-- A scroll can undo one kill, wherever you read it. A potion helps you remember.
-- Some mistakes end the game early. Each game over adds a bone to the pile in the crypt.
-- You get points for what you examine, for kindness and even for kills. The more you look at,
-  the more the ending tells you. `score` shows your score, turns and rank.
 
 ## Running it
 
@@ -41,7 +29,7 @@ npm run build    # static site in dist/, served from /zork/
 
 `npm run lint` checks ESLint and Prettier; `npm run format` fixes formatting.
 
-## How it fits together
+## Code structure
 
 ```
 src/
@@ -140,7 +128,7 @@ the built site as-is, so the portfolio's own deploy, triggered by that push, ser
 
 ## Credits
 
-The engine design borrows ideas (not code) from
+The engine design borrows ideas from
 [ClementJ18/pyzork](https://github.com/ClementJ18/pyzork): vetoable room hooks, two-way
 connections, an event-driven core and swappable input/output.
 
