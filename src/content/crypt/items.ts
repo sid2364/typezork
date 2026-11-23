@@ -375,7 +375,7 @@ export const items = [
     portable: true,
     description: 'An old parchment sticks out of a book on the desk.',
     examine:
-      'A page torn from something older than the library. "TO CALL BACK A MEMORY. A flower ' +
+      'A page torn from something older than the library. "POTION TO CALL BACK A MEMORY. A flower ' +
       'for the breath. A bone for the body. Iron for blood."',
     takeMessage: 'You pull the parchment free. The book lets it go.',
   }),
