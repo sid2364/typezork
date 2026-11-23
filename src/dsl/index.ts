@@ -30,24 +30,10 @@ export type RoomSpec = Omit<RoomDef, 'id' | 'exits'> & {
   readonly exits?: Readonly<Record<string, ExitSpec>>;
 };
 
-/** Authors may abbreviate exits (players can't: they type full words). */
-const ABBREVIATIONS: Readonly<Record<string, Direction>> = {
-  n: 'north',
-  ne: 'northeast',
-  e: 'east',
-  se: 'southeast',
-  s: 'south',
-  sw: 'southwest',
-  w: 'west',
-  nw: 'northwest',
-  u: 'up',
-  d: 'down',
-};
-
 export function room(id: RoomId, spec: RoomSpec): RoomDef {
   const exits: Partial<Record<Direction, ExitDef>> = {};
   for (const [word, exit] of Object.entries(spec.exits ?? {})) {
-    const dir = ABBREVIATIONS[word] ?? parseDirection(word.split(/\s+/));
+    const dir = parseDirection(word.split(/\s+/));
     if (!dir) throw new Error(`Room "${id}": "${word}" is not a direction`);
     exits[dir] = typeof exit === 'string' ? { to: exit } : exit;
   }
@@ -101,6 +87,8 @@ export interface GameSpec {
   readonly synonyms?: Readonly<Record<string, readonly string[]>>;
   readonly hooks?: (bus: EventBus) => void;
   readonly rank?: (score: number, w: World) => RankInfo;
+  /** What the player's choices have cost them so far, for the status panel. */
+  readonly losses?: (w: World) => readonly string[];
 }
 
 export class GameDefinitionError extends Error {}
@@ -173,6 +161,7 @@ export function defineGame(spec: GameSpec): GameDef {
     synonyms: spec.synonyms ?? {},
     ...(spec.hooks ? { hooks: spec.hooks } : {}),
     ...(spec.rank ? { rank: spec.rank } : {}),
+    ...(spec.losses ? { losses: spec.losses } : {}),
   });
 }
 

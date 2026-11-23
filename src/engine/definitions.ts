@@ -148,4 +148,6 @@ export interface GameDef {
   readonly hooks?: (bus: EventBus) => void;
   /** The rank a score earns (the world can pick the ladder), for front-ends to show. */
   readonly rank?: (score: number, w: World) => RankInfo;
+  /** What the player's choices have cost them so far ("your voice"), for front-ends to show. */
+  readonly losses?: (w: World) => readonly string[];
 }

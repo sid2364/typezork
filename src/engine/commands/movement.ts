@@ -16,7 +16,7 @@ export function go(w: World, dir: Direction): void {
   if (exit.door && !w.isOpen(exit.door) && !openThing(w, exit.door)) return;
 
   if (exit.guard && !exit.guard.when(w)) {
-    w.say(exit.guard.blocked, 'error');
+    w.say(exit.guard.blocked, 'blocked');
     return;
   }
 
@@ -25,7 +25,7 @@ export function go(w: World, dir: Direction): void {
   // a hook may have ended the game, for example a trap or a guard that woke up
   if (w.state.over) return;
   if (veto) {
-    w.say(veto, 'error');
+    w.say(veto, 'blocked');
     return;
   }
 
@@ -78,7 +78,7 @@ export const goCommand: CommandDef = {
     'cd',
   ],
   help: {
-    usage: 'go north · go back',
+    usage: 'go north (or n) · go back',
     summary: 'Move in a direction, or back where you came from.',
   },
   run({ w, cmd }) {

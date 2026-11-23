@@ -42,9 +42,18 @@ const VECTORS: Record<Direction, readonly [number, number]> = {
 };
 
 const WORDS = new Map<string, Direction>();
-// Only full words: abbreviations like "n" are deliberately not accepted.
 for (const dir of DIRECTIONS) WORDS.set(dir, dir);
 for (const [alias, dir] of [
+  ['n', 'north'],
+  ['ne', 'northeast'],
+  ['e', 'east'],
+  ['se', 'southeast'],
+  ['s', 'south'],
+  ['sw', 'southwest'],
+  ['w', 'west'],
+  ['nw', 'northwest'],
+  ['u', 'up'],
+  ['d', 'down'],
   ['north-east', 'northeast'],
   ['north-west', 'northwest'],
   ['south-east', 'southeast'],
@@ -61,8 +70,8 @@ export const isDirection = (word: string): word is Direction =>
   (DIRECTIONS as readonly string[]).includes(word);
 
 /**
- * Parse one or two tokens into a direction: "north", "north-east" and
- * "north east" all work.
+ * Parse one or two tokens into a direction: "north", "n", "north-east", "ne"
+ * and "north east" all work.
  */
 export function parseDirection(tokens: readonly string[]): Direction | undefined {
   if (tokens.length === 1) return WORDS.get(tokens[0]!);

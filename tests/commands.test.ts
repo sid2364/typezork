@@ -9,6 +9,8 @@ describe('movement', () => {
     expect(say(game, 'east')).toContain("Dragon's Cell");
     expect(say(game, 'west')).toContain('Crypt');
     expect(say(game, 'walk east')).toContain("Dragon's Cell");
+    expect(say(game, 'w')).toContain('Crypt');
+    expect(say(game, 'go e')).toContain("Dragon's Cell");
   });
 
   it('a locked door opens on the way through if you carry the key', () => {

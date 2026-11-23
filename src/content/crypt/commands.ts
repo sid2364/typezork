@@ -66,7 +66,10 @@ function partStream(w: World, said: boolean): void {
     return;
   }
   if (!w.has('torch')) {
-    w.say(`"Fire, yes," the stream burbles, "but words don't burn." The water rushes on.`, 'error');
+    w.say(
+      `"Fire, yes," the stream burbles, "but words don't burn." The water rushes on.`,
+      'blocked',
+    );
     return;
   }
   w.say(
@@ -113,7 +116,7 @@ const answerRiddle: CommandDef = {
     }
     w.say(
       `"${words.join(' ')}?" The stream gurgles. That is not the answer it was looking for.`,
-      'error',
+      'blocked',
     );
   },
 };
@@ -253,7 +256,7 @@ const giveCommand: CommandDef = {
     else if (target === 'skeleton') giveToSkeleton(w, thing);
     else if (target === 'stream') {
       if (thing === 'torch') partStream(w, false);
-      else w.say('The stream rushes past, unimpressed.', 'error');
+      else w.say('The stream rushes past, unimpressed.', 'blocked');
     } else if (target === 'duck') {
       w.say('The duck accepts nothing. It only listens.');
     } else if (target) {
@@ -449,7 +452,7 @@ const mixCommand: CommandDef = {
       w.say(
         'You smooth the page out to read the recipe. Your hands shake just holding it. Grinding ' +
           'bone and working iron would take strong hands. Yours stayed with the dragon.',
-        'error',
+        'blocked',
       );
       return;
     }

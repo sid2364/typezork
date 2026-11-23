@@ -30,7 +30,7 @@ export function openThing(w: World, id: ThingId): boolean {
   }
   const veto = o.beforeOpen?.(w);
   if (veto) {
-    w.say(veto, 'error');
+    w.say(veto, 'blocked');
     return false;
   }
   if (w.isLocked(id)) {

@@ -60,10 +60,32 @@ describe('save, load, restore', () => {
     play(game, ['open door', 'east']);
     expect(say(game, 'save')).toBe('Game saved.');
     play(game, ['north', 'open chest']);
-    expect(say(game, 'load')).toMatch(/^Game loaded\.\nDragon's Cell/);
+    // moves since the save would be set aside, so it asks first
+    expect(say(game, 'load')).toMatch(/^Load the saved game\?.*\(y\/n\)$/);
+    expect(say(game, 'n')).toBe('Carry on, then.');
+    expect(game.state.location).toBe('dungeon');
+    say(game, 'load');
+    expect(say(game, 'y')).toMatch(
+      /^Game loaded\. Type UNDO to go back to where you were\.\nDragon's Cell/,
+    );
     expect(game.state.location).toBe('dragonCell');
     expect(game.state.opened).toEqual(['door']);
+    // nothing new since the load, so a second load needs no question
+    expect(say(game, 'load')).toMatch(/^Game loaded\./);
     expect(say(game, 'load other')).toBe('There is no save called "other".');
+  });
+
+  it('a load can be undone', () => {
+    const storage = memoryStorage();
+    const game = pastSkeleton({ storage });
+    play(game, ['open door', 'east', 'save', 'north', 'open chest', 'load', 'y']);
+    expect(game.state.location).toBe('dragonCell');
+    expect(say(game, 'undo')).toMatch(/^Previous turn undone\.\nDungeon/);
+    expect(game.state.location).toBe('dungeon');
+    expect(game.state.opened).toContain('chest');
+    // the turns before the load can still be undone too
+    say(game, 'undo');
+    expect(game.state.opened).not.toContain('chest');
   });
 
   it('without storage', () => {

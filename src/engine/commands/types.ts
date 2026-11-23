@@ -26,6 +26,8 @@ export interface GameControl {
   load(slot: string): void;
   restart(): void;
   undo(): void;
+  /** True when turns have been taken since the last save or load. */
+  readonly unsaved: boolean;
   readonly commands: readonly CommandDef[];
 }
 

@@ -1,6 +1,6 @@
 import './styles.css';
 import { crypt } from '../content/crypt';
-import { Game, isCompatibleSave, type GameDef, type OutputLine } from '../engine';
+import { Game, isCompatibleSave, type GameDef, type GameView, type OutputLine } from '../engine';
 import { HelpPanel } from './helpPanel';
 import { PromptInput } from './input';
 import { renderCompass } from './compass';
@@ -38,6 +38,8 @@ const compass = $<SVGSVGElement>('#compass');
 // ---- settings ----------------------------------------------------------------
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+// fingers rather than a mouse: there may be no Enter key until the keyboard is open
+const touch = window.matchMedia('(pointer: coarse)');
 const SPEEDS: Record<Speed, number> = { slow: 35, normal: 110, fast: 400, instant: Infinity };
 const settings: Settings = loadSettings();
 
@@ -145,6 +147,10 @@ let endShown = false;
 /** Score and rank level shown before this turn, to light up whatever changed. */
 let lastScore = 0;
 let lastLevel = 0;
+/** What the story had cost the player as of last turn, to light up a new loss. */
+let lastLost = '';
+/** Whether the last turn ended on a hint, which brings the phone's suggestions back. */
+let hinted = false;
 /** The room shown last turn, and the rooms left before it, for the map's afterglow. */
 let lastRoom = '';
 let lastTurns = 0;
@@ -169,7 +175,9 @@ const caret = $<HTMLElement>('.prompt__caret');
 
 function run(text: string): void {
   tookTurn = false;
-  show(game.submit(text));
+  const lines = game.submit(text);
+  hinted = lines.some((l) => l.style === 'hint');
+  show(lines);
   afterTurn(tookTurn);
   // the > blinks for a few seconds after each turn, then holds steady; a finished animation is
   // gone from getAnimations(), so start it over by resetting the style
@@ -206,6 +214,63 @@ function markScore(score: number): void {
   screen.announce(`Score ${signed}, now ${score}.`);
 }
 
+/** What the player's choices have cost them stays in the status panel; a new loss lights up. */
+function markLosses(losses: readonly string[], played: boolean): void {
+  const lost = losses.join(', ');
+  const value = $<HTMLElement>('#status-lost');
+  value.textContent = lost;
+  value.hidden = $<HTMLElement>('#status-lost-label').hidden = !lost;
+  if (played && lost && lost !== lastLost) {
+    flare(value);
+    screen.announce(`Lost: ${lost}.`);
+  }
+  lastLost = lost;
+}
+
+/** Phones keep the panels in drawers, so the bar carries the exits and any losses. */
+function renderBarDetail(view: GameView): void {
+  const detail = $('#bar-detail');
+  detail.replaceChildren(`Exits: ${view.exits.map((e) => e.dir).join(', ') || 'none'}`);
+  if (view.losses.length) {
+    const lost = document.createElement('span');
+    lost.className = 'bar__lost';
+    lost.textContent = ` · Lost: ${view.losses.join(', ')}`;
+    detail.append(lost);
+  }
+}
+
+// ---- suggestions above the prompt (phones) -------------------------------------
+
+/** For the first turns, whenever the game gives a hint or waits on an answer, phones offer a few things to
+    try just above the prompt. A tap writes the command into the prompt and the player sends it,
+    so typing stays the game. They step aside as soon as the player starts typing. */
+const NUDGE_TURNS = 10;
+const nudge = $<HTMLUListElement>('#nudge');
+let nudgeWanted = false;
+
+function renderNudge(view: GameView): void {
+  nudgeWanted = !view.over && (view.turns < NUDGE_TURNS || hinted || view.question !== null);
+  const items = view.suggestions.slice(0, 3).map((s) => {
+    const li = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'chip';
+    button.textContent = s;
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      prompt.fill(s);
+    });
+    li.append(button);
+    return li;
+  });
+  nudge.replaceChildren(...items);
+  updateNudge();
+}
+
+function updateNudge(): void {
+  nudge.hidden = !nudgeWanted || held !== null || prompt.input.value !== '';
+}
+
 /** Lines held back after a 'pause' marker until the player presses Enter. */
 let held: OutputLine[] | null = null;
 let continueHint: HTMLButtonElement | null = null;
@@ -229,13 +294,14 @@ function show(lines: readonly OutputLine[]): void {
   const hint = document.createElement('button');
   hint.type = 'button';
   hint.className = 'line line--continue';
-  hint.textContent = 'Press Enter to continue ↵';
+  hint.textContent = touch.matches ? 'Tap to continue ↵' : 'Press Enter to continue ↵';
   hint.setAttribute('aria-label', 'Continue');
   hint.addEventListener('click', (e) => {
     e.stopPropagation();
     proceed();
   });
   continueHint = hint;
+  updateNudge();
   screen.append(hint);
   screen.announce('Press Enter to continue.');
 }
@@ -247,6 +313,7 @@ function proceed(): void {
   continueHint?.remove();
   continueHint = null;
   show(rest);
+  updateNudge();
   prompt.focus();
 }
 
@@ -260,6 +327,8 @@ function afterTurn(played = false): void {
   $('#status-exits').textContent = view.exits.map((e) => e.dir).join(', ') || 'none';
   $('#status-inventory').textContent = view.inventory.map((i) => i.name).join(', ') || 'nothing';
   $('#status-level').textContent = view.rank ? String(view.rank.level) : '–';
+  markLosses(view.losses, played);
+  renderBarDetail(view);
   const level = view.rank?.level ?? 0;
   if (played && view.score !== lastScore) markScore(view.score);
   if (played && level !== lastLevel) flare($('#status-level'));
@@ -270,6 +339,8 @@ function afterTurn(played = false): void {
     `${view.room.name} · turn ${view.turns} · score ${view.score}${rank}`;
   document.title = `${view.room.name} — Zork`;
   help.render(view);
+  renderNudge(view);
+  prompt.input.placeholder = view.question ? 'Your answer?' : 'What do you do?';
   // The way the player came: rooms just left, most recent first. Undo, load and restart (which
   // take no turn, and move the player or wind the turns back) start it afresh; LOOK and the like
   // leave it be.
@@ -401,10 +472,17 @@ function isControl(node: HTMLElement): boolean {
   return ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName);
 }
 
+prompt.input.addEventListener('input', updateNudge);
+
 $('#screen').addEventListener('click', () => {
   // On phones a tap on the dimmed story closes an open drawer, and does nothing else.
   if (app.dataset.open) {
     closePanels();
+    return;
+  }
+  // while the intro waits, a tap anywhere on the story does what Enter does
+  if (held && !screen.busy) {
+    proceed();
     return;
   }
   screen.skip();

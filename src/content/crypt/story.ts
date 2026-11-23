@@ -98,6 +98,13 @@ export const weak = (w: World): boolean => w.isDead('dragon');
 
 export const MUTE = 'You open your mouth. Nothing comes out.';
 
+// what the player's choices have cost them, for the status panel. a scroll that brings a
+// creature back gives back what its death took, because both read the killed list
+export const losses = (w: World): string[] => [
+  ...(mute(w) ? ['your voice'] : []),
+  ...(weak(w) ? ['your strength'] : []),
+];
+
 // weapons that scrape and clank when you try to be quiet
 const NOISY = ['sword', 'spear', 'hammer', 'knife'];
 
@@ -392,10 +399,23 @@ export function ending(w: World): void {
   w.addScore(POINTS.home);
   if (bothDead(w)) keeperEnding(w);
   else homeEnding(w);
+  w.say(roadTitle(w), 'win');
+  // a plain record of the road, after the story has had its say
   // the move into the forest is still being taken, and only counts once it ends
-  w.say(scoreLine(w, w.state.turns + 1));
+  w.say(scoreLine(w, w.state.turns + 1), 'summary');
+  w.say(`Voice: ${mute(w) ? 'lost' : 'kept'} · Strength: ${weak(w) ? 'lost' : 'kept'}`, 'summary');
+  w.say(`Memories found: ${fragments(w)} of ${FRAGMENT_KEYS.length}`, 'summary');
+  w.say('Other roads remain.', 'summary');
   if (w.flag('sawScreen')) w.say('Somewhere, a computer stops humming.');
   w.win();
+}
+
+// the road the player came home by, named once the story is over
+function roadTitle(w: World): string {
+  if (bothDead(w)) return 'Here ends the darker road.';
+  if (w.isDead('troll') || w.isDead('dragon')) return 'Here ends the hard road home.';
+  if (!w.flag('dragonFriend')) return 'Here ends the quiet road home.';
+  return 'Here ends the road home.';
 }
 
 // the darker road: with the dragon and the troll both gone, you go back to keep the castle
@@ -412,7 +432,6 @@ function keeperEnding(w: World): void {
     'The great bowl stands empty by the door, and no step comes down the stair. The waiting is ' +
       'yours now, and it has no end.',
   );
-  w.say('Bravo! You beat the game, by the darker road.', 'win');
 }
 
 function homeEnding(w: World): void {
@@ -517,7 +536,6 @@ function homeEnding(w: World): void {
 
   remember(w);
   w.say(verdict(w));
-  w.say('Bravo! You beat the game!', 'win');
 }
 
 // the more you looked at the more you remember

@@ -59,8 +59,20 @@ export const loadCommand: CommandDef = {
   meta: true,
   allowWhenOver: true,
   help: { usage: 'load', summary: 'Load a saved game.' },
-  run({ game, cmd }) {
-    game.load(slotName(cmd.args));
+  run({ w, game, cmd, ask }) {
+    const slot = slotName(cmd.args);
+    if (!game.unsaved) {
+      game.load(slot);
+      return;
+    }
+    ask(
+      'Load the saved game? The moves you made since you last saved will be set aside. (y/n)',
+      (tokens) => {
+        if (tokens[0] === 'y' || tokens[0] === 'yes') game.load(slot);
+        else w.say('Carry on, then.');
+      },
+      { yesNo: true },
+    );
   },
 };
 

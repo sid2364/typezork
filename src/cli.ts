@@ -44,6 +44,8 @@ const colour: Record<OutputLine['style'], string> = {
   room: '\x1b[32m',
   info: '',
   error: '\x1b[33m',
+  blocked: '\x1b[1;92m',
+  summary: '\x1b[2m',
   question: '\x1b[36m',
   option: '\x1b[92m',
   hint: '\x1b[3;94m',

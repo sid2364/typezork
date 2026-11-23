@@ -9,7 +9,9 @@ export type OutputStyle =
   | 'title' // room names, banners
   | 'room' // room descriptions
   | 'info' // ordinary responses
-  | 'error' // "you can't do that" style responses
+  | 'error' // "you can't do that" style responses: the parser or the rules said no
+  | 'blocked' // the world itself stands in the way: a guard, a creature, a riddle
+  | 'summary' // a plain record line at the end of a game (what was kept, what was lost)
   | 'question' // the game is waiting for an answer
   | 'option' // a numbered answer the player can pick
   | 'hint' // what to try next, shown after everything else

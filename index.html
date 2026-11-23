@@ -26,6 +26,7 @@
       <header class="bar">
         <h1 class="brand">ZORK</h1>
         <span class="bar__status" id="bar-status"></span>
+        <p class="bar__detail" id="bar-detail"></p>
         <nav class="bar__actions" aria-label="Game">
           <button type="button" class="btn btn--mobile" data-toggle="left" aria-controls="left">
             Map
@@ -60,6 +61,8 @@
             <dd id="status-exits">–</dd>
             <dt>Carrying</dt>
             <dd id="status-inventory">nothing</dd>
+            <dt class="status__lost" id="status-lost-label" hidden>Lost</dt>
+            <dd class="status__lost" id="status-lost" hidden></dd>
           </dl>
         </section>
         <section class="compass" aria-label="Compass">
@@ -80,6 +83,7 @@
 
       <main class="screen" id="screen">
         <div class="screen__scroll" id="scroll"></div>
+        <ul class="nudge" id="nudge" aria-label="Try" hidden></ul>
         <form class="prompt" id="prompt" autocomplete="off">
           <label class="prompt__caret" for="command">&gt;</label>
           <input
@@ -104,7 +108,9 @@
           <ul class="help__suggestions" id="suggestions"></ul>
           <h2 class="panel__title">Commands</h2>
           <ul class="help__list" id="cheatsheet"></ul>
-          <p class="help__tip">Chain commands with "and". ↑/↓ recall history.</p>
+          <p class="help__tip">
+            Chain commands with "and". Directions can be short: n, se, u. ↑/↓ recall history.
+          </p>
         </section>
       </aside>
 
@@ -141,6 +147,7 @@
             Note: The path has changed since you last played. You need to begin afresh.
           </p>
           <p class="title-screen__hint">Press Enter to begin</p>
+          <p class="title-screen__device">Best played in a desktop browser.</p>
         </div>
         <p class="title-screen__credit">
           <span class="credit__maker">
@@ -159,9 +166,8 @@
               >CreatorChords</a
             >
             <span class="credit__tip" id="music-attribution" role="tooltip">
-              Adventure by Alexander Nakarada (CreatorChords) | https://creatorchords.com<br />
-              Royalty Free Music by https://www.free-stock-music.com<br />
-              Creative Commons / Attribution 4.0 International (CC BY 4.0)<br />
+              Music: Adventure by Alexander Nakarada (https://creatorchords.com) Licensed under
+              Creative Commons Attribution 4.0 International (CC BY 4.0)
               https://creativecommons.org/licenses/by/4.0/
             </span>
           </span>

@@ -58,8 +58,9 @@ describe('go back', () => {
   });
 });
 
+// directions may be abbreviated ("n", "ne"); other one-letter shortcuts are not understood
 describe('shortcuts are gone', () => {
-  it.each(['n', 'i', 'l', 'x candle'])('"%s" is not understood', (input) => {
+  it.each(['i', 'l', 'x candle'])('"%s" is not understood', (input) => {
     expect(say(pastSkeleton(), input)).toMatch(/I don't know how to/);
   });
 });
@@ -102,7 +103,7 @@ describe('compact help', () => {
   it('groups related commands on one line', () => {
     const text = say(pastSkeleton(), 'help');
     expect(text).toContain('take bone · drop bone');
-    expect(text).toContain('go north · go back');
+    expect(text).toContain('go north (or n) · go back');
     expect(text.split('\n').length).toBeLessThanOrEqual(9);
   });
 });

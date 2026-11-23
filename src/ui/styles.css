@@ -403,6 +403,27 @@ input {
   overflow-wrap: anywhere;
 }
 
+/* What the story has cost does not come back, so it keeps the colour of a loss. */
+.status__list dd.status__lost,
+.bar__lost {
+  color: var(--error);
+}
+
+.status__list [hidden] {
+  display: none;
+}
+
+/* The phone's second header line: exits, and anything lost. Desktop shows both in Status. */
+.bar__detail {
+  display: none;
+  margin: 0;
+  color: var(--dim);
+  font-size: var(--text-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Points arrive quietly in the story, so the figure flares and the change rises off it. It sits
    at its static place after the number, out of the flow, so nothing shifts. */
 .status__delta {
@@ -870,6 +891,23 @@ input {
   color: var(--error);
 }
 
+/* The world in the way (a guard, a creature, a riddle) is story, so it stays phosphor; it is
+   lit brighter than narration so it reads as the moment that stopped you. */
+.line--blocked {
+  color: var(--fg-strong);
+}
+
+/* The record after an ending: smaller and quieter than the story above it. */
+.line--summary {
+  margin-bottom: 0.15rem;
+  color: var(--dim);
+  font-size: var(--text-ui);
+}
+
+.line--win + .line--summary {
+  margin-top: 0.75rem;
+}
+
 .line--question {
   color: var(--question);
 }
@@ -938,6 +976,11 @@ input {
 
 .screen__again {
   margin: 0.5rem 0 1rem;
+}
+
+/* Phones: a few things to try, just above the prompt (main.ts decides when). */
+.nudge {
+  display: none;
 }
 
 .prompt {
@@ -1138,6 +1181,30 @@ input {
   animation: blink 1.6s steps(1) 3;
 }
 
+/* Small screens get a word on where the game plays best. It goes at the same width as the phone
+   layout, so a browser wide enough for the side panels never sees it. */
+.title-screen__device {
+  display: none;
+  /* set well below the buttons, apart from them, and closer to the credits */
+  margin-top: clamp(3rem, 12dvh, 6rem);
+  color: var(--dim);
+  font-size: var(--text-meta);
+}
+
+/* On phones (and touch screens of any size) the buttons are the way in: there is no Enter key
+   until the keyboard is open, so the Enter hint stands aside. */
+@media (max-width: 900px), (pointer: coarse) {
+  .title-screen__hint {
+    display: none;
+  }
+}
+
+@media (max-width: 900px), (max-height: 520px) and (pointer: coarse) {
+  .title-screen__device {
+    display: block;
+  }
+}
+
 .title-screen__notice {
   margin-top: 1.5rem;
   color: var(--dim);
@@ -1274,6 +1341,32 @@ input {
     text-align: left;
   }
 
+  .bar__detail {
+    display: block;
+    order: 4;
+    flex-basis: 100%;
+  }
+
+  .nudge {
+    display: flex;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.5rem max(clamp(1rem, 4vw, 3rem), env(safe-area-inset-right)) 0
+      max(clamp(1rem, 4vw, 3rem), env(safe-area-inset-left));
+    overflow-x: auto;
+    list-style: none;
+    scrollbar-width: none;
+    animation: nudge-in 0.4s var(--ease-out);
+  }
+
+  .nudge[hidden] {
+    display: none;
+  }
+
+  .nudge .chip {
+    white-space: nowrap;
+  }
+
   /* Drawers share the screen's grid cell, so they always start below the header. */
   .panel {
     grid-area: screen;
@@ -1406,6 +1499,7 @@ input {
     animation-name: delta-fade;
   }
 
+  .nudge,
   .map-cell--new,
   .map-cell--trail.map-cooling,
   .map-corridor--trail.map-cooling,
@@ -1414,6 +1508,12 @@ input {
   .line--win.line--typed,
   .screen.is-dying {
     animation: none;
+  }
+}
+
+@keyframes nudge-in {
+  from {
+    opacity: 0;
   }
 }
 

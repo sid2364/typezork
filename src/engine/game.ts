@@ -42,6 +42,8 @@ export interface GameView {
   readonly score: number;
   /** The rank the score earns, if the game has ranks. */
   readonly rank: RankInfo | null;
+  /** What the player's choices have cost them so far, if the game keeps track. */
+  readonly losses: readonly string[];
   readonly over: boolean;
   readonly won: boolean;
   /** The question the game is waiting on, if any. */
@@ -76,6 +78,8 @@ export class Game {
   private readonly undoLimit: number;
   private history: string[] = [];
   private pending: Pending | undefined;
+  // turns taken since the last save or load, which a LOAD would throw away
+  private unsaved = false;
 
   constructor(def: GameDef, options: GameOptions = {}) {
     this.def = def;
@@ -146,6 +150,7 @@ export class Game {
     this.world.state = deserialize(this.def, data);
     this.history = [];
     this.pending = undefined;
+    this.unsaved = false;
   }
 
   submit(input: string): OutputLine[] {
@@ -212,6 +217,7 @@ export class Game {
       turns: w.state.turns,
       score: w.state.score,
       rank: this.def.rank?.(w.state.score, w) ?? null,
+      losses: this.def.losses?.(w) ?? [],
       over: w.state.over,
       won: w.state.won,
       question: this.question,
@@ -289,8 +295,14 @@ export class Game {
     const before = this.serialize();
     fn();
     this.world.state.turns++;
+    this.unsaved = true;
     this.bus.emit('turn', { turns: this.world.state.turns }, this.world);
-    this.history.push(before);
+    this.remember(before);
+  }
+
+  // keep a state UNDO can go back to, up to the limit
+  private remember(state: string): void {
+    this.history.push(state);
     if (this.history.length > this.undoLimit) this.history.shift();
   }
 
@@ -353,6 +365,9 @@ export class Game {
     get commands() {
       return game.commands;
     },
+    get unsaved() {
+      return game.unsaved && !game.state.over;
+    },
     save: (slot) => {
       const w = this.world;
       if (!this.storage) {
@@ -360,6 +375,7 @@ export class Game {
         return;
       }
       this.storage.save(slot, this.serialize());
+      this.unsaved = false;
       w.say(slot === 'default' ? 'Game saved.' : `Game saved as "${slot}".`);
     },
     load: (slot) => {
@@ -372,19 +388,25 @@ export class Game {
         );
         return;
       }
+      // the game as it stands goes on the undo pile, so a load can be taken back
+      const before = this.serialize();
+      const history = this.history;
       try {
         this.restore(data);
       } catch (e) {
         w.say(e instanceof SaveError ? e.message : 'That save could not be loaded.', 'error');
         return;
       }
-      w.say('Game loaded.');
+      this.history = history;
+      this.remember(before);
+      w.say('Game loaded. Type UNDO to go back to where you were.');
       w.describeRoom();
     },
     restart: () => {
       this.world.state = initialState(this.def);
       this.history = [];
       this.pending = undefined;
+      this.unsaved = false;
       this.intro(true);
     },
     undo: () => {
@@ -396,6 +418,8 @@ export class Game {
       }
       w.state = deserialize(this.def, previous);
       this.pending = undefined;
+      // the state brought back may not be the one last saved
+      this.unsaved = true;
       w.say('Previous turn undone.');
       w.describeRoom();
     },
@@ -405,6 +429,8 @@ export class Game {
     const w = this.world;
     if (w.state.over) return ['restart', 'undo'];
     if (this.pending?.choices.length) return [...this.pending.choices];
+    // a move offered now would only be read as the answer
+    if (this.pending?.yesNo) return ['yes', 'no'];
     const talk = this.byId.has('talk');
     const out: string[] = [];
     for (const id of w.thingsAt(w.here)) {

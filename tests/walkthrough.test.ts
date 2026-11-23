@@ -25,7 +25,9 @@ describe('the kind way through', () => {
     expect(game.state.over).toBe(true);
     expect(game.state.won).toBe(true);
     expect(text).toContain('You passed the test. You came home whole.');
-    expect(text).toContain('Bravo! You beat the game!');
+    expect(text).toContain('Here ends the road home.');
+    expect(text).toContain('Voice: kept · Strength: kept');
+    expect(text).toContain('Other roads remain.');
     expect(game.state.killed).toEqual([]);
     expect(game.view().map.rooms.map((r) => r.id)).toEqual([
       'start',
@@ -72,7 +74,8 @@ describe('the old way through', () => {
     expect(text).toMatch(/Two are missing from among them/);
     expect(text).toMatch(/you write a single word: Waiting/);
     expect(text).toMatch(/The waiting is yours now, and it has no end/);
-    expect(text).toContain('Bravo! You beat the game, by the darker road.');
+    expect(text).toContain('Here ends the darker road.');
+    expect(text).toMatch(/Voice: (lost|kept) · Strength: lost\nMemories found: \d of 5/);
     expect(text).not.toMatch(/did not pass/);
     expect(game.view().rank).toEqual({ name: 'Dragonbane', level: 4, of: 5 });
     // the final move counts, so the ending agrees with the turn counter
@@ -1200,5 +1203,14 @@ describe('small things', () => {
     play(game, ['open door', 'east', 'north', 'west']);
     expect(say(game, 'read note')).toMatch(/HOOM is home/);
     expect(say(game, 'read ledger')).toMatch(/One leg of mutton/);
+  });
+});
+
+describe('what the choices cost', () => {
+  it('the view lists what has been lost, and nothing before', () => {
+    const game = pastSkeleton();
+    expect(game.view().losses).toEqual([]);
+    play(game, WALKTHROUGH);
+    expect(game.view().losses).toContain('your strength');
   });
 });
