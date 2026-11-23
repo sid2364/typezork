@@ -848,8 +848,18 @@ input {
 /* Earlier commands are already dim, so they stay at --dim (4.6:1) instead of fading further;
    the latest one is lifted to --fg so the current turn still stands out. */
 .line--echo {
-  margin-top: 0.9rem;
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  /* a faint rule closes off the turn before, so each command and its response read as one */
+  border-top: 1px solid color-mix(in srgb, var(--faint) 55%, transparent);
   color: var(--dim);
+}
+
+/* nothing above the first command (or the first after a clear) to separate it from */
+.screen__scroll > .line--echo:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .line--echo:not(.line--old) {
