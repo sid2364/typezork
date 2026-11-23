@@ -62,11 +62,11 @@ export const WALKTHROUGH = [
   'north',
   'kill dragon with spear',
   'east',
+  'north',
   'kill troll with staff',
   // with the dragon dead the troll fights back: step in under the swing, then dodge and strike
   '2',
   '3',
-  'north',
   'north',
   'take torch',
   'south',
@@ -91,8 +91,8 @@ export const FEED = [
   '2',
 ] as const;
 
-// from the cell, show the troll its face and make a friend
-export const HELP = ['east', 'show scale to troll', '1', '3'] as const;
+// from the cell, show the troll its face in the garden, make a friend, and go back to the portcullis
+export const HELP = ['east', 'north', 'show scale to troll', '1', '3', 'south'] as const;
 
 // the kind way through
 export const KIND_ROUTE = [

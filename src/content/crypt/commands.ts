@@ -334,7 +334,7 @@ function talkTo(w: World, target: ThingId): void {
     } else if (trollSulks(w)) {
       apologiseToTroll(w);
     } else if (trollFriend(w) && w.isDead('dragon')) {
-      w.say('The troll looks west, through the archway. "Him sleep," he says. "Long sleep."');
+      w.say('The troll looks south, toward the castle. "Him sleep," he says. "Long sleep."');
     } else if (trollFriend(w)) {
       w.say('"HELLO," says the troll, with all of his mouth. He is still very proud of the word.');
     } else if (!w.flag('trollAsked') && !w.flag('trollHurt')) {

@@ -490,7 +490,7 @@ export function showMirror(w: World, glass: 'mirror' | 'scale'): void {
           `The troll's face closes like a door. He turns away from the ${name}` +
             (w.here === 'gazebo'
               ? ', sits back down and looks at the mountains. You feel the weight of your words.'
-              : ' and walks off north through the garden with his back to you. You feel the ' +
+              : ' and walks off north toward the gazebo with his back to you. You feel the ' +
                 'weight of your words. The way north is open.'),
         ),
     },
@@ -554,7 +554,7 @@ function trollLetsYouPass(w: World, glass: 'mirror' | 'scale'): void {
 function forgiven(w: World): void {
   if (!w.flag('trollHurt')) return;
   w.setFlag('trollForgave');
-  w.move('troll', 'portcullis');
+  w.move('troll', 'garden');
 }
 
 // a hurt troll sulks in the gazebo until you take the cruel word back
@@ -636,7 +636,7 @@ export function talkToTroll(w: World): void {
         hurtTroll(
           w,
           'The troll looks at you for a long time. "Blug," he says, very quietly, and walks off ' +
-            'north through the garden with his back to you. The way north is open, but nobody ' +
+            'north toward the gazebo with his back to you. The way north is open, but nobody ' +
             'is waving you through.',
         );
         gloss(w, 'BLUG is bad.');
@@ -740,7 +740,8 @@ function trollRises(w: World, weapon: string): void {
     loseTrollFight(w, weapon);
   };
   w.say(
-    'He looks past you, west, through the archway toward the cell where his old friend lies. ' +
+    'He looks past you, down the path toward the castle and the cell where his old friend ' +
+      'lies. ' +
       '"Hoom," he says, very low. Then he rises, and the club goes up over his head in both ' +
       'hands, and comes down at you from on high.',
   );
@@ -782,12 +783,12 @@ function loseTrollFight(w: World, weapon?: string): void {
   w.setFlag('trollFightsLost', losses);
   if (losses >= 2) {
     w.lose(
-      'This time the club does not stop. The last thing you see is the troll going in through ' +
-        'the archway, very slowly, to sit beside his friend.',
+      'This time the club does not stop. The last thing you see is the troll going down the ' +
+        'path and in through the archway, very slowly, to sit beside his friend.',
     );
     return;
   }
-  if (w.here !== 'portcullis') {
+  if (w.here !== 'garden') {
     w.say(clubbed(w, weapon));
     return;
   }
@@ -795,11 +796,11 @@ function loseTrollFight(w: World, weapon?: string): void {
   clubbed(w, weapon);
   const lost = weapon ? w.thing(weapon).name : undefined;
   w.say(
-    'The club catches you full in the chest, and you fly backwards over the bank and into the ' +
-      'stream.' +
+    'The club catches you full in the chest, and you fly backwards down the garden path, over ' +
+      'the bank and into the stream.' +
       (lost ? ` Your ${lost} goes one way and you go the other. Only you come back.` : '') +
-      ' You crawl out on the bank, soaked and aching, and the troll stands in the archway ' +
-      'again, and waits for you.',
+      ' You crawl out on the bank, soaked and aching. Up the path, the troll stands at the ' +
+      "garden's edge again, and waits for you.",
   );
 }
 

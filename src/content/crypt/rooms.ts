@@ -87,17 +87,7 @@ export const rooms = [
       "toward the dragon's cell.",
     exits: {
       west: 'dragonCell',
-      // the troll moves aside once it is a friend, once it is hurt, or once it cannot object
-      north: guarded(
-        'garden',
-        (w) => w.isDead('troll') || trollFriend(w) || Boolean(w.flag('trollHurt')),
-        (w) =>
-          trollGrieves(w)
-            ? 'The troll steps in front of you and lifts his club. "Nub," he says. ' +
-              '"Him sleep. You blug."'
-            : 'The troll steps in front of you. "Nub," he says behind his hand, and shakes his ' +
-              'head. He does not look angry. He looks like he is waiting for something.',
-      ),
+      north: 'garden',
       // The stream only parts once its riddle is answered (see the answer command).
       south: guarded(
         'river',
@@ -125,7 +115,20 @@ export const rooms = [
     description:
       'Wild flowers with exotic fragrances bloom about you and the light of day makes for a ' +
       'beautiful scene in the garden. There is a gazebo up north, and to the south a path leads to the castle.',
-    exits: { south: 'portcullis', north: 'gazebo' },
+    exits: {
+      south: 'portcullis',
+      // the troll moves aside once it is a friend, once it is hurt, or once it cannot object
+      north: guarded(
+        'gazebo',
+        (w) => w.isDead('troll') || trollFriend(w) || Boolean(w.flag('trollHurt')),
+        (w) =>
+          trollGrieves(w)
+            ? 'The troll steps in front of you and lifts his club. "Nub," he says. ' +
+              '"Him sleep. You blug."'
+            : 'The troll steps in front of you. "Nub," he says behind his hand, and shakes his ' +
+              'head. He does not look angry. He looks like he is waiting for something.',
+      ),
+    },
   }),
 
   room('gazebo', {

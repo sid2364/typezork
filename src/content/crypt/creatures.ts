@@ -154,7 +154,7 @@ export const creatures = [
   creature('troll', {
     name: 'troll',
     adjectives: ['dead'],
-    location: 'portcullis',
+    location: 'garden',
     killable: true,
     weakTo: ['spear', 'staff'],
     description: (w) =>
@@ -164,27 +164,28 @@ export const creatures = [
         : trollGrieves(w)
           ? w.flag('trollToldTruth')
             ? 'The troll sits in the grass by the path with both hands over his face.'
-            : 'The troll stands in the archway with his club in both hands. His eyes are red. ' +
-              'He looks at you, and then past you, west, where his friend lies.'
+            : 'The troll stands on the garden path with his club in both hands. His eyes are ' +
+              'red. He looks at you, and then past you, south, toward the castle where his ' +
+              'friend lies.'
           : w.flag('trollRevived')
             ? `The troll sits a little way off ${w.locationOf('troll') === 'gazebo' ? 'by the gazebo rail' : 'the garden path'} ` +
               'and watches you carefully. His hand is not over his mouth.'
             : trollFriend(w) && w.isDead('dragon')
               ? 'The troll sits by the garden path with his club across his knees, and looks ' +
-                'west through the archway. He is not practising any words today.'
+                'south toward the castle. He is not practising any words today.'
               : trollFriend(w)
                 ? 'The troll sits by the garden path and practises words out loud. "Garden. Club. ' +
                   'Tooth." He waves when he sees you.'
-                : 'A troll is wandering in the garden outside. He swings his massive club in the air ' +
+                : 'A troll is wandering in the garden. He swings his massive club in the air ' +
                   'every now and then.',
     deadDescription: (w) =>
       w.flag('trollFought')
-        ? 'The troll lies in the grass with his face toward the archway. Beyond him, a garden ' +
-          'opens to the north.'
+        ? 'The troll lies in the grass with his face toward the castle. Beyond him, the path ' +
+          'runs on north to the gazebo.'
         : w.locationOf('troll') === 'gazebo'
           ? 'The troll lies dead by the gazebo rail, still facing the mountains.'
           : 'The troll lies dead on the grass. His tongue sticks out of his mouth making for an ' +
-            'extremely unpleasant sight. You see a huge open space with a garden to the north.',
+            'extremely unpleasant sight. Beyond him, the path runs on north to the gazebo.',
     examine: (w) =>
       'The troll is large, green and smells like a wet sock.' +
       (trollGrieves(w)

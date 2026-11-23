@@ -52,9 +52,9 @@ describe('go back', () => {
 
   it('respects guards on the way back', () => {
     const game = pastSkeleton();
-    play(game, WALKTHROUGH.slice(0, 15)); // at the portcullis, no torch
+    play(game, WALKTHROUGH.slice(0, 16)); // in the garden, no torch
     play(game, ['north', 'go back']);
-    expect(game.state.location).toBe('portcullis');
+    expect(game.state.location).toBe('garden');
   });
 });
 
@@ -83,7 +83,7 @@ describe('bare hands', () => {
   it('the troll has its own jokes', () => {
     const game = pastSkeleton();
     // with the dragon fed, the troll is still the easy-going sort
-    play(game, [...FEED, 'east']);
+    play(game, [...FEED, 'east', 'north']);
     expect(say(game, 'kick troll')).toMatch(/giggles/);
   });
 });

@@ -116,16 +116,18 @@ export function clubbed(w: World, weapon?: string): string {
   if (weapon) w.move(weapon, 'nowhere');
   const torch = w.has('torch');
   if (torch) w.move('torch', 'gazebo');
+  // the garden has no stream of its own, so the blow carries you down the path to it
+  w.state.location = 'portcullis';
   return (
-    'The troll swings his club, not even very hard. You fly backwards over the bank and into ' +
-    'the stream, which is much colder than it looked.' +
+    'The troll swings his club, not even very hard. You fly backwards down the garden path, ' +
+    'over the bank and into the stream, which is much colder than it looked.' +
     (lost ? ` Your ${lost} goes one way and you go the other. Only you come back.` : '') +
     (torch
       ? ' The torch hisses out in your hand and is gone. Far to the north, a red glow comes ' +
         'back to the edge of the gazebo, as if nothing happened.'
       : '') +
-    ' You crawl out on the bank, soaked, and the troll is back to swinging his club as if ' +
-    'nothing happened.'
+    ' You crawl out on the bank, soaked, and up the path the troll is back to swinging his ' +
+    'club as if nothing happened.'
   );
 }
 
@@ -326,7 +328,7 @@ function killedDragon(w: World, weapon: string): void {
   w.say('The passageway leading to the east opens up.');
   if (trollFriend(w)) {
     w.say(
-      'Out past the archway, the troll stops practising his words. For a long time you hear ' +
+      'Out in the garden, the troll stops practising his words. For a long time you hear ' +
         'nothing from him at all.',
     );
   }
@@ -336,7 +338,8 @@ function killedDragon(w: World, weapon: string): void {
 function killedTroll(w: World): void {
   if (dragonAsleep(w)) {
     w.lose(
-      'The troll falls, and the sound of it rolls through the archway and into the castle. ' +
+      'The troll falls, and the sound of it rolls down the path, through the archway and into ' +
+        'the castle. ' +
         'In there, something stops snoring. You have just enough time to remember the dragon ' +
         'you tiptoed past, and to understand that you never really got past him. He arrives all ' +
         'at once. He is not interested in a conversation.',
@@ -346,7 +349,7 @@ function killedTroll(w: World): void {
   w.addScore(POINTS.kill);
   if (w.flag('trollFought')) {
     w.say(
-      'He lies down in the grass with his face toward the archway, as if he meant to go home ' +
+      'He lies down in the grass with his face toward the castle, as if he meant to go home ' +
         'that way. Your voice is still your own, yet you find no word to say over him.',
     );
   } else {
@@ -370,7 +373,7 @@ function killedTroll(w: World): void {
     w.setFlag('dragonEstranged');
   }
   if (w.isDead('dragon')) killedBoth(w);
-  if (w.here === 'portcullis') w.say('It seems you can now walk about in the garden freely.');
+  if (w.here === 'garden') w.say('It seems you can now walk about in the garden freely.');
 }
 
 // the second of them falls, and the castle is left without a keeper
