@@ -362,7 +362,7 @@ export const items = [
     portable: true,
     description: 'A scroll with a red ribbon lies on the top shelf.',
     examine:
-      'The ribbon comes off easily. The scroll says: "TO CALL BACK WHO YOU SENT AWAY. Read ' +
+      'The ribbon comes off easily. The scroll says: "USE TO CALL BACK WHO YOU SENT AWAY. Read ' +
       'these words wherever you are. They will find their way." ' +
       'Under that are three lines in a language you do not speak, yet can pronounce.',
     takeMessage: 'You take the scroll. It is warmer than paper should be.',
