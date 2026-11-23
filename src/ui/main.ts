@@ -41,6 +41,24 @@ const settings: Settings = loadSettings();
 
 const themeColor = $<HTMLMetaElement>('meta[name="theme-color"]');
 
+/** Paint the glass's grain once: a small tile of random specks that CSS tiles and jitters. */
+function paintGrain(): void {
+  const size = 160;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return; // no grain, the rest of the glass still shows
+  const pixels = ctx.createImageData(size, size);
+  for (let i = 0; i < pixels.data.length; i += 4) {
+    const v = Math.random() * 255;
+    pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = v;
+    pixels.data[i + 3] = Math.random() * 255;
+  }
+  ctx.putImageData(pixels, 0, 0);
+  $<HTMLElement>('.glass').style.setProperty('--grain', `url(${canvas.toDataURL()})`);
+}
+paintGrain();
+
 function applySettings(): void {
   app.dataset.theme = settings.theme;
   // the phone's browser bar takes the screen colour of the chosen theme

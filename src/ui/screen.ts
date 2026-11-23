@@ -7,8 +7,6 @@ interface QueueItem {
   readonly words: readonly string[];
   /** The next word to show. */
   next: number;
-  /** Characters shown so far. */
-  shown: number;
   /** Budget (in characters) the next word needs before it appears. */
   cost: number;
 }
@@ -34,10 +32,12 @@ function pauseAfter(word: string): number {
 
 /**
  * The scrollback "screen". Lines are typed out a word at a time, at an uneven,
- * human pace (the speed setting is the average); the whole queue can be skipped. A separate aria-live region receives every line
- * in full straight away, so screen readers never wait on the animation. The
- * typed lines are hidden from assistive tech to avoid reading them twice, but
- * controls added with append() (Continue, Play again) stay reachable.
+ * human pace (the speed setting is the average), each word landing hot on the
+ * phosphor; the whole queue can be skipped. A separate aria-live region
+ * receives every line in full straight away, so screen readers never wait on
+ * the animation. The typed lines are hidden from assistive tech to avoid
+ * reading them twice, but controls added with append() (Continue, Play again)
+ * stay reachable.
  */
 export class Screen {
   private queue: QueueItem[] = [];
@@ -80,7 +80,6 @@ export class Screen {
           text: l.text,
           words,
           next: 0,
-          shown: 0,
           cost: wordCost(words[0] ?? ''),
         });
       }
@@ -140,8 +139,7 @@ export class Screen {
         if (this.carry < item.cost) break;
         this.carry -= item.cost;
         const word = item.words[item.next++]!;
-        item.shown += word.length;
-        item.el.textContent = item.text.slice(0, item.shown);
+        item.el.append(hot(word));
         const following = item.words[item.next];
         if (following !== undefined) {
           item.cost = wordCost(following) + pauseAfter(word);
@@ -150,6 +148,7 @@ export class Screen {
       }
       if (item.el.textContent !== item.text) item.el.textContent = item.text; // blank lines
       done(item.el);
+      settle(item.el, item.text);
       this.queue.shift();
       this.carry -= LINE_BEAT;
     }
@@ -194,6 +193,21 @@ export class Screen {
 function done(el: HTMLElement): void {
   el.classList.remove('line--typing');
   el.classList.add('line--typed');
+}
+
+/** A word as it lands on the phosphor: bright, cooling to the line's own colour (see .hot). */
+function hot(word: string): HTMLElement {
+  const span = document.createElement('span');
+  span.className = 'hot';
+  span.textContent = word;
+  return span;
+}
+
+/** Once its words have cooled, a line goes back to plain text so a long game keeps a light page. */
+function settle(el: HTMLElement, text: string): void {
+  setTimeout(() => {
+    if (el.firstElementChild) el.textContent = text;
+  }, 700);
 }
 
 function spacer(): HTMLElement {

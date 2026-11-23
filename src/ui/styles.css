@@ -164,6 +164,74 @@ body {
     radial-gradient(ellipse at center, transparent 60%, rgb(0 0 0 / 45%) 100%);
 }
 
+/* The tube's glass, between the picture and the scanlines. A window's reflection sits at the top
+   left and the picture darkens towards the edges as the glass curves away. Grain jitters over it by
+   transform alone, so the compositor carries it. */
+.glass {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 22% 8%, rgb(255 255 255 / 5%), transparent 45%);
+  box-shadow: inset 0 0 90px rgb(0 0 0 / 40%);
+}
+
+.app[data-scanlines='off'] .glass {
+  display: none;
+}
+
+.glass__grain {
+  position: absolute;
+  inset: -50%;
+  background-image: var(--grain);
+  opacity: 0.05;
+  mix-blend-mode: screen;
+  animation: grain 1s steps(10) infinite;
+}
+
+@keyframes grain {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  10% {
+    transform: translate(-5%, -8%);
+  }
+
+  20% {
+    transform: translate(7%, 3%);
+  }
+
+  30% {
+    transform: translate(-9%, 6%);
+  }
+
+  40% {
+    transform: translate(4%, -6%);
+  }
+
+  50% {
+    transform: translate(-3%, 9%);
+  }
+
+  60% {
+    transform: translate(8%, -2%);
+  }
+
+  70% {
+    transform: translate(-7%, -4%);
+  }
+
+  80% {
+    transform: translate(2%, 7%);
+  }
+
+  90% {
+    transform: translate(-4%, 2%);
+  }
+}
+
 button,
 input {
   font: inherit;
@@ -679,6 +747,21 @@ input {
   vertical-align: -0.2em;
   background: currentColor;
   opacity: 0.85;
+}
+
+/* Each word lands hot on the phosphor and cools to the line's own colour, so the newest words
+   are always the brightest. */
+.hot {
+  animation: phosphor-cool 0.6s var(--ease-out);
+}
+
+@keyframes phosphor-cool {
+  from {
+    color: var(--fg-strong);
+    text-shadow:
+      0 0 4px var(--fg-strong),
+      0 0 12px var(--fg);
+  }
 }
 
 .line-gap {
@@ -1239,6 +1322,11 @@ input {
     transition-property: opacity;
   }
 
+  /* the glass stays, its grain still */
+  .glass__grain {
+    animation: none;
+  }
+
   /* the change still shows, and fades in place without rising */
   .status__delta {
     animation-name: delta-fade;
@@ -1271,6 +1359,14 @@ input {
 
 /* High-contrast modes repaint backgrounds, so the typing cursor uses the text colour directly. */
 @media (forced-colors: active) {
+  .glass {
+    display: none;
+  }
+
+  .hot {
+    animation: none;
+  }
+
   .line--typing::after {
     forced-color-adjust: none;
     background: CanvasText;

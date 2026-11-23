@@ -105,6 +105,11 @@
         </section>
       </aside>
 
+      <!-- The tube's glass: reflection, edge shading and grain. -->
+      <div class="glass" aria-hidden="true">
+        <div class="glass__grain"></div>
+      </div>
+
       <div id="live" class="sr-only" role="log" aria-live="polite" aria-relevant="additions"></div>
 
       <div
@@ -150,7 +155,7 @@
             <label><input type="radio" name="theme" value="amber" /> Amber</label>
           </fieldset>
           <label class="settings__check"
-            ><input type="checkbox" name="scanlines" /> Scanlines</label
+            ><input type="checkbox" name="scanlines" /> Scanlines and glass</label
           >
           <fieldset>
             <legend>Saved data</legend>
