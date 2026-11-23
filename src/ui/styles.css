@@ -1011,6 +1011,19 @@ input {
     0 0 30px var(--dim);
 }
 
+/* Fixed cells: the runes come from fallback fonts and mustn't move the word while they turn. */
+.title-runes__cell {
+  display: inline-block;
+  width: 1ch;
+  letter-spacing: 0;
+  margin-inline-end: 0.15em;
+  vertical-align: top;
+}
+
+.title-runes__cell.is-scrambling {
+  color: var(--dim);
+}
+
 .title-screen__rule {
   margin: 0;
   color: var(--dim);

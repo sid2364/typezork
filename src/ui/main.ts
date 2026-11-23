@@ -6,6 +6,7 @@ import { PromptInput } from './input';
 import { renderCompass } from './compass';
 import { renderMinimap } from './minimap';
 import { Screen } from './screen';
+import { startTitleRunes } from './titleRunes';
 import {
   autosave,
   clearAllData,
@@ -301,6 +302,7 @@ function afterTurn(played = false): void {
 function begin(resume: boolean): void {
   if (titleScreen.hidden) return;
   titleScreen.hidden = true;
+  stopTitleRunes();
   setGameInert(false);
   screen.clear();
   game = newGame();
@@ -329,6 +331,8 @@ function setGameInert(on: boolean): void {
   for (const region of gameRegions) region.inert = on;
 }
 setGameInert(!titleScreen.hidden);
+
+const stopTitleRunes = startTitleRunes($('#title-heading'), reducedMotion);
 
 // Saves from an older version of the game can't be continued: clear them out.
 if (purgeStaleSaves(def.id, (data) => isCompatibleSave(def, data)) > 0) {
