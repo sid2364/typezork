@@ -3,12 +3,38 @@ import type { OutputLine } from '../engine';
 interface QueueItem {
   readonly el: HTMLElement;
   readonly text: string;
-  typed: number;
+  /** The line split into words, each with the spaces around it, so joined they are the text. */
+  readonly words: readonly string[];
+  /** The next word to show. */
+  next: number;
+  /** Characters shown so far. */
+  shown: number;
+  /** Budget (in characters) the next word needs before it appears. */
+  cost: number;
+}
+
+/** A short beat between one line and the next, in characters. */
+const LINE_BEAT = 6;
+
+/**
+ * What a word costs to type, in characters: about its length, a little more or less each time
+ * so the rhythm is never mechanical, and never less than a short beat.
+ */
+function wordCost(word: string): number {
+  return Math.max(2, word.trim().length) * (0.7 + Math.random() * 0.65);
+}
+
+/** The pause a word leaves before the next one: a breath after a sentence, less after a comma. */
+function pauseAfter(word: string): number {
+  const end = word.trimEnd().replace(/["'”’)\]]+$/, '');
+  if (/[.!?]$/.test(end)) return 5;
+  if (/[,;:—–-]$/.test(end)) return 2.5;
+  return 0;
 }
 
 /**
- * The scrollback "screen". Lines are typed out a character at a time; the
- * whole queue can be skipped. A separate aria-live region receives every line
+ * The scrollback "screen". Lines are typed out a word at a time, at an uneven,
+ * human pace (the speed setting is the average); the whole queue can be skipped. A separate aria-live region receives every line
  * in full straight away, so screen readers never wait on the animation. The
  * typed lines are hidden from assistive tech to avoid reading them twice, but
  * controls added with append() (Continue, Play again) stay reachable.
@@ -23,7 +49,7 @@ export class Screen {
   constructor(
     private readonly scroll: HTMLElement,
     private readonly live: HTMLElement,
-    /** Characters per second; Infinity means instant. */
+    /** Characters per second on average; Infinity means instant. */
     private readonly speed: () => number,
   ) {}
 
@@ -48,7 +74,15 @@ export class Screen {
         el.textContent = l.text;
         el.classList.add('line--typed');
       } else {
-        this.queue.push({ el, text: l.text, typed: 0 });
+        const words = l.text.match(/\s*\S+\s*/g) ?? [];
+        this.queue.push({
+          el,
+          text: l.text,
+          words,
+          next: 0,
+          shown: 0,
+          cost: wordCost(words[0] ?? ''),
+        });
       }
     }
     this.scrollToEnd();
@@ -76,7 +110,7 @@ export class Screen {
   /** Finish typing everything immediately. */
   skip(): void {
     for (const item of this.queue) {
-      item.el.textContent = item.text;
+      if (item.el.textContent !== item.text) item.el.textContent = item.text; // blank lines
       done(item.el);
     }
     this.queue = [];
@@ -94,24 +128,30 @@ export class Screen {
   }
 
   private tick = (now: number): void => {
+    // the budget, in characters, grows with time at the chosen speed and is spent a word at a time
     this.carry += ((now - this.last) / 1000) * this.speed();
     this.last = now;
-    let budget = Math.floor(this.carry);
-    this.carry -= budget;
     const stick = this.nearEnd();
-    while (budget > 0 && this.queue.length) {
+    while (this.queue.length) {
       const item = this.queue[0]!;
       // the line being typed carries a block cursor at its end
       item.el.classList.add('line--typing');
-      const n = Math.min(budget, item.text.length - item.typed);
-      item.typed += n;
-      budget -= n;
-      item.el.textContent = item.text.slice(0, item.typed);
-      if (item.typed >= item.text.length) {
-        done(item.el);
-        this.queue.shift();
-        budget = Math.max(0, budget - 6); // a short beat between lines
+      if (item.next < item.words.length) {
+        if (this.carry < item.cost) break;
+        this.carry -= item.cost;
+        const word = item.words[item.next++]!;
+        item.shown += word.length;
+        item.el.textContent = item.text.slice(0, item.shown);
+        const following = item.words[item.next];
+        if (following !== undefined) {
+          item.cost = wordCost(following) + pauseAfter(word);
+          continue;
+        }
       }
+      if (item.el.textContent !== item.text) item.el.textContent = item.text; // blank lines
+      done(item.el);
+      this.queue.shift();
+      this.carry -= LINE_BEAT;
     }
     if (stick) this.scrollToEnd();
     this.frame = this.queue.length ? requestAnimationFrame(this.tick) : 0;

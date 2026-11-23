@@ -292,6 +292,8 @@ function leaveTitle(): void {
 
 function begin(resume: boolean): void {
   if (!titleUp()) return;
+  // the chosen button stays lit while the title switches off, confirming the choice
+  (resume ? continueButton : $('#new-button')).classList.add('is-chosen');
   leaveTitle();
   setGameInert(false);
   screen.clear();

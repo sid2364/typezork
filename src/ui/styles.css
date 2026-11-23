@@ -204,7 +204,8 @@ input {
 }
 
 .btn:focus-visible,
-.btn:active {
+.btn:active,
+.title-screen.is-leaving .btn.is-chosen {
   background: var(--fg);
   color: var(--bg);
   text-shadow: none;
@@ -790,8 +791,9 @@ input {
 
 .prompt__caret {
   color: var(--fg-strong);
-  /* blinks for a few seconds after each turn (restarted in main.ts), then holds steady */
-  animation: blink 1.1s steps(1) 5;
+  /* blinks for a few seconds after each turn (restarted in main.ts), then holds steady; four
+     blinks stay under the five seconds WCAG 2.2.2 allows */
+  animation: blink 1.1s steps(1) 4;
 }
 
 .prompt__input {
@@ -847,18 +849,21 @@ input {
   animation: crt-glow 0.45s linear forwards;
 }
 
+/* squeeze (under way at once), hold the full-width line a beat, shrink to a dot, fade */
 @keyframes crt-off {
   from {
     transform: none;
-    animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+    animation-timing-function: cubic-bezier(0.11, 0, 0.5, 0);
   }
 
-  55% {
+  48%,
+  60% {
     transform: scale(1, 0.006);
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    /* a gentle ease-out: leaving the held line, the shrink must not snap */
+    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
   }
 
-  85% {
+  88% {
     transform: scale(0.08, 0.006);
     opacity: 1;
   }
@@ -870,14 +875,14 @@ input {
 }
 
 /* Only once the picture has collapsed does it brighten into a phosphor line; lit any earlier,
-   the whole screen would flash. */
+   the whole screen would flash. It is fully lit for the held line. */
 @keyframes crt-glow {
   from,
-  55% {
+  44% {
     opacity: 0;
   }
 
-  62%,
+  48%,
   to {
     opacity: 1;
   }
