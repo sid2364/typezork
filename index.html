@@ -35,6 +35,9 @@
           </button>
           <button type="button" class="btn" data-command="save">Save</button>
           <button type="button" class="btn" data-command="load">Load</button>
+          <button type="button" class="btn" data-music-toggle aria-pressed="true">
+            Music<span class="music-state">: on</span>
+          </button>
           <button type="button" class="btn" id="settings-button" aria-haspopup="dialog">
             Settings
           </button>
@@ -119,6 +122,9 @@
         aria-modal="true"
         aria-labelledby="title-heading"
       >
+        <button type="button" class="btn title-screen__music" data-music-toggle aria-pressed="true">
+          Music<span class="music-state">: on</span>
+        </button>
         <div class="title-screen__inner">
           <p class="title-screen__rule" aria-hidden="true">══════════════════════</p>
           <h1 id="title-heading" class="title-screen__heading">
@@ -137,8 +143,28 @@
           <p class="title-screen__hint">Press Enter to begin</p>
         </div>
         <p class="title-screen__credit">
-          created by Sid Sahay
-          <a href="https://sid2364.github.io" target="_blank" rel="noopener noreferrer">sid2364</a>
+          <span class="credit__maker">
+            created by Sid Sahay
+            <a href="https://sid2364.github.io" target="_blank" rel="noopener noreferrer"
+              >sid2364</a
+            >
+          </span>
+          <span class="credit__music">
+            music by Alexander Nakarada
+            <a
+              href="https://creatorchords.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-describedby="music-attribution"
+              >CreatorChords</a
+            >
+            <span class="credit__tip" id="music-attribution" role="tooltip">
+              Adventure by Alexander Nakarada (CreatorChords) | https://creatorchords.com<br />
+              Royalty Free Music by https://www.free-stock-music.com<br />
+              Creative Commons / Attribution 4.0 International (CC BY 4.0)<br />
+              https://creativecommons.org/licenses/by/4.0/
+            </span>
+          </span>
         </p>
       </div>
 

@@ -102,9 +102,15 @@ export interface Settings {
   speed: Speed;
   theme: Theme;
   scanlines: boolean;
+  music: boolean;
 }
 
-const DEFAULT_SETTINGS: Settings = { speed: 'normal', theme: 'green', scanlines: true };
+const DEFAULT_SETTINGS: Settings = {
+  speed: 'normal',
+  theme: 'green',
+  scanlines: true,
+  music: true,
+};
 
 export function loadSettings(): Settings {
   try {
@@ -115,6 +121,7 @@ export function loadSettings(): Settings {
         : DEFAULT_SETTINGS.speed,
       theme: parsed.theme === 'amber' ? 'amber' : 'green',
       scanlines: typeof parsed.scanlines === 'boolean' ? parsed.scanlines : true,
+      music: typeof parsed.music === 'boolean' ? parsed.music : true,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

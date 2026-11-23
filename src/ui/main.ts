@@ -5,6 +5,7 @@ import { HelpPanel } from './helpPanel';
 import { PromptInput } from './input';
 import { renderCompass } from './compass';
 import { renderMinimap } from './minimap';
+import { startMusic } from './music';
 import { Screen } from './screen';
 import { startTitleRunes } from './titleRunes';
 import {
@@ -60,6 +61,17 @@ function paintGrain(): void {
 }
 paintGrain();
 
+const music = startMusic(settings.music);
+const musicButtons = document.querySelectorAll<HTMLButtonElement>('[data-music-toggle]');
+for (const button of musicButtons) {
+  button.addEventListener('click', () => {
+    settings.music = !settings.music;
+    saveSettings(settings);
+    music.setEnabled(settings.music);
+    applySettings();
+  });
+}
+
 function applySettings(): void {
   app.dataset.theme = settings.theme;
   // the phone's browser bar takes the screen colour of the chosen theme
@@ -71,6 +83,10 @@ function applySettings(): void {
     for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)) {
       input.checked = input.value === settings[name];
     }
+  }
+  for (const button of musicButtons) {
+    button.setAttribute('aria-pressed', String(settings.music));
+    button.querySelector('.music-state')!.textContent = settings.music ? ': on' : ': off';
   }
 }
 
