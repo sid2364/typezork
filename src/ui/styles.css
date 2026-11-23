@@ -272,8 +272,7 @@ input {
 }
 
 .btn:focus-visible,
-.btn:active,
-.title-screen.is-leaving .btn.is-chosen {
+.btn:active {
   background: var(--fg);
   color: var(--bg);
   text-shadow: none;
@@ -625,16 +624,83 @@ input {
   filter: drop-shadow(0 0 3px var(--fg)) drop-shadow(0 0 8px var(--fg));
 }
 
+/* The way you came keeps an afterglow that fades over your next few moves (levels set in
+   minimap.ts), cooling from where it was a move before. */
+.map-cell--trail {
+  fill: color-mix(in srgb, var(--fg) var(--glow), var(--faint));
+  stroke: color-mix(in srgb, var(--fg-strong) var(--glow), var(--dim));
+}
+
+.map-corridor--trail {
+  stroke: color-mix(in srgb, var(--fg) var(--glow), var(--dim));
+}
+
+.map-cell--trail.map-cooling {
+  animation: cell-cool 0.9s var(--ease-out);
+}
+
+.map-corridor--trail.map-cooling {
+  animation: corridor-cool 0.9s var(--ease-out);
+}
+
+@keyframes cell-cool {
+  from {
+    fill: color-mix(in srgb, var(--fg) var(--glow-from), var(--faint));
+  }
+}
+
+@keyframes corridor-cool {
+  from {
+    stroke: color-mix(in srgb, var(--fg) var(--glow-from), var(--dim));
+  }
+}
+
+/* the room being named in the caption lights its outline */
+.map-cell:not(.map-cell--current):hover {
+  stroke: var(--fg-strong);
+}
+
+/* What lives in a room: a diamond, and a cross once it is slain, left on the map for good. */
+.map-mark {
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.map-mark--creature {
+  fill: var(--fg-strong);
+}
+
+.map-mark--slain {
+  fill: none;
+  stroke: var(--error);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.map-mark--here.map-mark--creature {
+  fill: var(--bg);
+}
+
+.map-mark--here.map-mark--slain {
+  stroke: var(--bg);
+}
+
 /* A newly found room traces its outline in, and the radar pings it once. */
+/* the dash exists only while tracing, so the finished outline is whole */
 .map-cell--new {
-  stroke-dasharray: 100;
-  animation: map-trace 0.8s var(--ease-out) both;
+  animation: map-trace 0.8s var(--ease-out) backwards;
 }
 
 @keyframes map-trace {
   from {
+    stroke-dasharray: 100;
     stroke-dashoffset: 100;
     fill-opacity: 0;
+  }
+
+  to {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
   }
 }
 
@@ -915,60 +981,6 @@ input {
   place-items: center;
   background: var(--bg);
   text-align: center;
-}
-
-/* Leaving the title switches it off like an old tube: the picture squeezes to a glowing line,
-   the line shrinks to a dot, and the game is already live behind the glass. */
-.title-screen.is-leaving {
-  pointer-events: none;
-  animation: crt-off 0.45s forwards;
-}
-
-.title-screen.is-leaving::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--fg-strong);
-  animation: crt-glow 0.45s linear forwards;
-}
-
-/* squeeze (under way at once), hold the full-width line a beat, shrink to a dot, fade */
-@keyframes crt-off {
-  from {
-    transform: none;
-    animation-timing-function: cubic-bezier(0.11, 0, 0.5, 0);
-  }
-
-  48%,
-  60% {
-    transform: scale(1, 0.006);
-    /* a gentle ease-out: leaving the held line, the shrink must not snap */
-    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
-  }
-
-  88% {
-    transform: scale(0.08, 0.006);
-    opacity: 1;
-  }
-
-  to {
-    transform: scale(0, 0.006);
-    opacity: 0;
-  }
-}
-
-/* Only once the picture has collapsed does it brighten into a phosphor line; lit any earlier,
-   the whole screen would flash. It is fully lit for the held line. */
-@keyframes crt-glow {
-  from,
-  44% {
-    opacity: 0;
-  }
-
-  48%,
-  to {
-    opacity: 1;
-  }
 }
 
 .title-screen[hidden] {
@@ -1309,15 +1321,7 @@ input {
     transition: none;
   }
 
-  /* the title fades away, and the dialog fades without growing */
-  .title-screen.is-leaving {
-    animation: fade-out 0.15s ease forwards;
-  }
-
-  .title-screen.is-leaving::after {
-    display: none;
-  }
-
+  /* the dialog fades without growing */
   .settings {
     transition-property: opacity;
   }
@@ -1333,17 +1337,13 @@ input {
   }
 
   .map-cell--new,
+  .map-cell--trail.map-cooling,
+  .map-corridor--trail.map-cooling,
   .map-ping,
   .line--lose.line--typed,
   .line--win.line--typed,
   .screen.is-dying {
     animation: none;
-  }
-}
-
-@keyframes fade-out {
-  to {
-    opacity: 0;
   }
 }
 

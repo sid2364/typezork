@@ -128,6 +128,10 @@ let endShown = false;
 /** Score and rank level shown before this turn, to light up whatever changed. */
 let lastScore = 0;
 let lastLevel = 0;
+/** The room shown last turn, and the rooms left before it, for the map's afterglow. */
+let lastRoom = '';
+let lastTurns = 0;
+let trail: string[] = [];
 
 const prompt = new PromptInput($('#prompt'), $('#command'), (text) => run(text));
 
@@ -249,13 +253,19 @@ function afterTurn(played = false): void {
     `${view.room.name} · turn ${view.turns} · score ${view.score}${rank}`;
   document.title = `${view.room.name} — Zork`;
   help.render(view);
-  const found = renderMinimap(
-    minimap,
-    def,
-    view,
-    { here: $('#map-here'), count: $('#map-count') },
-    played,
-  );
+  // The way the player came: rooms just left, most recent first. Undo, load and restart (which
+  // take no turn, and move the player or wind the turns back) start it afresh; LOOK and the like
+  // leave it be.
+  const moved = view.room.id !== lastRoom;
+  if (!played && (moved || view.turns < lastTurns)) trail = [];
+  else if (moved) trail = [lastRoom, ...trail.filter((id) => id !== view.room.id)].slice(0, 3);
+  lastRoom = view.room.id;
+  lastTurns = view.turns;
+  const found = renderMinimap(minimap, def, view, {
+    caption: { label: $('#map-label'), here: $('#map-here'), count: $('#map-count') },
+    reveal: played,
+    trail,
+  });
   if (found) flare($('#map-count'));
   renderCompass(
     compass,
@@ -288,31 +298,9 @@ function afterTurn(played = false): void {
   }
 }
 
-/** The title screen is showing and hasn't started to leave. */
-const titleUp = (): boolean => !titleScreen.hidden && !titleScreen.classList.contains('is-leaving');
-
-/** The title switches off like an old tube (see .is-leaving); the game is live underneath at once. */
-function leaveTitle(): void {
-  titleScreen.inert = true;
-  titleScreen.classList.add('is-leaving');
-  const gone = (): void => {
-    titleScreen.hidden = true;
-    titleScreen.classList.remove('is-leaving');
-    titleScreen.inert = false;
-  };
-  titleScreen.addEventListener('animationend', (e) => {
-    // children (the blinking hint) and the glow layer (::after) end animations of their own
-    if (e.target === titleScreen && !e.pseudoElement) gone();
-  });
-  // in case the animation never runs (a background tab, say)
-  setTimeout(gone, 1000);
-}
-
 function begin(resume: boolean): void {
-  if (!titleUp()) return;
-  // the chosen button stays lit while the title switches off, confirming the choice
-  (resume ? continueButton : $('#new-button')).classList.add('is-chosen');
-  leaveTitle();
+  if (titleScreen.hidden) return;
+  titleScreen.hidden = true;
   setGameInert(false);
   screen.clear();
   game = newGame();
@@ -357,7 +345,7 @@ $('#new-button').addEventListener('click', () => begin(false));
 
 document.addEventListener('keydown', (e) => {
   if (settingsDialog.open) return;
-  if (titleUp()) {
+  if (!titleScreen.hidden) {
     // A focused button or link handles Enter itself; otherwise focus was lost
     // (a click on the background, a tab that loaded unfocused), so start here.
     const target = e.target as HTMLElement;

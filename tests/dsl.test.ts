@@ -130,4 +130,20 @@ describe('minimap layout', () => {
     expect(map.edges).toEqual([{ from: 'start', to: 'dragonCell' }]);
     expect(map.stubs.map((s) => s.dir).sort()).toEqual(['east', 'north', 'south']);
   });
+
+  it('marks rooms where a creature lives, and where one was killed', () => {
+    const game = pastSkeleton();
+    say(game, 'open door');
+    say(game, 'east');
+    const mark = (id: string) => game.view().map.rooms.find((r) => r.id === id)?.mark;
+    expect(mark('dragonCell')).toEqual({ kind: 'creature', name: 'dragon' });
+    for (const input of ['north', 'open chest', 'take key', 'south', 'unlock gate', 'south'])
+      say(game, input);
+    say(game, 'take spear');
+    say(game, 'north');
+    say(game, 'kill dragon with spear');
+    say(game, 'south');
+    expect(mark('dragonCell')).toEqual({ kind: 'slain', name: 'dragon' });
+    expect(mark('weaponsRoom')).toBeNull();
+  });
 });

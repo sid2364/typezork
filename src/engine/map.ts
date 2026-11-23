@@ -73,12 +73,28 @@ export function computeLayout(def: GameDef): Layout {
   return pos;
 }
 
+/** A creature the map marks in a room: alive, or slain and left lying there. */
+export interface MapMark {
+  readonly kind: 'creature' | 'slain';
+  readonly name: string;
+}
+
 export interface MapRoom {
   readonly id: RoomId;
   readonly name: string;
   readonly x: number;
   readonly y: number;
   readonly current: boolean;
+  readonly mark: MapMark | null;
+}
+
+// a living creature in the room outranks a dead one
+function markOf(w: World, room: RoomId): MapMark | null {
+  const creatures = w.thingsAt(room).filter((id) => w.thing(id).kind === 'creature');
+  const alive = creatures.find((id) => !w.isDead(id));
+  if (alive) return { kind: 'creature', name: w.thing(alive).name };
+  const dead = creatures[0];
+  return dead ? { kind: 'slain', name: w.thing(dead).name } : null;
 }
 
 export interface MapView {
@@ -99,7 +115,7 @@ export function mapView(w: World): MapView {
   const seen = new Set<string>();
   for (const id of w.state.visited) {
     const [x, y] = layout[id] ?? [0, 0];
-    rooms.push({ id, name: w.room(id).name, x, y, current: id === w.here });
+    rooms.push({ id, name: w.room(id).name, x, y, current: id === w.here, mark: markOf(w, id) });
     for (const [dir, exit] of w.exits(id)) {
       if (visited.has(exit.to)) {
         const k = [id, exit.to].sort().join('|');
