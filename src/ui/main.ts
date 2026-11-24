@@ -340,6 +340,11 @@ function afterTurn(played = false): void {
   document.title = `${view.room.name} — Zork`;
   help.render(view);
   renderNudge(view);
+  prompt.setCompletions({
+    suggestions: view.suggestions,
+    ...view.vocabulary,
+    exits: view.exits.map((e) => e.dir),
+  });
   prompt.input.placeholder = view.question ? 'Your answer?' : 'What do you do?';
   // The way the player came: rooms just left, most recent first. Undo, load and restart (which
   // take no turn, and move the player or wind the turns back) start it afresh; LOOK and the like

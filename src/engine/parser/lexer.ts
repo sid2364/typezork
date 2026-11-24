@@ -1,4 +1,4 @@
-const ARTICLES = new Set(['a', 'an', 'the', 'some', 'my']);
+export const ARTICLES = new Set(['a', 'an', 'the', 'some', 'my']);
 
 /**
  * Split a line of input into separate commands:

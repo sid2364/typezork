@@ -52,6 +52,15 @@ export interface GameView {
   readonly map: MapView;
   /** Commands that make sense right now, for clickable hints. */
   readonly suggestions: readonly string[];
+  /** Words a front-end can complete as the player types. */
+  readonly vocabulary: Vocabulary;
+}
+
+export interface Vocabulary {
+  /** The main verb of every command but the secret ones, in help order. */
+  readonly verbs: readonly string[];
+  /** Names of everything the player can refer to: the room's contents and what they carry. */
+  readonly things: readonly string[];
 }
 
 // words a player may open with before the verb: "i want to fight it", "please open the door"
@@ -97,6 +106,7 @@ export class Game {
   readonly bus = new EventBus();
   private readonly world: World;
   private readonly commands: CommandDef[];
+  private readonly verbs: readonly string[];
   private readonly byId = new Map<string, CommandDef>();
   private readonly lexicon = new Lexicon();
   private readonly storage: SaveStorage | undefined;
@@ -131,6 +141,7 @@ export class Game {
       ...BUILTIN_COMMANDS.map((c) => custom.get(c.id) ?? c),
       ...def.commands.filter((c) => !BUILTIN_COMMANDS.some((b) => b.id === c.id)),
     ];
+    this.verbs = [...new Set(this.commands.filter((c) => !c.secret).map((c) => c.verbs[0]!))];
     for (const c of this.commands) {
       this.byId.set(c.id, c);
       for (const verb of c.verbs) this.lexicon.add(c.id, verb);
@@ -252,6 +263,10 @@ export class Game {
       question: this.question,
       map: mapView(w),
       suggestions: this.suggestions(),
+      vocabulary: {
+        verbs: this.verbs,
+        things: [...new Set(w.inScope().map((id) => w.thing(id).name))],
+      },
     };
   }
 

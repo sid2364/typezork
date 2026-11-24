@@ -71,6 +71,8 @@ export interface CommandDef {
   readonly meta?: boolean;
   /** Allowed after the game has ended. */
   readonly allowWhenOver?: boolean;
+  /** Jokes and easter eggs: they work when typed but are never offered as a completion. */
+  readonly secret?: boolean;
   readonly help?: { readonly usage: string; readonly summary: string };
   run(ctx: CommandContext): void;
 }

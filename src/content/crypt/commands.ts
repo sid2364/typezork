@@ -47,6 +47,7 @@ const quip = (id: string, verbs: string[], text: Joke): CommandDef => ({
   id,
   verbs,
   meta: true,
+  secret: true,
   run: ({ w }) => w.say(text),
 });
 
@@ -572,6 +573,7 @@ const scoreCommand: CommandDef = {
 const homeCommand: CommandDef = {
   id: 'home',
   verbs: ['home', 'go home'],
+  secret: true,
   run({ w }) {
     if (w.here !== 'devRoom') {
       w.say('Not yet.');
@@ -634,6 +636,7 @@ export const commands: CommandDef[] = [
     id: 'eat',
     verbs: ['eat', 'lick', 'taste', 'chew', 'nibble', 'gnaw', 'devour'],
     meta: true,
+    secret: true,
     run(ctx) {
       const { w, cmd } = ctx;
       if (cmd.direct.length === 0) {
@@ -662,6 +665,7 @@ export const commands: CommandDef[] = [
     id: 'smell',
     verbs: ['smell', 'sniff'],
     meta: true,
+    secret: true,
     run(ctx) {
       const { w, cmd } = ctx;
       if (cmd.direct.length === 0) {

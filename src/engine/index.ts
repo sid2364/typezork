@@ -1,4 +1,4 @@
-export { Game, type GameOptions, type GameView, type SaveStorage } from './game';
+export { Game, type GameOptions, type GameView, type SaveStorage, type Vocabulary } from './game';
 export type { GameDef, RoomDef, ThingDef, ItemDef, CreatureDef, ExitDef } from './definitions';
 export type { GameState } from './state';
 export { isCompatibleSave, SaveError } from './state';
