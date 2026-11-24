@@ -20,6 +20,19 @@ export interface ResolveOptions {
   readonly notFound?: string;
 }
 
+export interface ObjectOptions extends ResolveOptions {
+  /**
+   * What the command could sensibly mean when the player names nothing. One candidate,
+   * or the last thing referred to among them, is taken as meant; several are asked about.
+   * Defaults to everything in scope.
+   */
+  readonly candidates?: readonly ThingId[];
+  /** The follow-up question. Defaults to "What do you want to <verb>?". */
+  readonly ask?: string;
+  /** Said when nothing here could be meant. */
+  readonly none?: string;
+}
+
 /** Engine operations that commands can ask for (and that tests or front-ends can rely on). */
 export interface GameControl {
   save(slot: string): void;
@@ -40,6 +53,12 @@ export interface CommandContext {
    * "which do you mean" question) and returns undefined.
    */
   resolve(tokens: readonly string[], opts?: ResolveOptions): ThingId | undefined;
+  /**
+   * The object of the command, forgiving how it is put. Named words are resolved as
+   * with resolve(). With none, the obvious thing is taken and shown, "(the skeleton)",
+   * or a follow-up question is asked whose answer completes the command.
+   */
+  object(words: readonly string[], opts?: ObjectOptions): ThingId | undefined;
   /** Ask the player a question. Their next input goes to `answer`. */
   ask: Asker;
 }

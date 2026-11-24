@@ -1,7 +1,8 @@
 import type { Openable } from '../definitions';
-import { resolveNoun } from '../parser/resolve';
+import { resolveNoun, withoutFiller } from '../parser/resolve';
 import { capitalise, type ThingId } from '../types';
 import type { World } from '../world';
+import { leaveRoom } from './movement';
 import type { CommandContext, CommandDef } from './types';
 
 const openableOf = (w: World, id: ThingId): Openable | undefined => {
@@ -47,6 +48,10 @@ export function openThing(w: World, id: ThingId): boolean {
   return true;
 }
 
+// the openable things in reach that pass a test, for guessing what "open" means
+const openables = (w: World, test: (id: ThingId) => boolean): ThingId[] =>
+  w.inScope().filter((id) => openableOf(w, id) && test(id));
+
 // describe a thing the way examine does and tell listeners it was looked at
 export function describeThing(w: World, id: ThingId): void {
   describe(w, id);
@@ -70,36 +75,100 @@ function describe(w: World, id: ThingId): void {
   }
 }
 
+// words that ask for a closer look rather than another look round
+const CLOSER = new Set(['closer', 'closely', 'close', 'harder', 'hard', 'properly', 'carefully']);
+const ROOM_WORDS = new Set(['around', 'about', 'room', 'here', 'am', 'i']);
+
 export const lookCommand: CommandDef = {
   id: 'look',
-  verbs: ['look', 'where', 'gaze', 'see'],
+  verbs: ['look', 'l', 'where', 'gaze', 'see', 'look around', 'survey', 'scan', 'view'],
   meta: true,
   allowWhenOver: true,
   help: { usage: 'look', summary: 'Describe your surroundings.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    const words = cmd.direct.filter((t) => !['around', 'room', 'here', 'am', 'i'].includes(t));
-    if (words.length === 0) {
+    // "look more closely at the skeleton" names the skeleton after the "at"
+    const said = cmd.prep === 'at' && cmd.indirect.length ? cmd.indirect : cmd.direct;
+    const words = said.filter((t) => !ROOM_WORDS.has(t));
+    // "look" and "look again" are a look round, "look closer" is a look at something
+    if (withoutFiller(words).length === 0 && !words.some((t) => CLOSER.has(t))) {
       w.describeRoom();
       return;
     }
-    const id = ctx.resolve(words);
+    const id = ctx.object(words, { ask: 'What do you want to look at?' });
     if (id) describeThing(w, id);
   },
 };
 
+// verbs that read well in "What do you want to …?", the rest ask what to look at
+const EXAMINE_VERBS = new Set([
+  'examine',
+  'inspect',
+  'check',
+  'read',
+  'describe',
+  'study',
+  'observe',
+  'investigate',
+  'search',
+  'watch',
+]);
+
 export const examineCommand: CommandDef = {
   id: 'examine',
-  verbs: ['examine', 'inspect', 'look at', 'check', 'read', 'describe'],
+  verbs: [
+    'examine',
+    'x',
+    'inspect',
+    'look at',
+    'check',
+    'read',
+    'describe',
+    'study',
+    'observe',
+    'investigate',
+    'search',
+    'watch',
+    'peer at',
+    'stare at',
+    'look closer',
+    'look closely',
+    'look harder',
+    'look properly',
+    'look closer at',
+    'look closely at',
+    'look harder at',
+    'look properly at',
+    'take closer look',
+    'take closer look at',
+    'have closer look',
+    'have closer look at',
+    'get closer look',
+    'get closer look at',
+    'get closer',
+    'go closer',
+    'step closer',
+    'move closer',
+    'approach',
+    'what is',
+    'what are',
+    "what's",
+    'who is',
+    "who's",
+  ],
   meta: true,
-  help: { usage: 'examine chest', summary: 'Look closely at something.' },
+  help: { usage: 'examine chest (or x chest)', summary: 'Look closely at something.' },
   run(ctx) {
-    if (ctx.cmd.direct.length === 0) {
-      ctx.w.say('Examine what?', 'error');
+    const { w, cmd } = ctx;
+    const words = cmd.direct.length ? cmd.direct : cmd.indirect;
+    // "search the room" is a look round
+    if (words.length && words.every((t) => ROOM_WORDS.has(t))) {
+      w.describeRoom();
       return;
     }
-    const id = ctx.resolve(ctx.cmd.direct);
-    if (id) describeThing(ctx.w, id);
+    const plain = EXAMINE_VERBS.has(cmd.verb) ? cmd.verb : 'look at';
+    const id = ctx.object(words, { ask: `What do you want to ${plain}?` });
+    if (id) describeThing(w, id);
   },
 };
 
@@ -127,12 +196,33 @@ function takeOne(w: World, id: ThingId): void {
 
 export const takeCommand: CommandDef = {
   id: 'take',
-  verbs: ['take', 'get', 'grab', 'pick up', 'pick', 'lift', 'collect'],
+  verbs: [
+    'take',
+    'get',
+    'grab',
+    'pick up',
+    'pick',
+    'lift',
+    'collect',
+    'snatch',
+    'pocket',
+    'steal',
+    'loot',
+    'carry',
+    'obtain',
+  ],
   help: { usage: 'take bone', summary: 'Pick something up.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    if (cmd.direct.length === 0) {
-      w.say('Take what?', 'error');
+    if (withoutFiller(cmd.direct).length === 0) {
+      const id = ctx.object([], {
+        candidates: w.thingsAt(w.here).filter((t) => {
+          const thing = w.thing(t);
+          return thing.kind === 'item' && thing.portable;
+        }),
+        none: 'There is nothing here you can take.',
+      });
+      if (id) takeOne(w, id);
       return;
     }
     if (cmd.direct.length === 1 && (cmd.direct[0] === 'all' || cmd.direct[0] === 'everything')) {
@@ -149,24 +239,27 @@ export const takeCommand: CommandDef = {
     }
     // Prefer things lying here over things already carried.
     const here = w.thingsAt(w.here);
-    const inRoom = resolveNoun(cmd.direct, here, w.def.things, w.state.it).kind !== 'none';
-    const id = ctx.resolve(cmd.direct, inRoom ? { scope: here } : {});
+    const inRoom =
+      resolveNoun(cmd.direct, here, w.def.things, w.state.it, w.obvious()).kind !== 'none';
+    const id = ctx.object(cmd.direct, inRoom ? { scope: here } : {});
     if (id) takeOne(w, id);
   },
 };
 
 export const dropCommand: CommandDef = {
   id: 'drop',
-  verbs: ['drop', 'leave', 'discard', 'put down'],
+  verbs: ['drop', 'leave', 'discard', 'put down', 'put', 'place', 'set down', 'throw away'],
   help: { usage: 'drop bone', summary: 'Put down something you carry.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    if (cmd.direct.length === 0) {
-      w.say('Drop what?', 'error');
+    // "leave" on its own means leaving the room
+    if (cmd.verb === 'leave' && cmd.args.length === 0) {
+      leaveRoom(w);
       return;
     }
-    const id = ctx.resolve(cmd.direct, {
+    const id = ctx.object(cmd.direct, {
       scope: w.inventory(),
+      none: 'You are not carrying anything.',
       notFound: "Cannot drop something you don't have!",
     });
     if (!id) return;
@@ -179,25 +272,27 @@ export const dropCommand: CommandDef = {
 
 export const openCommand: CommandDef = {
   id: 'open',
-  verbs: ['open'],
+  verbs: ['open', 'push open', 'pull open', 'unbolt', 'unlatch', 'push', 'pull'],
   help: { usage: 'open door', summary: 'Open a door, chest, gate…' },
   run(ctx) {
-    if (ctx.cmd.direct.length === 0) {
-      ctx.w.say('Open what?', 'error');
-      return;
-    }
-    const id = ctx.resolve(ctx.cmd.direct);
-    if (id) openThing(ctx.w, id);
+    const { w } = ctx;
+    const id = ctx.object(ctx.cmd.direct, {
+      candidates: openables(w, (t) => !w.isOpen(t)),
+      none: 'There is nothing here to open.',
+    });
+    if (id) openThing(w, id);
   },
 };
 
 export const closeCommand: CommandDef = {
   id: 'close',
-  verbs: ['close', 'shut'],
+  verbs: ['close', 'shut', 'slam'],
   run(ctx) {
     const { w } = ctx;
-    const id = ctx.cmd.direct.length ? ctx.resolve(ctx.cmd.direct) : undefined;
-    if (!ctx.cmd.direct.length) w.say('Close what?', 'error');
+    const id = ctx.object(ctx.cmd.direct, {
+      candidates: openables(w, (t) => w.isOpen(t)),
+      none: 'There is nothing here to close.',
+    });
     if (!id) return;
     const o = openableOf(w, id);
     if (!o) w.say(`It's not possible to close ${w.the(id)}.`, 'error');
@@ -215,11 +310,10 @@ export const unlockCommand: CommandDef = {
   help: { usage: 'unlock gate', summary: 'Unlock something with a key you carry.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    if (cmd.direct.length === 0) {
-      w.say('Unlock what?', 'error');
-      return;
-    }
-    const id = ctx.resolve(cmd.direct);
+    const id = ctx.object(cmd.direct, {
+      candidates: openables(w, (t) => w.isLocked(t)),
+      none: 'There is nothing here to unlock.',
+    });
     if (!id) return;
     const o = openableOf(w, id);
     if (!o?.lockedBy) {
@@ -287,7 +381,24 @@ const BARE_HANDS = new Set([
 ]);
 
 /** Verbs that are an unarmed attack by definition. */
-const UNARMED_VERBS = new Set(['punch', 'kick', 'slap', 'bite', 'headbutt', 'tickle']);
+const UNARMED_VERBS = new Set([
+  'punch',
+  'kick',
+  'slap',
+  'bite',
+  'headbutt',
+  'tickle',
+  'smack',
+  'whack',
+  'thump',
+  'shove',
+  'tackle',
+  'elbow',
+  'box',
+  'spar',
+  'wrestle',
+  'brawl',
+]);
 
 function bareHanded(w: World, target: ThingId): void {
   const creature = w.thing(target);
@@ -323,16 +434,26 @@ export const attackCommand: CommandDef = {
     'slay',
     'stab',
     'injure',
+    'bash',
+    'smash',
+    'hack',
+    'slash',
+    'chop',
+    'cut',
+    'lunge at',
+    'swing at',
+    'charge',
+    'duel',
+    'challenge',
+    'murder',
     ...UNARMED_VERBS,
   ],
   help: { usage: 'kill dragon with spear', summary: 'Fight a creature.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    if (cmd.direct.length === 0) {
-      w.say('Attack what?', 'error');
-      return;
-    }
-    const target = ctx.resolve(cmd.direct, {
+    const target = ctx.object(cmd.direct, {
+      candidates: w.creaturesHere(),
+      none: 'There is nothing here to fight.',
       notFound: `There is no ${cmd.direct.join(' ')} you can tussle with here.`,
     });
     if (!target) return;
@@ -350,10 +471,10 @@ export const attackCommand: CommandDef = {
       w.say(refusal);
       return;
     }
+    // only "with" and "using" name a weapon. "in the face" is where, and the hands do it
+    const weapon = cmd.prep === 'with' || cmd.prep === 'using' ? cmd.indirect : [];
     const unarmed =
-      UNARMED_VERBS.has(cmd.verb) ||
-      cmd.indirect.length === 0 ||
-      BARE_HANDS.has(cmd.indirect.join(' '));
+      UNARMED_VERBS.has(cmd.verb) || weapon.length === 0 || BARE_HANDS.has(weapon.join(' '));
     if (creature.brawl && unarmed) {
       creature.brawl(w);
       return;
@@ -367,8 +488,8 @@ export const attackCommand: CommandDef = {
       bareHanded(w, target);
       return;
     }
-    if (cmd.indirect.length) {
-      chooseWeapon(ctx, target, cmd.indirect);
+    if (weapon.length) {
+      chooseWeapon(ctx, target, weapon);
       return;
     }
     w.say('You do not stand a chance if you fight with your bare hands.');
@@ -386,9 +507,9 @@ export const attackCommand: CommandDef = {
 
 export const inventoryCommand: CommandDef = {
   id: 'inventory',
-  verbs: ['inventory', 'inv', 'items'],
+  verbs: ['inventory', 'inv', 'i', 'items', 'pockets', 'bag'],
   meta: true,
-  help: { usage: 'inventory', summary: 'List what you carry.' },
+  help: { usage: 'inventory (or i)', summary: 'List what you carry.' },
   run({ w }) {
     const items = w.inventory();
     w.say(

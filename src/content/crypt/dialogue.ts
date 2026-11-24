@@ -1,10 +1,13 @@
 // the two conversations of the game, and the things that follow from them
+import { tokenize } from '../../engine/parser/lexer';
 import type { World } from '../../engine/world';
+import { banter } from './banter';
 import {
   clubbed,
   mute,
   POINTS,
   skeletonClue,
+  skeletonSwung,
   trollGrieves,
   trollSulks,
   worthyWeapon,
@@ -24,6 +27,12 @@ const WORDS: Readonly<Record<string, number>> = {
   third: 3,
 };
 
+// the player typed out a line, near enough: every word of it, in order, and nothing more
+function saysLine(typed: readonly string[], label: string): boolean {
+  const line = tokenize(label.replace(/\.\.\./g, ' '));
+  return line.length > 0 && typed.join(' ') === line.join(' ');
+}
+
 // show numbered lines and wait until the player picks one
 export function choose(w: World, options: readonly Option[], prompt = 'What do you say?'): void {
   const numbers = options.map((_, i) => String(i + 1));
@@ -33,10 +42,19 @@ export function choose(w: World, options: readonly Option[], prompt = 'What do y
       `${prompt} (${numbers.join(', ')})`,
       (tokens) => {
         const n = Number(tokens[0]) || WORDS[tokens[0] ?? ''] || 0;
-        const option = tokens.length === 1 ? options[n - 1] : undefined;
+        // typing the line itself picks it: "who are you", "let me through"
+        const option =
+          (tokens.length === 1 ? options[n - 1] : undefined) ??
+          options.find((o) => saysLine(tokens, o.label));
         if (option) {
           w.say(option.label);
           option.run();
+          return;
+        }
+        // "can we be friends": they answer that, and wait for a proper answer
+        if (banter.matches(tokens)) {
+          banter.reply(w, tokens);
+          ask();
           return;
         }
         w.say(
@@ -55,29 +73,37 @@ export function choose(w: World, options: readonly Option[], prompt = 'What do y
 // ---- the skeleton ----------------------------------------------------------------
 
 export function talkToSkeleton(w: World): void {
-  // after a death the player has been through this already, so it lets them by
+  // after a death the player has paid for the door already, so it lets them by
   if (w.deaths > 0) {
     w.say(
-      'The skeleton looks at the pile of bones, then at you. "You again," it says. "You know how ' +
-        'this goes. I will not make you do it twice."',
+      'The skeleton looks at the pile of bones, and then at you, for a long while. "You again," ' +
+        'it says. "You have paid for this door already." It lets go of the handle and sits ' +
+        'down against the wall.',
     );
     w.setFlag('skeletonTalked');
     w.setFlag('skeletonBeaten');
     return;
   }
-  w.say('"Oh, good. Someone to talk to," says the skeleton, and its jaw clacks.');
+  w.say(
+    'The skeleton\'s jaw drops open with a dry click. "Another one awake," it says, in a voice ' +
+      'like wind under a door. "They all want this door. Look at the pile, and you will see ' +
+      'what became of them."',
+  );
   choose(w, [
     {
       label: '"Who are you?"',
       run: () => {
-        w.say('"Someone who came this way before you," says the skeleton.');
+        w.say(
+          '"The one who holds this door," says the skeleton. "I held it before your bones were ' +
+            'in you, and I will hold it when they are in that pile."',
+        );
         skeletonChallenge(w);
       },
     },
     {
       label: '"Let me through."',
       run: () => {
-        w.say('"Wow, nobody says please anymore...", says the skeleton.');
+        w.say('"They all said that," says the skeleton, and nods at the pile.');
         skeletonChallenge(w);
       },
     },
@@ -95,26 +121,55 @@ function skeletonChallenge(w: World): void {
   // if the player already had a good look, the skeleton skips to the point
   w.say(
     skeletonClue(w)
-      ? '"You have already taken a good look at me," says the skeleton. "Fists up!"'
-      : 'The skeleton is serious. "Do you even know what you\'re dealing with?" asks the skeleton. You must admit to yourself that you need a ' +
-          'closer look, you still feel a bit dizzy.',
+      ? '"You have had your good look at me," says the skeleton. "Now come and take the door ' +
+          'from me, if you can."'
+      : 'The skeleton tightens its grip on the handle. "The door stays shut," it says, "unless ' +
+          'you can take it from me." Your head still swims from your long sleep, and in this ' +
+          'poor light you can hardly see what you would be fighting. You had better take a ' +
+          'closer look first.',
   );
   w.setFlag('skeletonTalked');
 }
 
-// the skeleton lets go once it has had its fight
+// fists only. a swing before you have seen its weak jaw gets you thrown among the bones,
+// and it lets go of the door once it has lost
 export function brawlSkeleton(w: World): void {
+  if (!skeletonClue(w)) {
+    blindSwing(w);
+    return;
+  }
   w.say(
-    'The skeleton lets go of the door and puts up its fists. It is quick. One good punch and ' +
-      'its jaw goes spinning across the floor.',
+    'You go for the jaw. The skeleton is quick, and its first blow catches you on the ' +
+      'shoulder and turns you half round, but you have seen the wire, and your fist finds it. ' +
+      'The jaw goes spinning across the floor.',
   );
   w.say(
-    'It picks the jaw up, clicks it back in, and cackles. It\'s whole frame shakes violently. "Not bad," it says. ' +
-      'It sits down against the ' +
-      'wall and waves you towards the door.',
+    'The skeleton picks up its jaw and clicks it back in, and looks at you for a long while. ' +
+      'Then it cackles until its whole frame shakes. "Not bad," it says. It lets go of the ' +
+      'door at last, and sits down against the wall, and waves you on.',
   );
   w.say('For a moment, the way it tilts its skull reminds you of someone.');
   w.setFlag('skeletonBeaten');
+}
+
+function blindSwing(w: World): void {
+  if (skeletonSwung(w)) {
+    w.say(
+      'Again it catches your fist and throws you down among the bones, and again it takes ' +
+        'hold of the door. You had better have a proper look at it first.',
+    );
+    return;
+  }
+  w.setFlag('skeletonSwung');
+  w.say(
+    'You swing at the skeleton. It catches your fist in its cold fingers as though it had ' +
+      'waited all its long death for you to try, and it throws you down among the bones. ' +
+      '"Is that all?" it says, and takes hold of the door again.',
+  );
+  w.say(
+    'You never saw where to hit it. In this poor light you had better look at it properly ' +
+      'before you try again.',
+  );
 }
 
 // a thrown bone gets the skeleton off the door too, much to its shame

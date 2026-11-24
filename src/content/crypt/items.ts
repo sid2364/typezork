@@ -35,9 +35,9 @@ export const items = [
       'this door did it from where you stand.' +
       (skeletonBeaten(w)
         ? ''
-        : " The skeleton's hands are wrapped round the handle, and its knuckles are bound in " +
-          "strips of old cloth, the way a boxer's are. It is not holding the door like a guard. " +
-          'It is holding it like someone who wants to be made to let go.'),
+        : " The skeleton's hands are wrapped round the handle, its knuckles bound in cloth " +
+          "like a fighter's. From here you can see its jaw hanging crooked, held on by a twist " +
+          'of rusted wire.'),
     name: 'door',
     location: 'start',
     portable: false,
@@ -47,8 +47,8 @@ export const items = [
         if (skeletonBeaten(w)) return undefined;
         return skeletonTalked(w)
           ? 'The skeleton holds on. "Words will not move me," it says. "You will have to make me."'
-          : 'The skeleton has both hands round the handle and will not let go. It tilts its ' +
-              'skull at you, the way people do when they are waiting for you to say something.';
+          : 'The skeleton has both hands round the handle and will not let go. Its skull turns ' +
+              'to follow you, and its jaw clicks open and shut as though it has something to say.';
       },
       openMessage: 'The door opens revealing a path towards the east.',
       alreadyOpen: 'The door is already open.',

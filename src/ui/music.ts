@@ -1,7 +1,13 @@
-import trackUrl from './audio/adventure.m4a';
+import adventureUrl from './audio/adventure.m4a';
+import adventureMetalUrl from './audio/adventure_metal.m4a';
+
+/** Played in this order, then round again. */
+const TRACKS = [adventureUrl, adventureMetalUrl];
 
 const VOLUME = 0.35;
 const FADE_MS = 800;
+/** How long before a track ends the next one starts downloading. */
+const PRELOAD_LEAD_S = 60;
 
 // Browsers only let sound start from some of these (which ones differs: touch screens
 // ignore pointerdown, for one), so every press tries until one of them works.
@@ -12,23 +18,35 @@ export interface Music {
 }
 
 /**
- * Looping background music. It loads behind the title screen while music is on, and
- * starts on the first click, tap or key press that the browser accepts as permission.
+ * Background music that plays the tracks in turn and loops the list. The first track
+ * loads behind the title screen while music is on, and starts on the first click, tap
+ * or key press that the browser accepts as permission.
  */
 export function startMusic(enabled: boolean): Music {
-  const audio = new Audio();
-  audio.loop = true;
-  audio.volume = 0;
-  // Muted players don't download it at all.
-  audio.preload = enabled ? 'auto' : 'none';
-  if (enabled) audio.src = trackUrl;
+  // One player per track, so the next one can buffer while the current one plays.
+  const players = TRACKS.map(() => {
+    const audio = new Audio();
+    audio.volume = 0;
+    audio.preload = 'none'; // muted players don't download anything
+    return audio;
+  });
+  let index = 0;
+  const current = (): HTMLAudioElement => players[index]!;
+
+  function load(i: number): void {
+    const audio = players[i]!;
+    if (audio.src) return;
+    audio.preload = 'auto';
+    audio.src = TRACKS[i]!;
+  }
+  if (enabled) load(0);
 
   let on = enabled;
   let starting = false;
   let played = false; // the browser has let it play at least once
   let fade = 0;
 
-  function fadeIn(): void {
+  function fadeIn(audio: HTMLAudioElement): void {
     cancelAnimationFrame(fade);
     const from = audio.volume;
     const start = performance.now();
@@ -41,14 +59,15 @@ export function startMusic(enabled: boolean): Music {
   }
 
   function play(): void {
+    const audio = current();
     if (!on || starting || document.hidden || !audio.paused) return;
-    if (!audio.src) audio.src = trackUrl;
+    load(index);
     starting = true;
     audio.volume = 0;
     audio.play().then(
       () => {
         starting = false;
-        fadeIn();
+        fadeIn(audio);
       },
       () => {
         // Not allowed yet, interrupted by a pause, or a network hiccup: the next press tries again.
@@ -59,7 +78,7 @@ export function startMusic(enabled: boolean): Music {
 
   function pause(): void {
     cancelAnimationFrame(fade);
-    audio.pause();
+    current().pause();
   }
 
   function onGesture(e: Event): void {
@@ -71,10 +90,23 @@ export function startMusic(enabled: boolean): Music {
   for (const type of GESTURES) {
     document.addEventListener(type, onGesture, { passive: true });
   }
-  audio.addEventListener('playing', () => {
-    if (played) return;
-    played = true;
-    for (const type of GESTURES) document.removeEventListener(type, onGesture);
+
+  players.forEach((audio, i) => {
+    const next = (i + 1) % players.length;
+    audio.addEventListener('playing', () => {
+      if (played) return;
+      played = true;
+      for (const type of GESTURES) document.removeEventListener(type, onGesture);
+    });
+    audio.addEventListener('timeupdate', () => {
+      if (audio.duration - audio.currentTime < PRELOAD_LEAD_S) load(next);
+    });
+    audio.addEventListener('ended', () => {
+      cancelAnimationFrame(fade);
+      audio.currentTime = 0;
+      index = next;
+      play();
+    });
   });
 
   document.addEventListener('visibilitychange', () => {

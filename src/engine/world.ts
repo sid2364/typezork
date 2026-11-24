@@ -133,6 +133,19 @@ export class World {
     return this.thingsAt('inventory');
   }
 
+  /** Creatures in the room, the living ones only unless asked otherwise. */
+  creaturesHere(includeDead = false): ThingId[] {
+    return this.thingsAt(this.here).filter(
+      (id) => this.thing(id).kind === 'creature' && (includeDead || !this.isDead(id)),
+    );
+  }
+
+  /** The thing a stray "it" or "him" most likely means: the one creature in the room. */
+  obvious(): ThingId | null {
+    const creatures = this.creaturesHere();
+    return creatures.length === 1 ? creatures[0]! : null;
+  }
+
   /** Everything the player can refer to: what's in the room and what they carry. */
   inScope(): ThingId[] {
     return [...this.thingsAt(this.here), ...this.inventory()];

@@ -95,4 +95,30 @@ describe('resolveNoun', () => {
     expect(resolveNoun(['it'], scope, things, 'bone')).toEqual({ kind: 'one', id: 'bone' });
     expect(resolveNoun(['it'], ['iron'], things, 'bone')).toEqual({ kind: 'none' });
   });
+
+  it('lets any pronoun fall back to the obvious thing', () => {
+    expect(resolveNoun(['him'], scope, things, null, 'bone')).toEqual({ kind: 'one', id: 'bone' });
+    expect(resolveNoun(['that'], scope, things, 'iron', 'bone')).toEqual({
+      kind: 'one',
+      id: 'iron',
+    });
+    expect(resolveNoun(['them'], ['iron'], things, null, 'bone')).toEqual({ kind: 'none' });
+  });
+
+  it('ignores filler words', () => {
+    expect(resolveNoun(['bone', 'more', 'closely'], scope, things)).toEqual({
+      kind: 'one',
+      id: 'bone',
+    });
+    expect(resolveNoun(['closer'], scope, things)).toEqual({ kind: 'none' });
+  });
+
+  it('falls back to the longest start that names one thing', () => {
+    expect(resolveNoun(['brass', 'key', 'who', 'is'], scope, things)).toEqual({
+      kind: 'one',
+      id: 'brass',
+    });
+    // a start that names two things asks which, like the whole phrase would
+    expect(resolveNoun(['key', 'please', 'now', 'thing'], scope, things).kind).toBe('ambiguous');
+  });
 });

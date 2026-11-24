@@ -3,6 +3,7 @@ import type {
   CommandContext,
   CommandDef,
   GameControl,
+  ObjectOptions,
   ParsedCommand,
   ResolveOptions,
 } from './commands/types';
@@ -12,9 +13,9 @@ import { EventBus } from './events';
 import { mapView, type MapView } from './map';
 import { splitCommands, tokenize } from './parser/lexer';
 import { Lexicon, splitObjects } from './parser/lexicon';
-import { resolveNoun } from './parser/resolve';
+import { resolveNoun, withoutFiller } from './parser/resolve';
 import { deserialize, initialState, SaveError, serialize, type GameState } from './state';
-import { line, type OutputLine, type ThingId } from './types';
+import { capitalise, line, type OutputLine, type ThingId } from './types';
 import { World } from './world';
 
 /** Where SAVE and LOAD keep their data. Front-ends supply one (localStorage, files, …). */
@@ -52,6 +53,30 @@ export interface GameView {
   /** Commands that make sense right now, for clickable hints. */
   readonly suggestions: readonly string[];
 }
+
+// words a player may open with before the verb: "i want to fight it", "please open the door"
+const LEAD = new Set([
+  'please',
+  'i',
+  'want',
+  'to',
+  'try',
+  'let',
+  'me',
+  'lets',
+  "let's",
+  'can',
+  'could',
+  'will',
+  'shall',
+  'just',
+  'now',
+  'gonna',
+  'wanna',
+]);
+
+// answers that drop a follow-up question
+const NEVER_MIND = new Set(['nevermind', 'never', 'nothing', 'cancel', 'nobody', 'none']);
 
 interface Pending {
   readonly question: string;
@@ -164,14 +189,15 @@ export class Game {
     if (this.pending) {
       const pending = this.pending;
       const tokens = tokenize(text);
-      const parsed = this.parse(tokens);
+      const chat = !this.state.over && (this.def.banter?.matches(tokens) ?? false);
+      const parsed = chat ? undefined : this.parse(tokens);
       if (pending.strict && parsed && this.byId.get(parsed.commandId)!.meta) {
         // looking around or undoing is fine mid-conversation and the question stays open
         this.execute(parsed);
         if (this.pending === pending) w.say(pending.question, 'question');
         return this.flush();
       }
-      if (pending.yesNo || pending.strict || !parsed) {
+      if (pending.yesNo || pending.strict || (!parsed && !chat)) {
         this.pending = undefined;
         this.step(() => pending.answer(tokens), pending.yesNo);
         return this.settle();
@@ -184,15 +210,18 @@ export class Game {
     for (const fragment of splitCommands(text)) {
       const tokens = tokenize(fragment);
       if (tokens.length === 0) continue;
+      // "can we be friends": small talk, answered in character before any command is tried
+      if (!this.state.over && this.def.banter?.matches(tokens)) {
+        this.def.banter.reply(this.world, tokens);
+        previous = undefined;
+        continue;
+      }
       // "take sword and spear": a fragment without a verb reuses the previous one.
       const parsed =
         this.parse(tokens) ??
         (previous ? this.parse([...tokenize(previous.verb), ...tokens]) : undefined);
       if (!parsed) {
-        w.say(
-          `I don't know how to "${tokens.join(' ')}". Type HELP for a list of commands.`,
-          'error',
-        );
+        this.notUnderstood(tokens);
         break;
       }
       previous = parsed;
@@ -251,6 +280,14 @@ export class Game {
   }
 
   private parse(tokens: readonly string[]): ParsedCommand | undefined {
+    // "i want to fight it": skip the polite words in front of the verb, if a verb follows.
+    // "i" on its own is still the inventory
+    let i = 0;
+    while (i < tokens.length - 1 && LEAD.has(tokens[i]!)) i++;
+    return (i > 0 ? this.parseVerb(tokens.slice(i)) : undefined) ?? this.parseVerb(tokens);
+  }
+
+  private parseVerb(tokens: readonly string[]): ParsedCommand | undefined {
     if (tokens.length === 0) return undefined;
     if (parseDirection(tokens)) {
       return {
@@ -313,6 +350,7 @@ export class Game {
       cmd: parsed,
       game: this.control,
       resolve: (tokens, opts) => this.resolve(parsed, preResolved, tokens, opts),
+      object: (words, opts) => this.object(parsed, preResolved, words, opts),
       ask: w.ask,
     };
     this.byId.get(parsed.commandId)!.run(ctx);
@@ -329,7 +367,13 @@ export class Game {
     const known = preResolved.get(key);
     if (known) return known;
 
-    const result = resolveNoun(tokens, opts.scope ?? w.inScope(), this.def.things, w.state.it);
+    const result = resolveNoun(
+      tokens,
+      opts.scope ?? w.inScope(),
+      this.def.things,
+      w.state.it,
+      w.obvious(),
+    );
     if (result.kind === 'one') {
       w.state.it = result.id;
       return result.id;
@@ -344,7 +388,7 @@ export class Game {
       question: `Which do you mean, ${list}?`,
       yesNo: false,
       strict: false,
-      choices: [],
+      choices: result.ids.map((id) => w.thing(id).name),
       answer: (answer) => {
         // "iron" answers "which key?" as "iron key"; a full name works too.
         let pick = resolveNoun([...answer, ...tokens], result.ids, this.def.things);
@@ -359,6 +403,96 @@ export class Game {
     };
     w.say(this.pending.question, 'question');
     return undefined;
+  }
+
+  // the object of a command: named, obvious, or asked for in a follow-up question
+  private object(
+    parsed: ParsedCommand,
+    preResolved: ReadonlyMap<string, ThingId>,
+    words: readonly string[],
+    opts: ObjectOptions = {},
+  ): ThingId | undefined {
+    const w = this.world;
+    const named = withoutFiller(words);
+    if (named.length) return this.resolve(parsed, preResolved, named, opts);
+
+    const candidates = [...new Set(opts.candidates ?? opts.scope ?? w.inScope())];
+    const it = w.state.it;
+    const meant =
+      it && candidates.includes(it) ? it : candidates.length === 1 ? candidates[0] : null;
+    if (meant) {
+      // say what was understood, the way the old games did
+      w.say(`(${w.the(meant)})`);
+      w.state.it = meant;
+      return meant;
+    }
+    if (candidates.length === 0) {
+      w.say(opts.none ?? `${capitalise(parsed.verb)} what?`, 'error');
+      return undefined;
+    }
+    const question = opts.ask ?? `What do you want to ${parsed.verb}?`;
+    this.pending = {
+      question,
+      yesNo: false,
+      strict: false,
+      choices: candidates.slice(0, 6).map((id) => w.thing(id).name),
+      // the answer finishes the command: "fight" … "skeleton", or "skeleton with fists"
+      answer: (answer) => {
+        if (answer.length === 0 || NEVER_MIND.has(answer[0]!)) {
+          w.say('Never mind, then.');
+          return;
+        }
+        const phrase = splitObjects(answer);
+        const prep = phrase.prep ?? parsed.prep;
+        const indirect = phrase.prep ? phrase.indirect : parsed.indirect;
+        this.run(
+          {
+            ...parsed,
+            raw: `${parsed.verb} ${answer.join(' ')}`,
+            args: [...phrase.direct, ...(prep ? [prep] : []), ...indirect],
+            direct: phrase.direct,
+            ...(prep ? { prep } : {}),
+            indirect,
+          },
+          preResolved,
+        );
+      },
+    };
+    w.say(question, 'question');
+    return undefined;
+  }
+
+  // a command nobody understood. if it names something here, say what can be done with it
+  private notUnderstood(tokens: readonly string[]): void {
+    const w = this.world;
+    const help = 'Type HELP for a list of commands.';
+    for (let i = 1; i < tokens.length; i++) {
+      const found = resolveNoun(
+        tokens.slice(i),
+        w.inScope(),
+        this.def.things,
+        w.state.it,
+        w.obvious(),
+      );
+      if (found.kind !== 'one') continue;
+      const id = found.id;
+      const thing = w.thing(id);
+      const can = ['examine it'];
+      if (thing.kind === 'creature' && !w.isDead(id)) {
+        if (this.byId.has('talk')) can.push('talk to it');
+        can.push('attack it');
+      } else if (thing.kind === 'item') {
+        if (thing.portable && !w.has(id)) can.push('take it');
+        if (thing.openable && !w.isOpen(id)) can.push('open it');
+      }
+      const list = can.length > 1 ? `${can.slice(0, -1).join(', ')} or ${can.at(-1)}` : can[0];
+      w.say(
+        `I don't know how to "${tokens.slice(0, i).join(' ')}" ${w.the(id)}, but you could ${list}.`,
+        'error',
+      );
+      return;
+    }
+    w.say(`I don't know how to "${tokens.join(' ')}". ${help}`, 'error');
   }
 
   private readonly control: GameControl = ((game: Game) => ({

@@ -10,6 +10,7 @@ import {
   skeletonBeaten,
   skeletonClue,
   skeletonFetched,
+  skeletonSwung,
   skeletonTalked,
   trollFriend,
   trollGrieves,
@@ -18,7 +19,7 @@ import {
 } from './story';
 
 export const creatures = [
-  // holds the crypt door until you talk to it, look at it and spar with it
+  // holds the crypt door and throws you down until you have seen where to hit it
   creature('skeleton', {
     name: 'skeleton',
     aliases: ['skull'],
@@ -33,29 +34,25 @@ export const creatures = [
           ? 'A skeleton sits slumped against the wall by the door, arms folded, looking very ' +
             'pleased with itself.'
           : 'A skeleton stands against the door with both bony hands wrapped round the handle. ' +
-            (!skeletonTalked(w)
-              ? 'It looks like it wants to have a conversation.'
-              : !skeletonClue(w)
-                ? 'It watches you, and waits for you to take a closer look.'
-                : 'Its cloth-wrapped knuckles are white. It is waiting for a fight.'),
+            (skeletonClue(w)
+              ? 'Its cloth-bound knuckles are white, and its crooked jaw rattles as it waits ' +
+                'for you to try.'
+              : skeletonTalked(w) || skeletonSwung(w)
+                ? 'It watches every move you make. By the light of one small candle you cannot ' +
+                  'make out much more of it than that.'
+                : 'Its empty eyes have been on you since you woke, and its jaw works as though ' +
+                  'it has something to say to you.'),
     examine:
-      'Up close, the skeleton seems in better shape than you would expect. Its knuckles are ' +
-      "wrapped in strips of old cloth, the way a boxer's are. It just wants a good clean fight.",
+      'Up close the skeleton is in better shape than you would like. Its knuckles are bound in ' +
+      "strips of old cloth, the way a fighter's are, and the cloth is stained dark. But its jaw " +
+      'hangs crooked, held on by a single twist of rusted wire, and it rattles when the thing ' +
+      'speaks. One good blow there might do it.',
     beforeAttack: (w) => {
       if (skeletonFetched(w)) {
         return 'The skeleton does not even look up. "We will never speak of this," it says.';
       }
       if (skeletonBeaten(w)) {
         return 'The skeleton holds up a bony hand in defeat. "Once was enough. My jaw is still ringing."';
-      }
-      if (!skeletonTalked(w)) {
-        return (
-          'The skeleton lets go of the door with one hand, just long enough to wag a finger ' +
-          'at you. Manners. It looks like it wants a conversation first.'
-        );
-      }
-      if (!skeletonClue(w)) {
-        return '"Do you even know what you\'re dealing with?" asks the skeleton. "Look closer."';
       }
       return undefined;
     },

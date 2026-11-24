@@ -58,10 +58,15 @@ describe('go back', () => {
   });
 });
 
-// directions may be abbreviated ("n", "ne"); other one-letter shortcuts are not understood
-describe('shortcuts are gone', () => {
-  it.each(['i', 'l', 'x candle'])('"%s" is not understood', (input) => {
-    expect(say(pastSkeleton(), input)).toMatch(/I don't know how to/);
+// the old one-letter shortcuts are back, for players who grew up with them
+describe('shortcuts', () => {
+  it.each([
+    ['i', /You do not hold anything/],
+    ['l', /^Crypt\n/],
+    ['x candle', /stubby candle/],
+    ['z', /Okay then/],
+  ])('"%s" is understood', (input, expected) => {
+    expect(say(pastSkeleton(), input)).toMatch(expected);
   });
 });
 

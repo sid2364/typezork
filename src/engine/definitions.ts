@@ -150,4 +150,15 @@ export interface GameDef {
   readonly rank?: (score: number, w: World) => RankInfo;
   /** What the player's choices have cost them so far ("your voice"), for front-ends to show. */
   readonly losses?: (w: World) => readonly string[];
+  /** Small talk with the characters ("can we be friends"), tried before any command. */
+  readonly banter?: Banter;
+}
+
+/**
+ * What players say to characters as if to a person. It is checked before the parser, so its
+ * trigger words must not be verbs or names. A reply takes no turn.
+ */
+export interface Banter {
+  matches(tokens: readonly string[]): boolean;
+  reply(w: World, tokens: readonly string[]): void;
 }

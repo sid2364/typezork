@@ -1,4 +1,5 @@
 import { parseDirection, type Direction } from '../direction';
+import { resolveNoun } from '../parser/resolve';
 import type { World } from '../world';
 import { openThing } from './things';
 import type { CommandDef } from './types';
@@ -60,6 +61,35 @@ export function goBack(w: World): void {
   go(w, way[0]);
 }
 
+/** Leave the room the only way there is, or ask which way when there are several. */
+export function leaveRoom(w: World): void {
+  const ways = w.exits().map(([dir]) => dir);
+  if (ways.length === 1) {
+    go(w, ways[0]!);
+    return;
+  }
+  if (ways.length === 0) {
+    w.say('There is no way out of here that you can see.', 'error');
+    return;
+  }
+  // the answer is a direction, which is a command of its own and simply runs
+  w.ask('Which way do you want to go?', () => w.say('Never mind, then.'), { choices: ways });
+}
+
+// the exit whose door these words name: "go through the door"
+function doorway(w: World, words: readonly string[]): Direction | undefined {
+  const doors = w.exits().filter(([, exit]) => exit.door);
+  for (const [dir, exit] of doors) {
+    if (resolveNoun(words, [exit.door!], w.def.things).kind === 'one') return dir;
+  }
+  return undefined;
+}
+
+// "go through the door", "go out of the door", "walk past it"
+const THROUGH = new Set(['through', 'out', 'of', 'past', 'via', 'towards', 'toward']);
+// on their own these mean leaving the room
+const OUT_VERBS = new Set(['exit', 'leave room', 'get out', 'escape', 'flee']);
+
 const BACK_VERBS = ['back', 'return', 'retreat', 'go back'];
 
 export const goCommand: CommandDef = {
@@ -76,6 +106,18 @@ export const goCommand: CommandDef = {
     'return',
     'retreat',
     'cd',
+    'proceed',
+    'continue',
+    'step',
+    'enter',
+    'venture',
+    'crawl',
+    'hurry',
+    'flee',
+    'escape',
+    'exit',
+    'leave room',
+    'get out',
   ],
   help: {
     usage: 'go north (or n) · go back',
@@ -89,11 +131,23 @@ export const goCommand: CommandDef = {
       goBack(w);
       return;
     }
-    const dir = parseDirection(words);
-    if (!dir) {
+    if (words.length === 0 && OUT_VERBS.has(cmd.verb)) {
+      leaveRoom(w);
+      return;
+    }
+    let skip = 0;
+    while (skip < words.length && THROUGH.has(words[skip]!)) skip++;
+    const rest = words.slice(skip);
+    const dir = parseDirection(words) ?? (rest.length ? parseDirection(rest) : undefined);
+    if (!dir && skip > 0 && rest.length === 0) {
+      leaveRoom(w); // "go out"
+      return;
+    }
+    const way = dir ?? (rest.length ? doorway(w, rest) : undefined);
+    if (!way) {
       w.say(words.length ? `I don't know how to go "${words.join(' ')}".` : 'Go where?', 'error');
       return;
     }
-    go(w, dir);
+    go(w, way);
   },
 };

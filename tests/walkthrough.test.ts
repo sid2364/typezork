@@ -24,7 +24,8 @@ describe('the kind way through', () => {
     expect(game.state.location).toBe('end');
     expect(game.state.over).toBe(true);
     expect(game.state.won).toBe(true);
-    expect(text).toContain('You passed the test. You came home whole.');
+    expect(text).toContain('You came home whole.');
+    expect(text).not.toContain('You passed the test');
     expect(text).toContain('Here ends the road home.');
     expect(text).toContain('Voice: kept · Strength: kept');
     expect(text).toContain('Other roads remain.');
@@ -45,12 +46,14 @@ describe('the kind way through', () => {
     const quick = play(pastSkeleton(), KIND_ROUTE);
     expect(quick).toMatch(/forgotten something important, about a candle/);
     expect(quick).not.toMatch(/You shut yourself in the crypt/);
+    expect(quick).not.toMatch(/passed the test/);
 
     const game = pastSkeleton();
     play(game, ['examine candle', 'examine door']);
     play(game, [...FEED, 'examine scale', ...HELP]);
     const text = play(game, KIND_ROUTE.slice(FEED.length + HELP.length));
     expect(text).toMatch(/your own hands lighting it[^]*You shut yourself in the crypt/);
+    expect(text).toMatch(/You passed the test\. You came home whole/);
   });
 
   it('the dev room adds one quiet line', () => {
@@ -116,22 +119,23 @@ describe('the old way through', () => {
 });
 
 describe('the skeleton', () => {
-  it('holds the door until you talk, look and fight', () => {
+  it('holds the door and throws you down until you have looked at it', () => {
     const game = newGame();
-    expect(say(game, 'look')).toMatch(/wants to have a conversation/);
+    expect(say(game, 'look')).toMatch(/something to say to you/);
     expect(say(game, 'open door')).toMatch(/will not let go/);
     expect(say(game, 'east')).toMatch(/will not let go/);
     expect(game.state.location).toBe('start');
-    expect(say(game, 'fight skeleton')).toMatch(/Manners/);
+    expect(say(game, 'fight skeleton')).toMatch(/throws you down among the bones/);
+    expect(game.state.flags.skeletonBeaten).toBeUndefined();
 
-    expect(say(game, 'talk to skeleton')).toMatch(/Someone to talk to/);
+    expect(say(game, 'talk to skeleton')).toMatch(/Another one awake/);
     expect(game.question).toMatch(/What do you say/);
     expect(say(game, 'east')).toMatch(/waiting for an answer/);
-    expect(say(game, '1')).toMatch(/came this way before you[^]*know what you're dealing with/);
+    expect(say(game, '1')).toMatch(/holds this door[^]*closer look first/);
 
     expect(say(game, 'open door')).toMatch(/You will have to make me/);
-    expect(say(game, 'fight skeleton')).toMatch(/Look closer/);
-    expect(say(game, 'examine skeleton')).toMatch(/good clean fight/);
+    expect(say(game, 'fight skeleton')).toMatch(/^Again it catches your fist/);
+    expect(say(game, 'examine skeleton')).toMatch(/twist of rusted wire/);
     expect(say(game, 'fight skeleton')).toMatch(/jaw goes spinning/);
     expect(game.state.killed).toEqual([]);
     expect(say(game, 'look')).toMatch(/pleased with itself/);
@@ -176,7 +180,7 @@ describe('the skeleton', () => {
     expect(hints(game, 'open door')).toEqual([]);
     const out = game.submit('fight skeleton');
     expect(out.at(-1)).toEqual({ text: 'Hint: examine skeleton', style: 'hint' });
-    expect(out.at(-2)?.text).toMatch(/Look closer/);
+    expect(out.at(-2)?.text).toMatch(/look at it properly/);
     // examining is progress: no hint for it
     expect(hints(game, 'examine skeleton')).toEqual([]);
     expect(hints(game, 'east')).toEqual([]);
@@ -201,26 +205,40 @@ describe('the skeleton', () => {
 
   it('keeps the room, the skeleton and the hints in step, whatever the order', () => {
     const game = newGame();
-    expect(say(game, 'look')).toMatch(/wants to have a conversation/);
+    expect(say(game, 'look')).toMatch(/something to say to you/);
     say(game, 'examine skeleton');
     say(game, 'talk');
-    expect(say(game, '1')).toMatch(/already taken a good look at me/);
+    expect(say(game, '1')).toMatch(/had your good look at me/);
     const look = say(game, 'look');
-    expect(look).toMatch(/waiting for a fight/);
-    expect(look).not.toMatch(/conversation|closer look/);
+    expect(look).toMatch(/waits for you to try/);
+    expect(look).not.toMatch(/something to say|cannot make out/);
+    // looking first was already the fight step, talking did not start the count again
+    expect(hints(game, 'look')).toEqual([]);
     expect(hints(game, 'look')).toEqual(['Hint: fight skeleton']);
   });
 
   it('asks for a closer look once you have talked', () => {
     const game = newGame();
     play(game, ['talk', '2']);
-    expect(say(game, 'look')).toMatch(/waits for you to take a closer look/);
+    expect(say(game, 'look')).toMatch(/cannot make out much more of it/);
+  });
+
+  it('can be fought without a word, once you have looked', () => {
+    const game = newGame();
+    play(game, ['punch skeleton']);
+    expect(say(game, 'look')).toMatch(/cannot make out much more of it/);
+    // a blind swing moves the hints on to looking, with no talking at all
+    expect(hints(game, 'look')).toEqual(['Hint: examine skeleton']);
+    say(game, 'examine skeleton');
+    expect(say(game, 'punch skeleton')).toMatch(/jaw goes spinning/);
+    expect(game.state.flags.skeletonTalked).toBeUndefined();
+    expect(say(game, 'east')).toContain("Dragon's Cell");
   });
 
   it('the door is a clue too', () => {
     const game = newGame();
     play(game, ['talk', '2']);
-    expect(say(game, 'examine door')).toMatch(/wants to be made to let go/);
+    expect(say(game, 'examine door')).toMatch(/twist of rusted wire/);
     expect(say(game, 'punch skeleton')).toMatch(/jaw goes spinning/);
   });
 
@@ -482,7 +500,7 @@ describe('the dragon', () => {
     expect(game.state.location).toBe('portcullis');
   });
 
-  it('a tamed dragon comes home with a scar', () => {
+  it('a tamed dragon comes home mended', () => {
     const game = pastSkeleton();
     // no scale from a tamed dragon, so the troll sees his face in the tower mirror
     play(game, [...TO_ARMOURY, 'take spear', 'up', 'take mirror', 'down', 'north', 'north']);
@@ -491,7 +509,7 @@ describe('the dragon', () => {
     const text = play(game, KIND_ROUTE.slice(FEED.length + HELP.length));
     expect(game.state.won).toBe(true);
     expect(text).toMatch(/keeps the cold from your back/);
-    expect(text).toMatch(/You came home whole, with a scar/);
+    expect(text).toMatch(/you are mended/);
   });
 
   it('a challenge can also be taken up with kill', () => {
@@ -628,8 +646,8 @@ describe('the troll', () => {
     expect(end).toMatch(/Nobody ever showed him his own face/);
     expect(end).not.toMatch(/lowers the hand/);
     expect(end).not.toMatch(/Booga hoom/);
-    expect(end).toMatch(/still hides its face/);
-    expect(end).not.toMatch(/with a scar/);
+    expect(end).toMatch(/hides its face still/);
+    expect(end).not.toMatch(/you are mended/);
     expect(game.state.won).toBe(true);
   });
 
@@ -651,7 +669,7 @@ describe('the troll', () => {
     const end = play(game, ['south', 'answer fire', 'south', 'east']);
     expect(end).toMatch(/lowers the hand/);
     expect(end).not.toMatch(/his own face/);
-    expect(end).toMatch(/whole, with a scar/);
+    expect(end).toMatch(/you are mended/);
     expect(game.state.won).toBe(true);
   });
 
@@ -910,7 +928,7 @@ describe('strength against voice', () => {
     expect(say(game, 'kill troll with staff')).toBe('No. Not again.');
     expect(say(game, 'talk to troll')).toMatch(/"Hello," says the troll, carefully/);
     const end = play(game, [...TORCH_AND_HOME.slice(1, 5), 'say fire', 'south', 'east']);
-    expect(end).toMatch(/whole, with a scar/);
+    expect(end).toMatch(/you are mended/);
     expect(game.state.won).toBe(true);
   });
 
@@ -996,7 +1014,7 @@ describe('strength against voice', () => {
     expect(say(game, 'examine scale')).toMatch(/A crack runs across it/);
     const end = play(game, ['west', 'take torch', 'south', 'south', 'fire', 'south', 'east']);
     expect(end).toMatch(/cracked scale on a string/);
-    expect(end).toMatch(/whole, with a scar/);
+    expect(end).toMatch(/you are mended/);
   });
 
   it('rolling the scroll up keeps it for later', () => {

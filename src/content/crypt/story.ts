@@ -7,10 +7,13 @@ import type { World } from '../../engine/world';
 
 // ---- who is who ----------------------------------------------------------------
 
-// the skeleton at the crypt door: talk to it, look at it properly, then spar with it
+// the skeleton at the crypt door: it throws you down until you have looked at it properly
+// and seen where to hit it. talking to it is the first hint, but nothing waits on it
 export const skeletonTalked = (w: World): boolean => Boolean(w.flag('skeletonTalked'));
 export const skeletonClue = (w: World): boolean => Boolean(w.flag('skeletonClue'));
 export const skeletonBeaten = (w: World): boolean => Boolean(w.flag('skeletonBeaten'));
+// swung at it before looking, and was thrown down among the bones for it
+export const skeletonSwung = (w: World): boolean => Boolean(w.flag('skeletonSwung'));
 // it chased a thrown bone instead, and would rather you forgot about it
 export const skeletonFetched = (w: World): boolean => Boolean(w.flag('skeletonFetched'));
 
@@ -27,11 +30,11 @@ const HINTS = {
 const tutorialStep = (w: World): keyof typeof HINTS =>
   skeletonBeaten(w)
     ? 'leave'
-    : !skeletonTalked(w)
-      ? 'talk'
-      : !skeletonClue(w)
+    : skeletonClue(w)
+      ? 'fight'
+      : skeletonTalked(w) || skeletonSwung(w)
         ? 'examine'
-        : 'fight';
+        : 'talk';
 
 function tutorialHint(w: World): void {
   // the tutorial is over once the player has left the crypt
@@ -176,6 +179,9 @@ const FRAGMENT_KEYS = [...new Set(Object.values(FRAGMENTS))];
 
 export const fragments = (w: World): number =>
   FRAGMENT_KEYS.filter((f) => w.flag(`frag:${f}`)).length;
+
+// enough remembered to know why you were in the crypt, and that it was a test
+const remembered = (w: World): boolean => fragments(w) >= 3;
 
 // the potion of remembering: every fragment not found yet, with its points
 export function rememberAll(w: World): number {
@@ -535,13 +541,13 @@ function homeEnding(w: World): void {
   }
 
   remember(w);
-  w.say(verdict(w));
+  // only someone who remembers the crypt knows there was a test to pass
+  w.say(remembered(w) ? `You passed the test. ${verdict(w)}` : verdict(w));
 }
 
 // the more you looked at the more you remember
 function remember(w: World): void {
-  const found = fragments(w);
-  if (found >= 3) {
+  if (remembered(w)) {
     // the potion has just told you about the candle and the bolt
     w.say(
       (w.flag('potionDrunk')
@@ -550,7 +556,7 @@ function remember(w: World): void {
           'lighting it. The bolt, and your own hand drawing it. ') +
         'You shut yourself in the crypt, to find out who would come out.',
     );
-    if (found >= 4) {
+    if (fragments(w) >= 4) {
       w.say(
         'You painted the lines under your eyes yourself, so that you would know your own ' +
           'face when you met it.',
@@ -567,35 +573,35 @@ function remember(w: World): void {
 function verdict(w: World): string {
   if (mute(w)) {
     return (
-      'You passed the test, in conflict with yourself. You chose your strength over your ' +
-      'voice. One day you will want to talk about it.'
+      'You chose your strength over your voice. Your hands are strong, and the tale of what ' +
+      'they did must go untold, for you have no voice left to tell it.'
     );
   }
   if (w.isDead('troll')) {
     return (
-      'You passed the test, by a hard road. You kept your voice and your strength, and one ' +
-      'day you will want to tell someone what they cost.'
+      'You kept your voice and your strength, and you alone are left to tell what befell in ' +
+      'the garden.'
     );
   }
   if (w.isDead('dragon')) {
     return (
-      'You passed the test. You chose your voice over your strength. It is a real choice, ' +
-      'and it has a real price.'
+      'You chose your voice over your strength. You may speak of the dragon all the night ' +
+      'long, but you cannot lift a cup to drink to him.'
     );
   }
   if (!w.flag('dragonFriend')) {
-    return (
-      'You passed the test, but it is not finished. One part of you is still asleep in a ' +
-      'castle, and still hungry.'
-    );
+    return 'A part of you sleeps still in the castle far behind, and hungers in its sleep.';
   }
   // said sorry, but the troll never saw his face
   if (w.flag('trollForgave') && !w.flag('trollFriend')) {
-    return 'You passed the test. You came home whole, but part of you still hides its face.';
+    return 'You came home whole, yet one part of you hides its face still.';
   }
   // the cruel word to the troll was never taken back
   if (w.flag('trollHurt') && !w.flag('trollFriend')) {
-    return 'You passed the test. You came home whole, but with something left unsaid.';
+    return (
+      'You came home whole, but there is one at the fire whom you wronged, and you have not ' +
+      'yet asked his pardon.'
+    );
   }
   if (
     w.flag('dragonRevived') ||
@@ -604,10 +610,7 @@ function verdict(w: World): string {
     w.flag('dragonTamed') ||
     w.flag('trollForgave')
   ) {
-    return (
-      'You passed the test. You came home whole, with a scar. The scar is the part you are ' +
-      'proudest of.'
-    );
+    return 'You came home whole, and where you were broken you are mended.';
   }
-  return 'You passed the test. You came home whole.';
+  return 'You came home whole.';
 }

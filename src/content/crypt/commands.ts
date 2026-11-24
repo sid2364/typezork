@@ -1,5 +1,6 @@
 import { describeThing, enter, go } from '../../engine/commands';
 import type { CommandContext, CommandDef } from '../../engine/commands/types';
+import { resolveNoun } from '../../engine/parser/resolve';
 import type { ThingId } from '../../engine/types';
 import type { World } from '../../engine/world';
 import {
@@ -92,6 +93,16 @@ const answerRiddle: CommandDef = {
   id: 'answer',
   verbs: [...SPEAK, ...BARE],
   run({ w, cmd }) {
+    // "say hello to the skeleton", "tell the troll hello": that is talking to them
+    const to = cmd.prep === 'to' ? cmd.indirect : cmd.verb === 'tell' ? cmd.direct : [];
+    const listener = to.length
+      ? resolveNoun(to, w.creaturesHere(true), w.def.things, w.state.it, w.obvious())
+      : undefined;
+    if (listener?.kind === 'one') {
+      w.state.it = listener.id;
+      speakTo(w, listener.id);
+      return;
+    }
     const words = BARE.includes(cmd.verb) ? [cmd.verb, ...cmd.args] : [...cmd.args];
     if (words.length === 0) {
       w.say(`${cmd.verb[0]!.toUpperCase()}${cmd.verb.slice(1)} what?`, 'error');
@@ -220,16 +231,26 @@ const giveCommand: CommandDef = {
     'hold',
     'raise',
     'pour',
+    'toss',
+    'fling',
+    'chuck',
+    'hurl',
+    'pass',
   ],
   help: { usage: 'give mutton to dragon', summary: 'Give or show something to someone.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    if (cmd.direct.length === 0) {
-      w.say(`${cmd.verb[0]!.toUpperCase()}${cmd.verb.slice(1)} what?`, 'error');
-      return;
-    }
     // feed dragon and feed dragon with mutton name the eater first
     let what = cmd.direct;
+    if (what.length === 0 && cmd.verb !== 'feed') {
+      // "throw" alone: the one thing you carry, or a question whose answer throws it
+      const only = ctx.object([], {
+        candidates: w.inventory(),
+        none: 'You are not carrying anything.',
+      });
+      if (!only) return;
+      what = [w.thing(only).name];
+    }
     let whom = cmd.indirect;
     if (cmd.verb === 'feed' && (cmd.indirect.length === 0 || cmd.prep === 'with')) {
       whom = cmd.direct;
@@ -283,8 +304,8 @@ function talkTo(w: World, target: ThingId): void {
       w.say(
         skeletonClue(w)
           ? '"Enough talk," says the skeleton. "Fists up. Fight me."'
-          : '"I have said my piece," says the skeleton. "Now look closer. Examine me. Then put ' +
-              'your fists up."',
+          : '"I have said all I mean to say," says the skeleton. Its skull follows you as you ' +
+              'move, and in this poor light you still cannot make out much of it.',
       );
     }
   } else if (target === 'dragon') {
@@ -373,48 +394,48 @@ const HELLO = "Hello to you too. The walls don't answer, but they look friendly 
 
 const talkCommand: CommandDef = {
   id: 'talk',
-  verbs: ['talk', 'speak', 'chat', 'greet', ...GREETINGS],
+  verbs: ['talk', 'speak', 'chat', 'greet', 'ask', 'converse', 'call', 'whisper', ...GREETINGS],
   help: { usage: 'talk to troll', summary: 'Talk to someone.' },
   run(ctx) {
     const { w, cmd } = ctx;
     const words = cmd.indirect.length ? cmd.indirect : cmd.direct;
-    let target: ThingId | undefined;
-    if (words.length === 0) {
-      const creatures = w.thingsAt(w.here).filter((id) => w.thing(id).kind === 'creature');
-      if (creatures.length !== 1) {
-        if (GREETINGS.includes(cmd.verb)) w.say(mute(w) ? MUTE : HELLO);
-        else w.say('Talk to whom?', 'error');
-        return;
-      }
-      target = creatures[0];
-    } else {
-      target = ctx.resolve(words, { notFound: `There is no ${words.join(' ')} here to talk to.` });
-    }
-    if (!target) return;
-    if (mute(w)) {
-      w.say(
-        target === 'duck'
-          ? 'You look at the duck. The duck looks at you. For once, you are equally quiet.'
-          : MUTE,
-      );
+    const creatures = w.creaturesHere(true);
+    // a hello with nobody about is just a hello
+    if (words.length === 0 && creatures.length === 0 && GREETINGS.includes(cmd.verb)) {
+      w.say(mute(w) ? MUTE : HELLO);
       return;
     }
-    talkTo(w, target);
+    const target = ctx.object(words, {
+      candidates: creatures,
+      ask: 'Who do you want to talk to?',
+      none: 'There is nobody here to talk to.',
+      notFound: `There is no ${words.join(' ')} here to talk to.`,
+    });
+    if (target) speakTo(w, target);
   },
 };
+
+// say something to someone, if you still have a voice to say it with
+function speakTo(w: World, target: ThingId): void {
+  if (mute(w)) {
+    w.say(
+      target === 'duck'
+        ? 'You look at the duck. The duck looks at you. For once, you are equally quiet.'
+        : MUTE,
+    );
+    return;
+  }
+  talkTo(w, target);
+}
 
 // ---- reading and mixing --------------------------------------------------------
 
 const readCommand: CommandDef = {
   id: 'read',
-  verbs: ['read', 'recite', 'chant', 'read aloud'],
+  verbs: ['read', 'recite', 'chant', 'read aloud', 'peruse', 'skim', 'unroll'],
   run(ctx: CommandContext) {
     const { w, cmd } = ctx;
-    if (cmd.direct.length === 0) {
-      w.say('Read what?', 'error');
-      return;
-    }
-    const id = ctx.resolve(cmd.direct);
+    const id = ctx.object(cmd.direct);
     if (!id) return;
     if (id !== 'scroll' || !w.has('scroll')) {
       describeThing(w, id);
@@ -483,7 +504,7 @@ const mixCommand: CommandDef = {
 // the potion of remembering gives back every memory you have not found yet
 const drinkCommand: CommandDef = {
   id: 'drink',
-  verbs: ['drink', 'sip', 'quaff'],
+  verbs: ['drink', 'sip', 'quaff', 'gulp', 'swallow'],
   run({ w }) {
     if (!w.has('potion')) {
       w.say('There is nothing here that you would trust in a cup.');
@@ -523,12 +544,14 @@ const sneakCommand: CommandDef = {
 
 const wearCommand: CommandDef = {
   id: 'wear',
-  verbs: ['wear', 'put on'],
+  verbs: ['wear', 'put on', 'don'],
   meta: true,
   run(ctx) {
     const { w, cmd } = ctx;
-    const id = cmd.direct.length ? ctx.resolve(cmd.direct) : undefined;
-    if (!cmd.direct.length) w.say('Wear what?', 'error');
+    const id = ctx.object(cmd.direct, {
+      candidates: w.inScope().filter((t) => t === 'boots'),
+      none: 'You have nothing here to wear.',
+    });
     if (!id) return;
     if (id !== 'boots') w.say(`You cannot wear ${w.the(id)}. You did try.`);
     else if (w.has('boots')) w.say('You already wear them. They are very quiet about it.');
@@ -609,7 +632,7 @@ export const commands: CommandDef[] = [
   ),
   {
     id: 'eat',
-    verbs: ['eat', 'lick', 'taste'],
+    verbs: ['eat', 'lick', 'taste', 'chew', 'nibble', 'gnaw', 'devour'],
     meta: true,
     run(ctx) {
       const { w, cmd } = ctx;

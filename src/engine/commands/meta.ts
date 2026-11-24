@@ -13,7 +13,7 @@ const HELP_GROUPS: readonly (readonly string[])[] = [
 
 export const helpCommand: CommandDef = {
   id: 'help',
-  verbs: ['help', 'commands', 'hint'],
+  verbs: ['help', 'commands', 'hint', 'what now', 'stuck', 'how'],
   meta: true,
   allowWhenOver: true,
   help: { usage: 'help', summary: 'Show this list.' },
@@ -35,7 +35,7 @@ export const helpCommand: CommandDef = {
 
 export const waitCommand: CommandDef = {
   id: 'wait',
-  verbs: ['wait', 'stand', 'nothing', 'rest'],
+  verbs: ['wait', 'z', 'stand', 'nothing', 'rest', 'pause', 'idle'],
   run({ w }) {
     w.say('Okay then...');
   },

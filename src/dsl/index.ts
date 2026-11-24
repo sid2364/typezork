@@ -5,6 +5,7 @@
  */
 import type { CommandDef } from '../engine/commands/types';
 import type {
+  Banter,
   Condition,
   CreatureDef,
   ExitDef,
@@ -89,6 +90,8 @@ export interface GameSpec {
   readonly rank?: (score: number, w: World) => RankInfo;
   /** What the player's choices have cost them so far, for the status panel. */
   readonly losses?: (w: World) => readonly string[];
+  /** Small talk with the characters, answered before any command is tried. */
+  readonly banter?: Banter;
 }
 
 export class GameDefinitionError extends Error {}
@@ -162,6 +165,7 @@ export function defineGame(spec: GameSpec): GameDef {
     ...(spec.hooks ? { hooks: spec.hooks } : {}),
     ...(spec.rank ? { rank: spec.rank } : {}),
     ...(spec.losses ? { losses: spec.losses } : {}),
+    ...(spec.banter ? { banter: spec.banter } : {}),
   });
 }
 
