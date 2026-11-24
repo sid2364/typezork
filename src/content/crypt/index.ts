@@ -15,7 +15,7 @@ export const crypt = defineGame({
   intro: [
     'This is a text adventure. You control your character by typing commands such as ' +
       '"look", "open door" or "go east". Type HELP at any time for more.',
-    'Hope you have fun with the game! Happy adventuring!',
+    'Happy adventuring!',
   ],
   start: 'start',
   rooms,

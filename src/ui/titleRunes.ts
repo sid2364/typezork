@@ -9,8 +9,8 @@ const GLYPHS = [...'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛈᛒᛖᛗᛚᛜᛞ╬
 const STEP_MS = 55; // how often a scrambling cell changes glyph
 const LOCK_AT_MS = [450, 650, 850, 1050]; // when each letter settles, from the first frame
 const STIR_MS = 300; // how long a stirred letter scrambles before it settles again
-const IDLE_MS = 4000; // roughly how often letters stir on their own
-const IDLE_JITTER_MS = 1000; // ± around IDLE_MS, so it never feels metronomic
+const IDLE_MS = 3000; // roughly how often letters stir on their own
+const IDLE_JITTER_MS = 1500; // ± around IDLE_MS, so it never feels metronomic
 const PAIR_GAP_MS = 120; // when two letters stir, the second starts this much later
 
 interface Cell {
