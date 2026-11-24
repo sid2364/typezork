@@ -11,7 +11,7 @@ export const crypt = defineGame({
   id: 'crypt',
   title: 'Zork',
   // Bump when a story change would break old saves (they are refused and deleted).
-  version: 3,
+  version: 4,
   intro: [
     'This is a text adventure. You control your character by typing commands such as ' +
       '"look", "open door" or "go east". Type HELP at any time for more.',
