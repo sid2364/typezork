@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { crypt } from '../src/content/crypt';
 import { Game } from '../src/engine';
-import { newGame, pastSkeleton, play, say, TO_ARMOURY } from './helpers';
+import {
+  FEED,
+  KIND_ROUTE,
+  newGame,
+  pastSkeleton,
+  play,
+  say,
+  TO_ARMOURY,
+  WALKTHROUGH,
+} from './helpers';
 
 // the player is always right: what playtesters typed, and what it should mean
 
@@ -164,5 +173,114 @@ describe('leaving', () => {
     const game = newGame();
     play(game, ['take bone']);
     expect(say(game, 'leave bone')).toBe('Dropped.');
+  });
+});
+
+describe('climbing', () => {
+  it('"climb" goes up when there is a way up', () => {
+    const game = pastSkeleton();
+    play(game, TO_ARMOURY);
+    expect(say(game, 'climb')).toMatch(/^\(up\)\nTower Room/);
+  });
+
+  it('"climb" takes the only way that climbs', () => {
+    const game = pastSkeleton();
+    play(game, [...TO_ARMOURY, 'up']);
+    expect(say(game, 'climb')).toMatch(/^\(down\)\nArmoury/);
+  });
+
+  it('stairs that run north and south still go up and down', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east']);
+    expect(say(game, 'go down')).toMatch(/^Dungeon/);
+    expect(say(game, 'climb')).toMatch(/^\(south\)\nDragon's Cell/);
+    expect(say(game, 'descend')).toMatch(/^Dungeon/);
+    expect(say(game, 'climb the stairs')).toMatch(/^Dragon's Cell/);
+  });
+
+  it('says so when there is nothing to climb', () => {
+    expect(say(pastSkeleton(), 'climb')).toBe('There is nothing here to climb.');
+  });
+});
+
+describe('doors from the far side', () => {
+  it('the steel gate can be named from the armoury', () => {
+    const game = pastSkeleton();
+    play(game, TO_ARMOURY);
+    expect(say(game, 'x steel gate')).toMatch(/A steel gate/);
+    expect(say(game, 'close steel gate')).toBe('You close the gate.');
+    expect(say(game, 'open steel gate')).toMatch(/The gate opens/);
+  });
+
+  it('the crypt door can be named from the cell', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east']);
+    expect(say(game, 'close door')).toBe('You close the door.');
+    expect(say(game, 'west')).toMatch(/door opens[\s\S]*Crypt/);
+  });
+});
+
+describe('giving and using', () => {
+  it('the one it is for can come first', () => {
+    const game = pastSkeleton();
+    play(game, FEED.slice(0, 5));
+    expect(say(game, 'give dragon mutton')).toMatch(/mutton leg down by the dragon's nose/);
+  });
+
+  it('a thing lying here is picked up first', () => {
+    const game = pastSkeleton();
+    play(game, [...TO_ARMOURY, 'up']);
+    expect(say(game, 'use mirror')).toMatch(/^\(first taking the mirror\)/);
+    expect(game.state.things.mirror).toBe('inventory');
+  });
+
+  it('"wear boots" off the floor puts them on', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east', 'north', 'west']);
+    expect(say(game, 'wear boots')).toMatch(/You pull the boots on/);
+    expect(game.state.things.boots).toBe('inventory');
+  });
+});
+
+describe('looking', () => {
+  it('"take weapon" asks which', () => {
+    const game = pastSkeleton();
+    play(game, TO_ARMOURY);
+    expect(say(game, 'take weapon')).toMatch(/^Which do you mean, the sword, the spear/);
+  });
+
+  it('"look out of the window" looks at the window', () => {
+    const game = pastSkeleton();
+    play(game, TO_ARMOURY);
+    expect(say(game, 'look out of the window')).toMatch(/^Large windows/);
+  });
+
+  it('naming the room describes it', () => {
+    expect(say(newGame(), 'x crypt')).toMatch(/^Crypt\n/);
+  });
+
+  it('what the rooms mention can be looked at', () => {
+    const game = pastSkeleton();
+    play(game, ['open door', 'east', 'north', 'west']);
+    expect(say(game, 'x coat')).toBe('A brown wool coat. It looks about your size.');
+    expect(say(game, 'take bed')).toBe("You can't take the bed.");
+  });
+});
+
+describe('crossing and listening', () => {
+  it('"cross stream" tries the way south', () => {
+    const game = pastSkeleton();
+    play(game, WALKTHROUGH.slice(0, 12));
+    expect(say(game, 'cross stream')).toMatch(/You cannot get past the stream/);
+  });
+
+  it('"listen" hears the room, and "listen to" one thing', () => {
+    const game = pastSkeleton();
+    play(game, FEED.slice(0, 2));
+    expect(say(game, 'listen')).toBe('The dragon snores. His stomach growls.');
+    expect(say(game, 'listen to dragon')).toBe('His stomach growls.');
+    const garden = pastSkeleton();
+    play(garden, KIND_ROUTE.slice(0, 10));
+    expect(say(garden, 'listen')).toBe('Bees in the flowers. The troll hums.');
   });
 });

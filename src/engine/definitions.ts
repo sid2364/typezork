@@ -36,6 +36,10 @@ export interface ExitDef {
   /** Hidden exits can't be seen or used until revealed with the revealExit() effect. */
   readonly hidden?: boolean;
   readonly guard?: Guard;
+  /** A flat exit that is a staircase: "up" or "down" (and "climb") take it when there's no real up/down exit. */
+  readonly stairs?: 'up' | 'down';
+  /** A thing you go through, across or up to take this exit: "climb stairs", "cross stream". Doors count already. */
+  readonly via?: ThingId;
 }
 
 export interface RoomDef {

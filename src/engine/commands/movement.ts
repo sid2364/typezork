@@ -4,12 +4,19 @@ import type { World } from '../world';
 import { openThing } from './things';
 import type { CommandDef } from './types';
 
+// the way "up" or "down" means here: the real exit, or failing that a staircase that climbs that way
+function stairway(w: World, dir: Direction): Direction {
+  if (w.room().exits[dir] || (dir !== 'up' && dir !== 'down')) return dir;
+  return w.exits().find(([, exit]) => exit.stairs === dir)?.[0] ?? dir;
+}
+
 /** Try to move the player. All checks (doors, guards, hooks) happen here. */
-export function go(w: World, dir: Direction): void {
+export function go(w: World, asked: Direction): void {
   const from = w.here;
+  const dir = stairway(w, asked);
   const exit = w.room().exits[dir];
   if (!exit || (exit.hidden && !w.isRevealed(from, dir))) {
-    w.say(`You can't go ${dir}.`, 'error');
+    w.say(`You can't go ${asked}.`, 'error');
     return;
   }
 
@@ -76,14 +83,29 @@ export function leaveRoom(w: World): void {
   w.ask('Which way do you want to go?', () => w.say('Never mind, then.'), { choices: ways });
 }
 
-// the exit whose door these words name: "go through the door"
+// the exit whose door, stair or stream these words name: "go through the door", "cross the stream"
 function doorway(w: World, words: readonly string[]): Direction | undefined {
-  const doors = w.exits().filter(([, exit]) => exit.door);
-  for (const [dir, exit] of doors) {
-    if (resolveNoun(words, [exit.door!], w.def.things).kind === 'one') return dir;
+  for (const [dir, exit] of w.exits()) {
+    const via = exit.door ?? exit.via;
+    if (via && resolveNoun(words, [via], w.def.things).kind === 'one') return dir;
   }
   return undefined;
 }
+
+/** The way "climb" means here: up if there is one, else the only way that climbs. */
+function climbWay(w: World): Direction | undefined {
+  const ways = w
+    .exits()
+    .filter(([dir, exit]) => dir === 'up' || dir === 'down' || exit.stairs)
+    .map(([dir, exit]) => ({ dir, way: dir === 'up' || dir === 'down' ? dir : exit.stairs }));
+  const up = ways.find((c) => c.way === 'up');
+  if (up) return up.dir;
+  return ways.length === 1 ? ways[0]!.dir : undefined;
+}
+
+const CLIMB_VERBS = new Set(['climb', 'ascend', 'descend']);
+// words for a stair that name no particular one: "climb the stairs"
+const STAIR_WORDS = new Set(['stairs', 'stair', 'staircase', 'steps', 'step', 'ladder']);
 
 // "go through the door", "go out of the door", "walk past it"
 const THROUGH = new Set(['through', 'out', 'of', 'past', 'via', 'towards', 'toward']);
@@ -102,6 +124,11 @@ export const goCommand: CommandDef = {
     'run',
     'head',
     'climb',
+    'ascend',
+    'descend',
+    'cross',
+    'ford',
+    'wade',
     'back',
     'return',
     'retreat',
@@ -133,6 +160,22 @@ export const goCommand: CommandDef = {
     }
     if (words.length === 0 && OUT_VERBS.has(cmd.verb)) {
       leaveRoom(w);
+      return;
+    }
+    // "ascend" and "descend" say which way on their own
+    if (words.length === 0 && (cmd.verb === 'ascend' || cmd.verb === 'descend')) {
+      go(w, cmd.verb === 'ascend' ? 'up' : 'down');
+      return;
+    }
+    // "climb", or "climb the stairs" where no one stair is named: up, or the only way that climbs
+    if (CLIMB_VERBS.has(cmd.verb) && words.every((t) => STAIR_WORDS.has(t))) {
+      const way = (words.length ? doorway(w, words) : undefined) ?? climbWay(w);
+      if (!way) {
+        w.say('There is nothing here to climb.', 'error');
+        return;
+      }
+      if (!words.length || !doorway(w, words)) w.say(`(${way})`);
+      go(w, way);
       return;
     }
     let skip = 0;

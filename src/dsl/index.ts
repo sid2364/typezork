@@ -134,6 +134,8 @@ export function defineGame(spec: GameSpec): GameDef {
         else if (d.kind !== 'item' || !d.openable)
           errors.push(`${where}: "${exit.door}" can't be opened`);
       }
+      if (exit.via && !things[exit.via])
+        errors.push(`${where} goes via unknown thing "${exit.via}"`);
     }
   }
   for (const t of Object.values(things)) {

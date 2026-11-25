@@ -102,8 +102,12 @@ export interface MapView {
   readonly rooms: readonly MapRoom[];
   /** Connections between visited rooms. */
   readonly edges: readonly { readonly from: RoomId; readonly to: RoomId }[];
-  /** Known exits leading somewhere not yet visited. */
-  readonly stubs: readonly { readonly from: RoomId; readonly dir: Direction }[];
+  /** Known exits leading somewhere not yet visited, and the room each leads to. */
+  readonly stubs: readonly {
+    readonly from: RoomId;
+    readonly dir: Direction;
+    readonly to: RoomId;
+  }[];
 }
 
 export function mapView(w: World): MapView {
@@ -111,7 +115,7 @@ export function mapView(w: World): MapView {
   const visited = new Set(w.state.visited);
   const rooms: MapRoom[] = [];
   const edges: { from: RoomId; to: RoomId }[] = [];
-  const stubs: { from: RoomId; dir: Direction }[] = [];
+  const stubs: { from: RoomId; dir: Direction; to: RoomId }[] = [];
   const seen = new Set<string>();
   for (const id of w.state.visited) {
     const [x, y] = layout[id] ?? [0, 0];
@@ -124,7 +128,7 @@ export function mapView(w: World): MapView {
           edges.push({ from: id, to: exit.to });
         }
       } else {
-        stubs.push({ from: id, dir });
+        stubs.push({ from: id, dir, to: exit.to });
       }
     }
   }

@@ -129,6 +129,11 @@ describe('minimap layout', () => {
     ]);
     expect(map.edges).toEqual([{ from: 'start', to: 'dragonCell' }]);
     expect(map.stubs.map((s) => s.dir).sort()).toEqual(['east', 'north', 'south']);
+    const visited = new Set(map.rooms.map((r) => r.id));
+    for (const { from, dir, to } of map.stubs) {
+      expect(to).toBe(crypt.rooms[from]!.exits[dir]!.to);
+      expect(visited.has(to)).toBe(false);
+    }
   });
 
   it('marks rooms where a creature lives, and where one was killed', () => {

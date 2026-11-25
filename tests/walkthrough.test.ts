@@ -559,7 +559,8 @@ describe('the troll', () => {
     expect(say(game, '1')).toMatch(/needs to see himself more clearly/);
     expect(say(game, 'talk to troll')).toMatch(/Ooga wug zug mog/);
     expect(game.question).toBeNull();
-    expect(say(game, 'give flower to troll')).toMatch(/not carrying any flower/);
+    // the flower is picked on the way to giving it
+    expect(say(game, 'give flower to troll')).toMatch(/first taking the flower[\s\S]*sneezes/);
   });
 
   it('knows what the troll means once you have read the note', () => {

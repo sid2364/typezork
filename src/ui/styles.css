@@ -619,7 +619,7 @@ input {
   transition: transform 0.35s var(--ease-out);
 }
 
-.map-grid-cell {
+.map-fog {
   vector-effect: non-scaling-stroke;
   fill: none;
   stroke: var(--faint);

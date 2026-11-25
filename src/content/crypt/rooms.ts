@@ -24,8 +24,8 @@ export const rooms = [
     description:
       'You see a staircase leading into the darkness in the north and a steel gate to the south.',
     exits: {
-      west: 'start',
-      north: 'dungeon',
+      west: door('door', 'start'),
+      north: { to: 'dungeon', stairs: 'down', via: 'cellStairs' },
       south: door('gate', 'weaponsRoom'),
       // dead or fed or you wear the felt boots, the sneak itself is a hook in story.ts
       // fed but challenged to a fight you could not take up, he blocks the way awake
@@ -46,7 +46,7 @@ export const rooms = [
     description:
       'You enter a small dungeon where you see ancient runes scrawled across the walls. The ' +
       'stairs lead back south, up to the cell and the something big that sleeps in it.',
-    exits: { south: 'dragonCell', west: 'keeper' },
+    exits: { south: { to: 'dragonCell', stairs: 'up', via: 'dungeonStairs' }, west: 'keeper' },
   }),
 
   room('keeper', {
@@ -65,7 +65,7 @@ export const rooms = [
       'displayed all around you. Large windows illuminate the room with the daylight outside. A ' +
       "steel gate to the north leads back toward the dragon's lair. A tight spiral " +
       'stair in the corner climbs up.',
-    exits: { north: 'dragonCell', up: 'tower' },
+    exits: { north: door('gate', 'dragonCell'), up: { to: 'tower', via: 'spiralStair' } },
   }),
 
   room('tower', {
@@ -75,7 +75,7 @@ export const rooms = [
       'covers the table, the chair and the floor. It does not cover the jewelled box in the ' +
       'middle of the floor, which sits exactly where you would put a box if you wanted someone ' +
       'to look at it. The stair goes back down.',
-    exits: { down: 'weaponsRoom' },
+    exits: { down: { to: 'weaponsRoom', via: 'towerStair' } },
     pos: [0, 1],
   }),
 
@@ -89,15 +89,18 @@ export const rooms = [
       west: 'dragonCell',
       north: 'garden',
       // The stream only parts once its riddle is answered (see the answer command).
-      south: guarded(
-        'river',
-        flag('streamParted'),
-        (w) =>
-          'The stream says to you, "It eats many things; it fears me but not the wind. But give ' +
-          'me enough and I will subside momentarily." You cannot get past the stream. It seems ' +
-          'to be waiting for an answer.' +
-          (w.has('torch') ? ' The torch in your hand flickers.' : ''),
-      ),
+      south: {
+        via: 'stream',
+        ...guarded(
+          'river',
+          flag('streamParted'),
+          (w) =>
+            'The stream says to you, "It eats many things; it fears me but not the wind. But give ' +
+            'me enough and I will subside momentarily." You cannot get past the stream. It seems ' +
+            'to be waiting for an answer.' +
+            (w.has('torch') ? ' The torch in your hand flickers.' : ''),
+        ),
+      },
     },
   }),
 
@@ -107,7 +110,7 @@ export const rooms = [
       "You are at the river. It's flowing north, back past the castle. On the other side of the " +
       'river in the east you see a deep, dark forest.',
     // The old map had no way back from here; north returns to the castle.
-    exits: { east: 'end', north: 'portcullis' },
+    exits: { east: { to: 'end', via: 'water' }, north: 'portcullis' },
   }),
 
   room('garden', {

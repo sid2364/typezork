@@ -22,7 +22,7 @@ export const creatures = [
   // holds the crypt door and throws you down until you have seen where to hit it
   creature('skeleton', {
     name: 'skeleton',
-    aliases: ['skull'],
+    aliases: ['skull', 'jaw'],
     location: 'start',
     killable: false,
     // the room text says what the skeleton wants next, in step with the hints
@@ -65,7 +65,7 @@ export const creatures = [
 
   creature('dragon', {
     name: 'dragon',
-    aliases: ['beast'],
+    aliases: ['beast', 'body', 'corpse', 'carcass', 'entrails'],
     adjectives: ['giant', 'sleeping', 'dead'],
     location: 'dragonCell',
     killable: true,
@@ -150,6 +150,7 @@ export const creatures = [
 
   creature('troll', {
     name: 'troll',
+    aliases: ['body', 'corpse'],
     adjectives: ['dead'],
     location: 'garden',
     killable: true,

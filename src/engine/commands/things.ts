@@ -78,6 +78,23 @@ function describe(w: World, id: ThingId): void {
 // words that ask for a closer look rather than another look round
 const CLOSER = new Set(['closer', 'closely', 'close', 'harder', 'hard', 'properly', 'carefully']);
 const ROOM_WORDS = new Set(['around', 'about', 'room', 'here', 'am', 'i']);
+// "look out of the window", "look through the gate"
+const THROUGH = new Set(['out', 'of', 'through', 'outside']);
+
+const throughless = (words: readonly string[]): string[] => {
+  let skip = 0;
+  while (skip < words.length && THROUGH.has(words[skip]!)) skip++;
+  return words.slice(skip);
+};
+
+// "x crypt", "look at the armoury": the room's own name, when it names nothing in it
+function namesRoom(w: World, words: readonly string[]): boolean {
+  const named = withoutFiller(words);
+  if (named.length === 0) return false;
+  if (resolveNoun(named, w.inScope(), w.def.things).kind !== 'none') return false;
+  const name = new Set(w.room().name.toLowerCase().split(/\s+/));
+  return named.every((t) => name.has(t));
+}
 
 export const lookCommand: CommandDef = {
   id: 'look',
@@ -89,9 +106,12 @@ export const lookCommand: CommandDef = {
     const { w, cmd } = ctx;
     // "look more closely at the skeleton" names the skeleton after the "at"
     const said = cmd.prep === 'at' && cmd.indirect.length ? cmd.indirect : cmd.direct;
-    const words = said.filter((t) => !ROOM_WORDS.has(t));
+    const words = throughless(said.filter((t) => !ROOM_WORDS.has(t)));
     // "look" and "look again" are a look round, "look closer" is a look at something
-    if (withoutFiller(words).length === 0 && !words.some((t) => CLOSER.has(t))) {
+    if (
+      (withoutFiller(words).length === 0 && !words.some((t) => CLOSER.has(t))) ||
+      namesRoom(w, words)
+    ) {
       w.describeRoom();
       return;
     }
@@ -160,9 +180,9 @@ export const examineCommand: CommandDef = {
   help: { usage: 'examine chest (or x chest)', summary: 'Look closely at something.' },
   run(ctx) {
     const { w, cmd } = ctx;
-    const words = cmd.direct.length ? cmd.direct : cmd.indirect;
+    const words = throughless(cmd.direct.length ? cmd.direct : cmd.indirect);
     // "search the room" is a look round
-    if (words.length && words.every((t) => ROOM_WORDS.has(t))) {
+    if ((words.length && words.every((t) => ROOM_WORDS.has(t))) || namesRoom(w, words)) {
       w.describeRoom();
       return;
     }
@@ -172,11 +192,12 @@ export const examineCommand: CommandDef = {
   },
 };
 
-function takeOne(w: World, id: ThingId): void {
+/** Pick a thing up, or say why not. Returns whether the player now carries it. */
+export function takeOne(w: World, id: ThingId): boolean {
   const thing = w.thing(id);
   if (w.has(id)) {
     w.say('You already have that!', 'error');
-    return;
+    return true;
   }
   const veto = w.bus.emit('beforeTake', { thing: id }, w);
   if (veto) {
@@ -192,6 +213,7 @@ function takeOne(w: World, id: ThingId): void {
     w.say(message);
     w.bus.emit('take', { thing: id }, w);
   }
+  return w.has(id);
 }
 
 export const takeCommand: CommandDef = {

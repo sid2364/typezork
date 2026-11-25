@@ -1,7 +1,7 @@
-import { describeThing, enter, go } from '../../engine/commands';
+import { describeThing, enter, go, takeOne } from '../../engine/commands';
 import type { CommandContext, CommandDef } from '../../engine/commands/types';
 import { resolveNoun } from '../../engine/parser/resolve';
-import type { ThingId } from '../../engine/types';
+import { capitalise, type ThingId } from '../../engine/types';
 import type { World } from '../../engine/world';
 import {
   apologiseToTroll,
@@ -216,6 +216,43 @@ function giveToTroll(w: World, thing: ThingId): void {
   }
 }
 
+// a portable thing lying here that the words name, when they name nothing carried
+function lyingHere(w: World, words: readonly string[]): ThingId | undefined {
+  const things = w.def.things;
+  if (resolveNoun(words, w.inventory(), things, w.state.it).kind !== 'none') return undefined;
+  const found = resolveNoun(words, w.thingsAt(w.here), things, w.state.it);
+  if (found.kind !== 'one') return undefined;
+  const thing = w.thing(found.id);
+  return thing.kind === 'item' && thing.portable ? found.id : undefined;
+}
+
+// "show troll scale" split into who it is for and what, when the words read that way
+function recipientFirst(
+  w: World,
+  words: readonly string[],
+): { whom: readonly string[]; what: readonly string[] } | undefined {
+  const things = w.def.things;
+  // what could be handed over: what you carry, and what you could pick up here
+  const reach = [
+    ...w.inventory(),
+    ...w.thingsAt(w.here).filter((id) => {
+      const thing = w.thing(id);
+      return thing.kind === 'item' && thing.portable;
+    }),
+  ];
+  if (resolveNoun(words, reach, things, w.state.it).kind !== 'none') return undefined;
+  for (let k = 1; k < words.length; k++) {
+    const whom = words.slice(0, k);
+    const what = words.slice(k);
+    if (
+      resolveNoun(whom, w.inScope(), things).kind === 'one' &&
+      resolveNoun(what, reach, things).kind === 'one'
+    )
+      return { whom, what };
+  }
+  return undefined;
+}
+
 const giveCommand: CommandDef = {
   id: 'give',
   verbs: [
@@ -264,6 +301,17 @@ const giveCommand: CommandDef = {
         }
         what = [w.thing(food).name];
       }
+    }
+    // "give dragon mutton": the one it is for comes first, with no "to"
+    if (!cmd.prep && whom.length === 0 && cmd.verb !== 'feed') {
+      const split = recipientFirst(w, what);
+      if (split) ({ whom, what } = split);
+    }
+    // "use mirror" with the mirror still lying here: pick it up first
+    const lying = lyingHere(w, what);
+    if (lying) {
+      w.say(`(first taking ${w.the(lying)})`);
+      if (!takeOne(w, lying)) return;
     }
     const thing = ctx.resolve(what, {
       scope: w.inventory(),
@@ -546,7 +594,6 @@ const sneakCommand: CommandDef = {
 const wearCommand: CommandDef = {
   id: 'wear',
   verbs: ['wear', 'put on', 'don'],
-  meta: true,
   run(ctx) {
     const { w, cmd } = ctx;
     const id = ctx.object(cmd.direct, {
@@ -556,7 +603,8 @@ const wearCommand: CommandDef = {
     if (!id) return;
     if (id !== 'boots') w.say(`You cannot wear ${w.the(id)}. You did try.`);
     else if (w.has('boots')) w.say('You already wear them. They are very quiet about it.');
-    else w.say('Take them first.');
+    // taking them is putting them on, see their take message
+    else takeOne(w, 'boots');
   },
 };
 
@@ -659,6 +707,53 @@ export const commands: CommandDef[] = [
         skeleton: 'There is nothing left on it to eat. Someone got there first.',
       };
       w.say(jokes[id] ?? `You'd rather not eat ${w.the(id)}.`);
+    },
+  },
+  {
+    id: 'listen',
+    verbs: ['listen', 'hear'],
+    meta: true,
+    help: { usage: 'listen', summary: 'Listen to the room, or to something in it.' },
+    run(ctx) {
+      const { w, cmd } = ctx;
+      const dragon = w.isDead('dragon') ? 'dead' : dragonAsleep(w) ? 'asleep' : 'awake';
+      if (cmd.direct.length === 0) {
+        const troll = w.locationOf('troll') === w.here && !w.isDead('troll');
+        const rooms: Record<string, string> = {
+          start: 'Water drips somewhere.',
+          dragonCell: {
+            asleep: 'The dragon snores. His stomach growls.',
+            awake: 'The dragon breathes, slow and deep.',
+            dead: 'The cell is silent.',
+          }[dragon],
+          dungeon: {
+            asleep: 'The dragon snores, far above.',
+            awake: 'The dragon breathes, far above.',
+            dead: 'Water drips from the ceiling.',
+          }[dragon],
+          keeper: 'The room is quiet.',
+          weaponsRoom: 'Wind at the windows. A pigeon mutters.',
+          tower: 'Something in the box ticks.',
+          portcullis: 'The stream rushes past.',
+          river: 'Running water, and birdsong from the forest.',
+          garden: 'Bees in the flowers.' + (troll ? ' The troll hums.' : ''),
+          gazebo: 'A steady hum from the east.',
+          library: 'A hum from the north.',
+          devRoom: 'The computers hum.',
+        };
+        w.say(rooms[w.here] ?? 'You hear nothing much.');
+        return;
+      }
+      const id = ctx.resolve(cmd.direct);
+      if (!id) return;
+      const sounds: Record<string, string | undefined> = {
+        dragon: dragon === 'dead' ? undefined : 'His stomach growls.',
+        troll: w.isDead('troll') ? undefined : 'He hums to himself.',
+        stream: w.flag('streamParted') ? undefined : 'It is still asking its riddle.',
+        skeleton: 'Its jaw clicks.',
+        duck: 'The duck listens back.',
+      };
+      w.say(sounds[id] ?? `${capitalise(w.the(id))} makes no sound.`);
     },
   },
   {

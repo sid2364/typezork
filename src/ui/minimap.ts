@@ -9,8 +9,6 @@ const GAP = PITCH - SIZE;
 /** Cells visible across the round view, which is always centred on the player. */
 const CELLS = 3.5;
 const VIEW = CELLS * PITCH;
-/** How far the background grid extends around the explored area, in cells. */
-const GRID_MARGIN = Math.ceil(CELLS);
 
 function el<K extends keyof SVGElementTagNameMap>(
   tag: K,
@@ -48,22 +46,8 @@ function worldGroup(svg: SVGSVGElement): SVGGElement {
   if (existing) return existing;
 
   svg.setAttribute('viewBox', `${-VIEW / 2} ${-VIEW / 2} ${VIEW} ${VIEW}`);
-  // One empty cell outline per grid square, aligned so cells are centred on multiples of PITCH.
-  const pattern = el('pattern', {
-    id: 'map-grid',
-    patternUnits: 'userSpaceOnUse',
-    x: -PITCH / 2,
-    y: -PITCH / 2,
-    width: PITCH,
-    height: PITCH,
-  });
-  pattern.append(
-    el('rect', { x: GAP / 2, y: GAP / 2, width: SIZE, height: SIZE, class: 'map-grid-cell' }),
-  );
-  const defs = el('defs');
-  defs.append(pattern);
   const world = el('g', { class: 'map-world' });
-  svg.replaceChildren(defs, world);
+  svg.replaceChildren(world);
   worlds.set(svg, world);
   return world;
 }
@@ -71,7 +55,8 @@ function worldGroup(svg: SVGSVGElement): SVGGElement {
 /**
  * A round, radar-like grid map centred on the player: each explored room is a
  * square, corridors join neighbouring squares, and chevrons mark exits that
- * haven't been taken. The edges fade and blur away (see .minimap__lens).
+ * haven't been taken. The room each such exit leads to shows as a dashed, fogged
+ * outline; squares with no room stay empty. The edges fade and blur away (see .minimap__lens).
  * The way the player came keeps an afterglow, rooms with a creature carry a mark
  * (a cross once it is slain), and pointing at a room names it in the caption.
  * Returns whether a newly found room was pinged.
@@ -93,20 +78,17 @@ export function renderMinimap(
     return [x * PITCH, y * PITCH];
   };
 
-  const cells = rooms.map((r) => layout[r.id] ?? [0, 0]);
-  const xs = cells.map(([x]) => x);
-  const ys = cells.map(([, y]) => y);
-  const minX = Math.min(0, ...xs) - GRID_MARGIN;
-  const minY = Math.min(0, ...ys) - GRID_MARGIN;
-  const children: SVGElement[] = [
-    el('rect', {
-      x: minX * PITCH - PITCH / 2,
-      y: minY * PITCH - PITCH / 2,
-      width: (Math.max(0, ...xs) + GRID_MARGIN - minX + 1) * PITCH,
-      height: (Math.max(0, ...ys) + GRID_MARGIN - minY + 1) * PITCH,
-      fill: 'url(#map-grid)',
-    }),
-  ];
+  // fog: a dashed outline where an unvisited room lies past a known exit, and nothing elsewhere
+  const children: SVGElement[] = [...new Set(stubs.map((s) => s.to))].map((id) => {
+    const [x, y] = centre(id);
+    return el('rect', {
+      x: x - SIZE / 2,
+      y: y - SIZE / 2,
+      width: SIZE,
+      height: SIZE,
+      class: 'map-fog',
+    });
+  });
 
   // the afterglow: rooms just left, and the corridors between them, by how long ago
   const current = rooms.find((r) => r.current);

@@ -1,6 +1,16 @@
 import { item, lose, spawnItem } from '../../dsl';
 import { skeletonBeaten, skeletonTalked } from './story';
 
+// things the rooms mention, there to be looked at and nothing more
+const scenery = (
+  id: string,
+  location: string,
+  name: string,
+  examine: string,
+  aliases: string[] = [],
+  adjectives: string[] = [],
+) => item(id, { name, aliases, adjectives, location, portable: false, examine });
+
 export const items = [
   // ---- crypt ----
   item('candle', {
@@ -39,6 +49,7 @@ export const items = [
           "like a fighter's. From here you can see its jaw hanging crooked, held on by a twist " +
           'of rusted wire.'),
     name: 'door',
+    aliases: ['handle', 'bolt'],
     location: 'start',
     portable: false,
     refuseTake: "You can't take the door.",
@@ -225,7 +236,7 @@ export const items = [
   item('window', {
     examine: 'Large windows. Through them: daylight, freedom, and a pigeon judging you.',
     name: 'window',
-    aliases: ['windows'],
+    aliases: ['windows', 'pigeon', 'daylight'],
     adjectives: ['large'],
     location: 'weaponsRoom',
     portable: false,
@@ -234,6 +245,7 @@ export const items = [
   item('sword', {
     examine: 'A fine steel sword. Remember: the pointy end goes into the other fellow.',
     name: 'sword',
+    aliases: ['weapon', 'weapons'],
     location: 'weaponsRoom',
     portable: true,
     takeMessage: 'Good choice. You now have a sword.',
@@ -241,6 +253,7 @@ export const items = [
   item('spear', {
     examine: 'A long spear, excellent for keeping large things at a respectful distance.',
     name: 'spear',
+    aliases: ['weapon', 'weapons'],
     location: 'weaponsRoom',
     portable: true,
     takeMessage: 'Great choice! You now have a spear.',
@@ -248,7 +261,7 @@ export const items = [
   item('knife', {
     examine: 'A small knife. Good for bread. Less good for dragons.',
     name: 'knife',
-    aliases: ['knives'],
+    aliases: ['knives', 'weapon', 'weapons'],
     location: 'weaponsRoom',
     portable: true,
     takeMessage: 'You now have a knife.',
@@ -256,6 +269,7 @@ export const items = [
   item('hammer', {
     examine: 'A hefty hammer. Everything is starting to look a bit like a nail.',
     name: 'hammer',
+    aliases: ['weapon', 'weapons'],
     location: 'weaponsRoom',
     portable: true,
     takeMessage: 'You now have a hammer.',
@@ -263,7 +277,7 @@ export const items = [
   item('staff', {
     examine: 'A tall wooden staff. You feel at least 20% more wizardly just holding it.',
     name: 'staff',
-    aliases: ['stave', 'staves'],
+    aliases: ['stave', 'staves', 'weapon', 'weapons'],
     location: 'weaponsRoom',
     portable: true,
     takeMessage: 'Excellent choice. You now have a staff.',
@@ -357,6 +371,7 @@ export const items = [
   }),
   item('scroll', {
     name: 'scroll',
+    aliases: ['ribbon'],
     adjectives: ['red'],
     location: 'library',
     portable: true,
@@ -398,7 +413,7 @@ export const items = [
   }),
   item('screen', {
     name: 'screen',
-    aliases: ['computer', 'computers', 'monitor', 'terminal', 'chair'],
+    aliases: ['computer', 'computers', 'monitor', 'terminal', 'chair', 'cursor'],
     location: 'devRoom',
     portable: false,
     examine:
@@ -407,4 +422,72 @@ export const items = [
       'still warm.',
     refuseTake: 'You get the feeling that it is not yours to move. Not from this side.',
   }),
+
+  // ---- scenery ----
+  scenery('cellStairs', 'dragonCell', 'staircase', 'Worn stone steps go down into the dark.', [
+    'stairs',
+    'stair',
+    'steps',
+  ]),
+  scenery('passage', 'dragonCell', 'passage', 'A low passage runs east behind the dragon.', [
+    'passageway',
+  ]),
+  scenery('dungeonStairs', 'dungeon', 'staircase', 'The stairs climb back up to the cell.', [
+    'stairs',
+    'stair',
+    'steps',
+  ]),
+  scenery('hook', 'dungeon', 'hook', 'Iron hooks, polished from use.', ['hooks', 'ceiling']),
+  scenery('bed', 'keeper', 'bed', 'A narrow bed, neatly made.'),
+  scenery('table', 'keeper', 'table', 'A scrubbed table with a cup on it.', ['cup']),
+  scenery('coat', 'keeper', 'coat', 'A brown wool coat. It looks about your size.', [], ['wool']),
+  scenery(
+    'spiralStair',
+    'weaponsRoom',
+    'stair',
+    'A tight spiral stair, going up.',
+    ['stairs', 'staircase', 'steps'],
+    ['spiral', 'tight'],
+  ),
+  scenery('towerStair', 'tower', 'stair', 'The stair winds back down.', [
+    'stairs',
+    'staircase',
+    'steps',
+  ]),
+  scenery(
+    'dressingTable',
+    'tower',
+    'dressing table',
+    'A dressing table and chair, grey with dust.',
+    ['table', 'chair', 'dust'],
+  ),
+  scenery(
+    'portcullisGate',
+    'portcullis',
+    'portcullis',
+    'The portcullis hangs drawn up, all iron teeth.',
+  ),
+  scenery('castle', 'portcullis', 'castle', 'Dark walls, and too many towers.', [
+    'walls',
+    'wall',
+    'archway',
+    'arch',
+  ]),
+  scenery('forest', 'river', 'forest', 'A dark forest. It looks familiar.', ['trees', 'wood']),
+  scenery('gazeboFar', 'garden', 'gazebo', 'A white gazebo at the top of the garden.'),
+  scenery('path', 'garden', 'path', 'A gravel path, neatly raked.', ['gravel']),
+  scenery('mountains', 'gazebo', 'mountains', 'Snowy peaks, as far as you can see.', [
+    'mountain',
+    'peaks',
+    'peak',
+    'snow',
+    'horizon',
+  ]),
+  scenery('valley', 'gazebo', 'valley', 'A very long way down.'),
+  scenery('shelves', 'library', 'shelves', 'Old books, too faded to read.', [
+    'shelf',
+    'books',
+    'book',
+  ]),
+  scenery('desk', 'library', 'desk', 'A writing desk. The duck sits on it.'),
 ];

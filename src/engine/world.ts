@@ -146,9 +146,16 @@ export class World {
     return creatures.length === 1 ? creatures[0]! : null;
   }
 
-  /** Everything the player can refer to: what's in the room and what they carry. */
+  /**
+   * Everything the player can refer to: what's in the room, the doors out of it (a door
+   * belongs to the room on one side but is seen from both), and what they carry.
+   */
   inScope(): ThingId[] {
-    return [...this.thingsAt(this.here), ...this.inventory()];
+    const here = this.thingsAt(this.here);
+    const doors = this.exits()
+      .map(([, exit]) => exit.door)
+      .filter((id): id is ThingId => id !== undefined && !here.includes(id));
+    return [...here, ...new Set(doors), ...this.inventory()];
   }
 
   isRevealed(room: RoomId, dir: Direction): boolean {
