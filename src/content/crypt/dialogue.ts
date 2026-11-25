@@ -299,8 +299,8 @@ export function keeperProof(w: World): void {
   w.say(
     retry
       ? '"Well?" says the dragon. "What does the keeper think of the gardener?"'
-      : '"Did he," says the dragon, and both eyes are open now. "Then you know what he thinks ' +
-          'of the gardener. So, tell me."',
+      : '"Did he," says the dragon, and both eyes are open now. "He told you ' +
+          'of the gardener then. So, tell me."',
   );
   const wrong = () => {
     w.setFlag('dragonDoubt');

@@ -310,7 +310,7 @@ describe('the dragon', () => {
     expect(game.state.location).toBe('dragonCell');
     expect(say(game, 'look')).toMatch(/friendly eye/);
     expect(game.question).toMatch(/What do you say/);
-    expect(say(game, 'two')).toMatch(/what he thinks of the gardener/);
+    expect(say(game, 'two')).toMatch(/of the gardener then/);
   });
 
   it('finishes the gift if the talk was cut short by a reload', () => {
